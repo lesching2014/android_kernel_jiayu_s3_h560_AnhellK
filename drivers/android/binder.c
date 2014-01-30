@@ -45,8 +45,8 @@
 #include <linux/rtc.h>
 #include <linux/aee.h>
 
-#ifdef CONFIG_ANDROID_BINDER_IPC_32BIT
-#define BINDER_IPC_32BIT 1
+#ifdef CONFIG_MT_PRIO_TRACER
+#include <linux/prio_tracer.h>
 #endif
 
 #include <uapi/linux/android/binder.h>
