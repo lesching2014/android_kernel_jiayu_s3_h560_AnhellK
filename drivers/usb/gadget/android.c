@@ -71,6 +71,12 @@ static const char longname[] = "Gadget Android";
 #define VENDOR_ID		0x0BB4
 #define PRODUCT_ID		0x0001
 
+/* f_midi configuration */
+#define MIDI_INPUT_PORTS    1
+#define MIDI_OUTPUT_PORTS   1
+#define MIDI_BUFFER_SIZE    256
+#define MIDI_QUEUE_LENGTH   32
+
 #ifdef CONFIG_MTK_KERNEL_POWER_OFF_CHARGING
 #include <mach/mt_boot_common.h>
 #define KPOC_USB_FUNC "mtp"
@@ -88,7 +94,6 @@ extern BOOTMODE g_boot_mode;
 /* Default manufacturer and product string , overridden by userspace */
 #define MANUFACTURER_STRING "MediaTek"
 #define PRODUCT_STRING "MT65xx Android Phone"
-
 
 //#define USB_LOG "USB"
 
