@@ -58,3 +58,4 @@ obj-$(CONFIG_SRAM)		+= sram.o
 obj-$(CONFIG_MEDIATEK_SOLUTION) += mediatek/
 obj-$(CONFIG_TI_TCA6418)        += tc7-ioexp/
 obj-$(CONFIG_UID_SYS_STATS) += uid_sys_stats.o
+obj-$(CONFIG_UID_CPUTIME) += uid_cputime.o
