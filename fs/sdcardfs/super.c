@@ -1,21 +1,21 @@
 /*
  * fs/sdcardfs/super.c
  *
- * Copyright (c) 2015 Lenovo Co. Ltd
- *   Authors: liaohs , jixj
-
- *                      
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd
+ *   Authors: Daeho Jeong, Woojoong Lee, Seunghwan Hyun,
+ *               Sunghwan Yun, Sungjong Seo
+ *
  * This program has been developed as a stackable file system based on
- * the WrapFS which written by 
+ * the WrapFS which written by
  *
- * Copyright (c) 1998-2014 Erez Zadok
- * Copyright (c) 2009	   Shrikar Archak
- * Copyright (c) 2003-2014 Stony Brook University
- * Copyright (c) 2003-2014 The Research Foundation of SUNY
+ * Copyright (c) 1998-2011 Erez Zadok
+ * Copyright (c) 2009     Shrikar Archak
+ * Copyright (c) 2003-2011 Stony Brook University
+ * Copyright (c) 2003-2011 The Research Foundation of SUNY
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * This file is dual licensed.  It may be redistributed and/or modified
+ * under the terms of the Apache 2.0 License OR version 2 of the GNU
+ * General Public License.
  */
 
 #include "sdcardfs.h"
@@ -35,12 +35,7 @@ static void sdcardfs_put_super(struct super_block *sb)
 	spd = SDCARDFS_SB(sb);
 	if (!spd)
 		return;
-//2015.01.04  merge from N9150	
-	printk(KERN_ERR "sdcardfs: umounted dev_name %s\n", 
-				spd->devpath ? spd->devpath : "");
-	if(spd->devpath)
-		kfree(spd->devpath);
-//end for devpath
+
 	if(spd->obbpath_s) {
 		kfree(spd->obbpath_s);
 		path_put(&spd->obbpath);
@@ -75,15 +70,15 @@ static int sdcardfs_statfs(struct dentry *dentry, struct kstatfs *buf)
 			printk(KERN_ERR "Returned block size is zero.\n");
 			return -EINVAL;
 		}
-	
+
 		min_blocks = ((sbi->options.reserved_mb * 1024 * 1024)/buf->f_bsize);
 		buf->f_blocks -= min_blocks;
-	
+
 		if (buf->f_bavail > min_blocks)
 			buf->f_bavail -= min_blocks;
 		else
 			buf->f_bavail = 0;
-	
+
 		/* Make reserved blocks invisiable to media storage */
 		buf->f_bfree = buf->f_bavail;
 	}
@@ -91,7 +86,6 @@ static int sdcardfs_statfs(struct dentry *dentry, struct kstatfs *buf)
 	/* set return buf to our f/s to avoid confusing user-level utils */
 	buf->f_type = SDCARDFS_SUPER_MAGIC;
 
-	//dump_stack();
 	return err;
 }
 
@@ -99,12 +93,10 @@ static int sdcardfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  * @flags: numeric mount options
  * @options: mount options string
  */
-static int sdcardfs_remount_fs(struct super_block *sb,
-			int *flags, char *options)
+static int sdcardfs_remount_fs(struct super_block *sb, int *flags, char *options)
 {
 	int err = 0;
 
-	SDFS_DBG("options: %s \n",options);
 	/*
 	 * The VFS will take care of "ro" and "rw" flags among others.  We
 	 * can safely accept a few flags (RDONLY, MANDLOCK), and honor
@@ -130,7 +122,7 @@ static void sdcardfs_evict_inode(struct inode *inode)
 	struct inode *lower_inode;
 
 	truncate_inode_pages(&inode->i_data, 0);
-	clear_inode(inode);
+	end_writeback(inode);
 	/*
 	 * Decrement a reference to a lower_inode, which was incremented
 	 * by our read_inode when it was created initially.
@@ -201,25 +193,15 @@ static void sdcardfs_umount_begin(struct super_block *sb)
 		lower_sb->s_op->umount_begin(lower_sb);
 }
 
-static int sdcardfs_show_options(struct seq_file *m, struct dentry *root)
+static int sdcardfs_show_options(struct seq_file *m, struct vfsmount *mnt)
 {
-	struct sdcardfs_sb_info *sbi = SDCARDFS_SB(root->d_sb);
+	struct sdcardfs_sb_info *sbi = SDCARDFS_SB(mnt->mnt_sb);
 	struct sdcardfs_mount_options *opts = &sbi->options;
-	//dump_stack();
-	//SDFS_DBG("show_options: %s \n",m->buf); 
+
 	if (opts->fs_low_uid != 0)
 		seq_printf(m, ",uid=%u", opts->fs_low_uid);
 	if (opts->fs_low_gid != 0)
 		seq_printf(m, ",gid=%u", opts->fs_low_gid);
-
-	if(((opts->upper_perms.uid != 0) || (opts->upper_perms.gid != 0)) &&
-	    (opts->upper_perms.fmask!= 0) && (opts->upper_perms.dmask!= 0)) {
-		seq_printf(m, ",upper=%u:%u:%04o:%04o",
-		    opts->upper_perms.uid,
-		    opts->upper_perms.gid,
-		    opts->upper_perms.fmask,
-		    opts->upper_perms.dmask);
-	}
 
 	if (opts->derive == DERIVE_NONE)
 		seq_printf(m, ",derive=none");
@@ -227,10 +209,6 @@ static int sdcardfs_show_options(struct seq_file *m, struct dentry *root)
 		seq_printf(m, ",derive=legacy");
 	else if (opts->derive == DERIVE_UNIFIED)
 		seq_printf(m, ",derive=unified");
-	else if (opts->derive == DERIVE_PUBLIC)
-		seq_printf(m, ",derive=public");
-	else if (opts->derive == DERIVE_MULTI)
-		seq_printf(m, ",derive=multi");
 
 	if (opts->reserved_mb != 0)
 		seq_printf(m, ",reserved=%uMB", opts->reserved_mb);

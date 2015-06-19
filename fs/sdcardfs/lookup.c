@@ -1,21 +1,21 @@
 /*
  * fs/sdcardfs/lookup.c
  *
- * Copyright (c) 2015 Lenovo Co. Ltd
- *   Authors: liaohs , jixj
-
- *                      
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd
+ *   Authors: Daeho Jeong, Woojoong Lee, Seunghwan Hyun,
+ *               Sunghwan Yun, Sungjong Seo
+ *
  * This program has been developed as a stackable file system based on
- * the WrapFS which written by 
+ * the WrapFS which written by
  *
- * Copyright (c) 1998-2014 Erez Zadok
- * Copyright (c) 2009	   Shrikar Archak
- * Copyright (c) 2003-2014 Stony Brook University
- * Copyright (c) 2003-2014 The Research Foundation of SUNY
+ * Copyright (c) 1998-2011 Erez Zadok
+ * Copyright (c) 2009     Shrikar Archak
+ * Copyright (c) 2003-2011 Stony Brook University
+ * Copyright (c) 2003-2011 The Research Foundation of SUNY
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * This file is dual licensed.  It may be redistributed and/or modified
+ * under the terms of the Apache 2.0 License OR version 2 of the GNU
+ * General Public License.
  */
 
 #include "sdcardfs.h"
@@ -105,8 +105,6 @@ static struct inode *sdcardfs_iget(struct super_block *sb,
 	if (!(inode->i_state & I_NEW))
 		return inode;
 
-	//printk(KERN_INFO "sdcardfs: %s(%d)-> i_mode=%o \n", __FUNCTION__, __LINE__, inode->i_mode);
-
 	/* initialize new inode */
 	info = SDCARDFS_I(inode);
 
@@ -118,8 +116,6 @@ static struct inode *sdcardfs_iget(struct super_block *sb,
 	sdcardfs_set_lower_inode(inode, lower_inode);
 
 	inode->i_version++;
-
-	//printk(KERN_INFO "sdcardfs: %s(%d)->lower_inode, i_mode=%o \n", __FUNCTION__, __LINE__, lower_inode->i_mode);
 
 	/* use different set of inode ops for symlinks & directories */
 	if (S_ISDIR(lower_inode->i_mode))
@@ -146,15 +142,12 @@ static struct inode *sdcardfs_iget(struct super_block *sb,
 
 	/* properly initialize special inodes */
 	if (S_ISBLK(lower_inode->i_mode) || S_ISCHR(lower_inode->i_mode) ||
-	    S_ISFIFO(lower_inode->i_mode) || S_ISSOCK(lower_inode->i_mode)) {
+	    S_ISFIFO(lower_inode->i_mode) || S_ISSOCK(lower_inode->i_mode))
 		init_special_inode(inode, lower_inode->i_mode,
 				   lower_inode->i_rdev);
-		//printk(KERN_INFO "sdcardfs: %s(%d)-> i_mode=%o \n", __FUNCTION__, __LINE__, inode->i_mode);
 
-    }
-
-	/* all well, copy inode attributes, don't need to hold i_mutex here */
-	sdcardfs_copy_inode_attr(inode, lower_inode);
+	/* all well, copy inode attributes */
+	fsstack_copy_attr_all(inode, lower_inode);
 	fsstack_copy_inode_size(inode, lower_inode);
 
 	fix_derived_permission(inode);
@@ -213,13 +206,14 @@ out:
  * Fills in lower_parent_path with <dentry,mnt> on success.
  */
 static struct dentry *__sdcardfs_lookup(struct dentry *dentry,
-		unsigned int flags, struct path *lower_parent_path)
+		struct nameidata *nd, struct path *lower_parent_path)
 {
 	int err = 0;
 	struct vfsmount *lower_dir_mnt;
 	struct dentry *lower_dir_dentry = NULL;
 	struct dentry *lower_dentry;
 	const char *name;
+	struct nameidata lower_nd;
 	struct path lower_path;
 	struct qstr this;
 	struct sdcardfs_sb_info *sbi;
@@ -237,53 +231,44 @@ static struct dentry *__sdcardfs_lookup(struct dentry *dentry,
 	lower_dir_dentry = lower_parent_path->dentry;
 	lower_dir_mnt = lower_parent_path->mnt;
 
-/* ######## ATTENTION ########
- *  after kernel 3.10 version,
-    we must support LOOKUP_CASE_INSENSITIVE in ext4 . otherwise file mmap has problem .
-    from moto's Russ, wrapfs works on top ext4 and f2fs .
-    but must support LOOKUP_CASE_INSENSITIVE in f2fs also .
- */ 
 	/* Use vfs_path_lookup to check if the dentry exists or not */
-#ifdef CONFIG_SDCARD_FS_CI_SEARCH 
-	if ((sbi->options.lower_fs == LOWER_FS_EXT4) || (sbi->options.lower_fs == LOWER_FS_F2FS)){
+	if (sbi->options.lower_fs == LOWER_FS_EXT4) {
 		err = vfs_path_lookup(lower_dir_dentry, lower_dir_mnt, name,
-				LOOKUP_CASE_INSENSITIVE, &lower_path);
+				LOOKUP_CASE_INSENSITIVE, &lower_nd);
 	} else if (sbi->options.lower_fs == LOWER_FS_FAT) {
-#endif
 		err = vfs_path_lookup(lower_dir_dentry, lower_dir_mnt, name, 0,
-				&lower_path);
-#ifdef CONFIG_SDCARD_FS_CI_SEARCH
+				&lower_nd);
 	}
-#endif
+
 	/* no error: handle positive dentries */
 	if (!err) {
-		/* check if the dentry is an obb dentry  
-		 * if true, the lower_inode must be replaced with 
+		/* check if the dentry is an obb dentry
+		 * if true, the lower_inode must be replaced with
 		 * the inode of the graft path */
 
 		if(need_graft_path(dentry)) {
 
 			/* setup_obb_dentry()
- 			 * The lower_path will be stored to the dentry's orig_path 
+ 			 * The lower_path will be stored to the dentry's orig_path
 			 * and the base obbpath will be copyed to the lower_path variable.
-			 * if an error returned, there's no change in the lower_path 
+			 * if an error returned, there's no change in the lower_path
 			 * 		returns: -ERRNO if error (0: no error) */
-			err = setup_obb_dentry(dentry, &lower_path);
+			err = setup_obb_dentry(dentry, &lower_nd.path);
 
-			if(err) { 
+			if(err) {
 				/* if the sbi->obbpath is not available, we can optionally
-				 * setup the lower_path with its orig_path. 
+				 * setup the lower_path with its orig_path.
 				 * but, the current implementation just returns an error
-				 * because the sdcard daemon also regards this case as 
+				 * because the sdcard daemon also regards this case as
 				 * a lookup fail. */
-				printk(KERN_INFO "sdcardfs: base obbpath is not available\n"); 
+				printk(KERN_INFO "sdcardfs: base obbpath is not available\n");
 				sdcardfs_put_reset_orig_path(dentry);
 				goto out;
 			}
 		}
 
-		sdcardfs_set_lower_path(dentry, &lower_path);
-		err = sdcardfs_interpose(dentry, dentry->d_sb, &lower_path);
+		sdcardfs_set_lower_path(dentry, &lower_nd.path);
+		err = sdcardfs_interpose(dentry, dentry->d_sb, &lower_nd.path);
 		if (err) /* path_put underlying path on error */
 			sdcardfs_put_reset_lower_path(dentry);
 		goto out;
@@ -321,26 +306,29 @@ setup_lower:
 	 * the VFS will continue the process of making this negative dentry
 	 * into a positive one.
 	 */
-	if (flags & (LOOKUP_CREATE|LOOKUP_RENAME_TARGET)) // latest wrapfs 
+	if (nd) {
+		if (nd->flags & (LOOKUP_CREATE|LOOKUP_RENAME_TARGET))
+			err = 0;
+	} else
 		err = 0;
 
 out:
 	return ERR_PTR(err);
 }
 
-/* 
+/*
  * On success:
- * 	fills dentry object appropriate values and returns NULL. 
+ * 	fills dentry object appropriate values and returns NULL.
  * On fail (== error)
  * 	returns error ptr
  *
  * @dir : Parent inode. It is locked (dir->i_mutex)
  * @dentry : Target dentry to lookup. we should set each of fields.
  *	     (dentry->d_name is initialized already)
- * @nd : nameidata of parent inode 
+ * @nd : nameidata of parent inode
  */
 struct dentry *sdcardfs_lookup(struct inode *dir, struct dentry *dentry,
-			     unsigned int flags)
+			     struct nameidata *nd)
 {
 	struct dentry *ret = NULL, *parent;
 	struct path lower_parent_path;
@@ -353,12 +341,12 @@ struct dentry *sdcardfs_lookup(struct inode *dir, struct dentry *dentry,
 	if(!check_caller_access_to_name(parent->d_inode, dentry->d_name.name,
 						sbi->options.derive, 0, 0)) {
 		ret = ERR_PTR(-EACCES);
-		printk(KERN_INFO "%s: need to check the caller's gid in packages.list\n" 
+		printk(KERN_INFO "%s: need to check the caller's gid in packages.list\n"
                          "	dentry: %s, task:%s\n",
 						 __func__, dentry->d_name.name, current->comm);
 		goto out_err;
         }
-	
+
 	/* save current_cred and override it */
 	OVERRIDE_CRED_PTR(SDCARDFS_SB(dir->i_sb), saved_cred);
 
@@ -371,14 +359,12 @@ struct dentry *sdcardfs_lookup(struct inode *dir, struct dentry *dentry,
 		goto out;
 	}
 
-	ret = __sdcardfs_lookup(dentry, flags, &lower_parent_path);
+	ret = __sdcardfs_lookup(dentry, nd, &lower_parent_path);
 	if (IS_ERR(ret))
 	{
-		SDFS_DBG(" __sdcardfs_lookup() fail name=%s, lower_parent_path=%s,process=%s\n", dentry->d_name.name, lower_parent_path.dentry->d_name.name,
-            current->group_leader->comm);
 		goto out;
 	}
-	if (ret) 
+	if (ret)
 		dentry = ret;
 	if (dentry->d_inode) {
 		fsstack_copy_attr_times(dentry->d_inode,
