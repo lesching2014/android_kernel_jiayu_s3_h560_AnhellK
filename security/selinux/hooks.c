@@ -1190,9 +1190,9 @@ static inline u16 socket_type_to_security_class(int family, int type, int protoc
 }
 
 static int selinux_genfs_get_sid(struct dentry *dentry,
-				u16 tclass,
+				 u16 tclass,
 				 u16 flags,
-				u32 *sid)
+				 u32 *sid)
 {
 	int rc;
 	struct super_block *sb = dentry->d_inode->i_sb;
@@ -1207,13 +1207,13 @@ static int selinux_genfs_get_sid(struct dentry *dentry,
 		rc = PTR_ERR(path);
 	else {
 		if (flags & SE_SBPROC) {
-		/* each process gets a /proc/PID/ entry. Strip off the
-		 * PID part to get a valid selinux labeling.
-		 * e.g. /proc/1/net/rpc/nfs -> /net/rpc/nfs */
-		while (path[1] >= '0' && path[1] <= '9') {
-			path[1] = '/';
-			path++;
-		}
+			/* each process gets a /proc/PID/ entry. Strip off the
+			 * PID part to get a valid selinux labeling.
+			 * e.g. /proc/1/net/rpc/nfs -> /net/rpc/nfs */
+			while (path[1] >= '0' && path[1] <= '9') {
+				path[1] = '/';
+				path++;
+			}
 		}
 		rc = security_genfs_sid(sb->s_type->name, path, tclass, sid);
 	}
@@ -1563,6 +1563,12 @@ static int inode_has_perm(const struct cred *cred,
 
 	sid = cred_sid(cred);
 	isec = inode->i_security;
+
+	if (NULL == isec){
+		printk(KERN_ERR
+			"SELinux: security field of inode is null!!\n");
+		return -EINVAL;
+	}
 
 	return avc_has_perm_flags(sid, isec->sid, isec->sclass, perms, adp, flags);
 }
@@ -3125,6 +3131,8 @@ int ioctl_has_perm(const struct cred *cred, struct file *file,
 	struct lsm_ioctlop_audit ioctl;
 	u32 ssid = cred_sid(cred);
 	int rc;
+	u8 driver = cmd >> 8;
+	u8 xperm = cmd & 0xff;
 
 	ad.type = LSM_AUDIT_DATA_IOCTL_OP;
 	ad.u.op = &ioctl;
@@ -3143,8 +3151,8 @@ int ioctl_has_perm(const struct cred *cred, struct file *file,
 	if (unlikely(IS_PRIVATE(inode)))
 		return 0;
 
-	rc = avc_has_operation(ssid, isec->sid, isec->sclass,
-			requested, cmd, &ad);
+	rc = avc_has_extended_perms(ssid, isec->sid, isec->sclass,
+			requested, driver, xperm, &ad);
 out:
 	return rc;
 }
@@ -3925,6 +3933,12 @@ static int sock_has_perm(struct task_struct *task, struct sock *sk, u32 perms)
 	struct common_audit_data ad;
 	struct lsm_network_audit net = {0,};
 	u32 tsid = task_sid(task);
+
+	if (NULL == sksec){
+		printk(KERN_ERR
+			"SELinux: security field of sock is null!!\n");
+		return -EINVAL;
+	}
 
 	if (sksec->sid == SECINITSID_KERNEL)
 		return 0;
