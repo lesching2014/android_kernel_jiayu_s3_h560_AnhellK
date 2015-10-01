@@ -30,6 +30,12 @@ int __weak ipanic_atflog_buffer(void *data, unsigned char *buffer, size_t sz_buf
 	return 0;
 }
 
+int __weak has_mt_dump_support(void)
+{
+	pr_notice("%s: no mt_dump support!\n", __func__);
+	return 0;
+}
+
 #if 1
 void ipanic_block_scramble(u8 *buf, int buflen)
 {
@@ -449,6 +455,8 @@ int ipanic(struct notifier_block *this, unsigned long event, void *ptr)
 	int dt;
 	int errno;
 	struct ipanic_header *ipanic_hdr;
+
+	memset(&dumper, 0x0, sizeof(struct kmsg_dumper));
 	aee_rr_rec_fiq_step(AEE_FIQ_STEP_KE_IPANIC_START);
 	aee_rr_rec_exp_type(2);
 	bust_spinlocks(1);
@@ -605,6 +613,9 @@ static int ipanic_die(struct notifier_block *self, unsigned long cmd, void *ptr)
 	if (aee_rr_curr_exp_type() == 2)
 	/* No return if mrdump is enable */
 		aee_kdump_reboot(AEE_REBOOT_MODE_KERNEL_OOPS, "Kernel Oops");
+
+	if (!has_mt_dump_support())
+		emergency_restart();
 
 	smp_send_stop();
 
