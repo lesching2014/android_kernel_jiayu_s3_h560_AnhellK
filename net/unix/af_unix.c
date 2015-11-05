@@ -1034,8 +1034,7 @@ static int unix_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 	atomic_set(&addr->refcnt, 1);
 
 	if (sun_path[0]) {
-		struct path path;
-
+		struct path path = {0};
 		umode_t mode = S_IFSOCK |
 		       (SOCK_INODE(sock)->i_mode & ~current_umask());
 		err = unix_mknod(sun_path, mode, &path);
@@ -1806,7 +1805,6 @@ restart_locked:
 	other->sk_data_ready(other, len);
 	sock_put(other);
 	scm_destroy(siocb->scm);
-
 	return len;
 
 out_unlock:
@@ -1819,7 +1817,6 @@ out:
 	if (other)
 		sock_put(other);
 	scm_destroy(siocb->scm);
-
 	return err;
 }
 
@@ -1844,7 +1841,6 @@ static int unix_stream_sendmsg(struct kiocb *kiocb, struct socket *sock,
 
 	if (NULL == siocb->scm)
 		siocb->scm = &tmp_scm;
-
 	wait_for_unix_gc();
 	err = scm_send(sock, msg, siocb->scm, false);
 	if (err < 0)
@@ -2519,14 +2515,13 @@ static unsigned int unix_dgram_poll(struct file *file, struct socket *sock,
 		/* connection hasn't started yet? */
 		if (sk->sk_state == TCP_SYN_SENT)
     {
-        
 			return mask;
 	  }
   }
 
 	/* No write status requested, avoid expensive OUT tests. */
 	if (!(poll_requested_events(wait) & (POLLWRBAND|POLLWRNORM|POLLOUT)))
-  {     
+  {
 		return mask;
   }
 
