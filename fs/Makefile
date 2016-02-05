@@ -134,4 +134,5 @@ obj-$(CONFIG_YAFFS_FS)          += yaffs2/
 # ifeq ($(CONFIG_SDCARD_FS), yes)
 obj-y		+= sdcardfs/
 # endif
+obj-$(CONFIG_DYNAMIC_FSYNC)	+= dyn_sync_cntrl.o
 
