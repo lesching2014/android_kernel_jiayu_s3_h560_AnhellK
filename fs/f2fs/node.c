@@ -1098,7 +1098,30 @@ void ra_node_page(struct f2fs_sb_info *sbi, nid_t nid)
 	f2fs_put_page(apage, err ? 1 : 0);
 }
 
-struct page *get_node_page(struct f2fs_sb_info *sbi, pgoff_t nid)
+/*
+ * readahead MAX_RA_NODE number of node pages.
+ */
+static void ra_node_pages(struct page *parent, int start)
+{
+	struct f2fs_sb_info *sbi = F2FS_P_SB(parent);
+	struct blk_plug plug;
+	int i, end;
+	nid_t nid;
+
+	blk_start_plug(&plug);
+
+	/* Then, try readahead for siblings of the desired node */
+	end = start + MAX_RA_NODE;
+	end = min(end, NIDS_PER_BLOCK);
+	for (i = start; i < end; i++) {
+		nid = get_nid(parent, i, false);
+		ra_node_page(sbi, nid);
+	}
+	blk_finish_plug(&plug);
+}
+
+static struct page *__get_node_page(struct f2fs_sb_info *sbi, pgoff_t nid,
+					struct page *parent, int start)
 {
 	struct page *page;
 	int err;
