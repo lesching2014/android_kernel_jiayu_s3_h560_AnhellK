@@ -356,7 +356,7 @@ struct page *ext4_encrypt(struct inode *inode,
 		goto errout;
 	ctx->w.control_page = plaintext_page;
 	err = ext4_page_crypto(inode, EXT4_ENCRYPT, plaintext_page->index,
-			       plaintext_page, ciphertext_page);
+			       plaintext_page, ciphertext_page, gfp_flags);
 	if (err) {
 		ciphertext_page = ERR_PTR(err);
 	errout:
@@ -384,8 +384,8 @@ int ext4_decrypt(struct page *page)
 {
 	BUG_ON(!PageLocked(page));
 
-	return ext4_page_crypto(page->mapping->host,
-				EXT4_DECRYPT, page->index, page, page);
+	return ext4_page_crypto(page->mapping->host, EXT4_DECRYPT,
+				page->index, page, page, GFP_NOFS);
 }
 
 int ext4_encrypted_zeroout(struct inode *inode, struct ext4_extent *ex)
@@ -418,7 +418,8 @@ int ext4_encrypted_zeroout(struct inode *inode, struct ext4_extent *ex)
 
 	while (len--) {
 		err = ext4_page_crypto(inode, EXT4_ENCRYPT, lblk,
-				       ZERO_PAGE(0), ciphertext_page);
+				       ZERO_PAGE(0), ciphertext_page,
+				       GFP_NOFS);
 		if (err)
 			goto errout;
 

@@ -490,7 +490,10 @@ int ext4_bio_write_page(struct ext4_io_submit *io,
 
 	if (ext4_encrypted_inode(inode) && S_ISREG(inode->i_mode) &&
 	    nr_to_submit) {
-		data_page = ext4_encrypt(inode, page);
+		gfp_t gfp_flags = GFP_NOFS;
+
+	retry_encrypt:
+		data_page = ext4_encrypt(inode, page, gfp_flags);
 		if (IS_ERR(data_page)) {
 			ret = PTR_ERR(data_page);
 			if (ret == ENOMEM && wbc->sync_mode == WB_SYNC_ALL) {
