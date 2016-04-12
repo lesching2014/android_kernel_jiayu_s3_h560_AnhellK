@@ -35,8 +35,6 @@
 #include "../base.h"
 #include "power.h"
 
-/* #define LOG */ /* for debug only */
-
 #define HIB_DPM_DEBUG 0
 #define _TAG_HIB_M "HIB/DPM"
 #if (HIB_DPM_DEBUG)
