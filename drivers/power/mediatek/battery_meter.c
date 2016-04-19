@@ -3088,6 +3088,7 @@ kal_int32 battery_meter_get_VSense(void)
 static ssize_t fgadc_log_write(struct file *filp, const char __user *buff,
 			       size_t len, loff_t *data)
 {
+
 	char proc_fgadc_data;
 
 	if ((len <= 0) || copy_from_user(&proc_fgadc_data, buff, 1)) {
