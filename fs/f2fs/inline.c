@@ -340,8 +340,8 @@ int make_empty_inline_dir(struct inode *inode, struct inode *parent,
 
 	/* update i_size to MAX_INLINE_DATA */
 	if (i_size_read(inode) < MAX_INLINE_DATA) {
-		i_size_write(inode, MAX_INLINE_DATA);
-		set_inode_flag(F2FS_I(inode), FI_UPDATE_DIR);
+		f2fs_i_size_write(inode, MAX_INLINE_DATA);
+		set_inode_flag(inode, FI_UPDATE_DIR);
 	}
 	return 0;
 }
@@ -402,8 +402,8 @@ static int f2fs_move_inline_dirents(struct inode *dir, struct page *ipage,
 
 	F2FS_I(dir)->i_current_depth = 1;
 	if (i_size_read(dir) < PAGE_SIZE) {
-		i_size_write(dir, PAGE_SIZE);
-		set_inode_flag(F2FS_I(dir), FI_UPDATE_DIR);
+		f2fs_i_size_write(dir, PAGE_SIZE);
+		set_inode_flag(dir, FI_UPDATE_DIR);
 	}
 
 	sync_inode_page(&dn);
@@ -493,8 +493,8 @@ static int f2fs_move_rehashed_dirents(struct inode *dir, struct page *ipage,
 recover:
 	lock_page(ipage);
 	memcpy(inline_dentry, backup_dentry, MAX_INLINE_DATA);
-	fi->i_current_depth = 0;
-	i_size_write(dir, MAX_INLINE_DATA);
+	F2FS_I(dir)->i_current_depth = 0;
+	f2fs_i_size_write(dir, MAX_INLINE_DATA);
 	update_inode(dir, ipage);
 	f2fs_put_page(ipage, 1);
 
