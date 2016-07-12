@@ -1852,38 +1852,6 @@ static const struct file_operations debug_heap_fops = {
 	.release = single_release,
 };
 
-static int ion_debug_heap_pool_show(struct seq_file *s, void *unused)
-{
-	struct ion_heap *heap = s->private;
-	struct ion_device *dev = heap->dev;
-	struct rb_node *n;
-	size_t total_size;
-
-	if (!heap->ops->page_pool_total) {
-		pr_err("%s: ion page pool total is not implemented by heap(%s).\n",
-		       __func__, heap->name);
-		return -ENODEV;
-	}
-
-	total_size = heap->ops->page_pool_total(heap);
-
-	seq_printf(s, "%16.s %16zu\n", "total_in_pool ", total_size);
-
-	return 0;
-}
-
-static int ion_debug_heap_pool_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, ion_debug_heap_pool_show, inode->i_private);
-}
-
-static const struct file_operations debug_heap_pool_fops = {
-	.open = ion_debug_heap_pool_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = single_release,
-};
-
 #ifdef DEBUG_HEAP_SHRINKER
 static int debug_shrink_set(void *data, u64 val)
 {
