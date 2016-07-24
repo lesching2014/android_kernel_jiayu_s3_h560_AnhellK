@@ -20,6 +20,8 @@ obj-$(CONFIG_MTK_STK3X1X_NEW)	+=  stk3x1x-new/
 obj-$(CONFIG_MTK_RPR410)	+=  rpr410/
 obj-$(CONFIG_MTK_TMD2771)	+=  tmd2771/
 obj-$(CONFIG_MTK_TMD2771_AUTO)	+=  tmd2771_auto/
+obj-$(CONFIG_MTK_TMG399X)	+=  tmg399x/
+obj-$(CONFIG_MTK_TMG399X_NEW)	+=  tmg399x-new/
 # lenovo-sw molg1 add 20150407 begin
 obj-$(CONFIG_MTK_CM366XX)	+=  cm366xx/
 # lenovo-sw molg1 add 20150407 end
@@ -31,5 +33,9 @@ endif
 
 ifeq ($(CONFIG_MTK_EPL21822_AIO),y)
 obj-y   +=  EPL21822-aio/
+endif
+
+ifeq ($(CONFIG_MTK_TMG399X_NEW),y)
+obj-y	+=  tmg399x-new/
 endif
 

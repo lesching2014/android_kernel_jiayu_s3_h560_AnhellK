@@ -3,7 +3,7 @@
 
 #include <linux/types.h>
 
-#define C_CUST_ALS_LEVEL    16
+#define C_CUST_ALS_LEVEL    20
 #define C_CUST_I2C_ADDR_NUM 4
 
 #define MAX_THRESHOLD_HIGH 0xffff
@@ -16,6 +16,10 @@ struct alsps_hw {
 	int polling_mode;                               /*!< 1: polling mode ; 0:interrupt mode*/
 	int polling_mode_ps;                               /*!< 1: polling mode ; 0:interrupt mode*/
 	int polling_mode_als;                               /*!< 1: polling mode ; 0:interrupt mode*/
+/* Vanzo:songlixin on: Mon, 13 Apr 2015 14:59:03 +0800
+ */
+    int polling_mode_gesture;
+// End of Vanzo:songlixin
     unsigned char   i2c_addr[C_CUST_I2C_ADDR_NUM];  /*!< i2c address list, some chip will have multiple address */
     unsigned int    als_level[C_CUST_ALS_LEVEL-1];  /*!< (C_CUST_ALS_LEVEL-1) levels divides all range into C_CUST_ALS_LEVEL levels*/
     unsigned int    als_value[C_CUST_ALS_LEVEL];    /*!< the value reported in each level */
@@ -23,10 +27,6 @@ struct alsps_hw {
 	unsigned int    als_window_loss;                /*!< the window loss  */
 	unsigned int    ps_threshold_high;
 	unsigned int    ps_threshold_low;
-	/* lenovo-sw youwc1 20150104: adapter psensor for different project start */
-	unsigned int    ps_threshold_high_offset;
-	unsigned int    ps_threshold_low_offset;
-	/* lenovo-sw youwc1 20150104: adapter psensor for different project end */
 	unsigned int    als_threshold_high;
 	unsigned int    als_threshold_low;
     int als_power_vio_id;                                   /*!< the VIO power id of the als chip */

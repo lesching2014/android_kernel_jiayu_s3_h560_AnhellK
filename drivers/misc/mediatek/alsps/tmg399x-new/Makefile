@@ -1,4 +1,4 @@
 include $(srctree)/drivers/misc/mediatek/Makefile.custom
 
-obj-y	:=  cust_alsps.o
+obj-y	:=  tmg399x.o tmg399x_gesture_algorithm.o
 

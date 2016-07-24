@@ -609,6 +609,14 @@ config MTK_EPL21822
 	default n
 # lenovo-sw youwc1 add for ALS/PS end
 
+config MTK_TMG399X_NEW
+	bool "TMG399X for MediaTek package"
+	default n
+
+config MTK_TMG399X
+	bool "TMG399X for MediaTek package"
+	default n
+
 # Magnet sensor
 
 config MTK_S2200

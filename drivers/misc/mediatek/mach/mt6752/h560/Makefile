@@ -18,6 +18,7 @@ ifeq ($(CONFIG_MTK_HDMI_SUPPORT),y)
 obj-y	+=  hdmi/
 endif
 
+
 obj-$(CONFIG_CUSTOM_KERNEL_ALSPS) += alsps/
 obj-$(CONFIG_CUSTOM_KERNEL_ACCELEROMETER) += accelerometer/
 obj-$(CONFIG_CUSTOM_KERNEL_GYROSCOPE) += gyroscope/
@@ -27,3 +28,4 @@ obj-$(CONFIG_CUSTOM_KERNEL_BAROMETER) += barometer/
 ifdef CONFIG_CUSTOM_KERNEL_SENSORHUB
 obj-y	+= sensorHub/
 endif
+

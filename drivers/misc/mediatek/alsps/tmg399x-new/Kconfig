@@ -1,0 +1,4 @@
+
+config MTK_TMG399X_NEW
+	bool "TMG399X for MediaTek package"
+	default n

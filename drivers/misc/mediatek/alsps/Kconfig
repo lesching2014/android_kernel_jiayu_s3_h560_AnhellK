@@ -47,3 +47,5 @@ source "drivers/misc/mediatek/alsps/tmd2771_auto/Kconfig"
 source "drivers/misc/mediatek/alsps/cm366xx/Kconfig"
 # lenovo-sw molg1 add 20150407 end
 source "drivers/misc/mediatek/alsps/EPL21822-aio/Kconfig"
+source "drivers/misc/mediatek/alsps/tmg399x/Kconfig"
+source "drivers/misc/mediatek/alsps/tmg399x-new/Kconfig"
