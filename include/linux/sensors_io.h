@@ -134,6 +134,16 @@ typedef struct
 #define COMPAT_MSENSOR_IOCTL_SET_CALIDATA		    _IOW(MSENSOR, 0x0a, compat_int_t)
 #define COMPAT_MSENSOR_IOCTL_SENSOR_ENABLE          _IOW(MSENSOR, 0x51, compat_int_t)
 #define COMPAT_MSENSOR_IOCTL_READ_FACTORY_SENSORDATA  _IOW(MSENSOR, 0x52, compat_int_t)
+/*Vanzo:zhangxinyu on: Wed,  Apr 2015 11:18:57 +0800
+ * 32bit userspace call 64bit driver
+ */
+#define COMPAT_QMC6983_SET_RANGE        _IOW(QMC6983_IOCTL_BASE, 0x01, compat_int_t)
+#define COMPAT_QMC6983_SET_MODE         _IOW(QMC6983_IOCTL_BASE, 0x02, compat_int_t)
+#define COMPAT_QMC6983_SET_BANDWIDTH    _IOW(QMC6983_IOCTL_BASE, 0x03, compat_int_t)
+#define COMPAT_QMC6983_READ_MAGN_XYZ    _IOR(QMC6983_IOCTL_BASE, 0x04, compat_int_t)
+#define COMPAT_QMC6983_SET_REGISTER_A   _IOW(QMC6983_IOCTL_BASE, 0x05, char *)
+#define COMPAT_QMC6983_SELF_TEST       _IOWR(QMC6983_IOCTL_BASE, 0x06, char *)
+//End of Vanzo:zhangxinyu
 #endif
 
 /* IOCTLs for AKM library */
