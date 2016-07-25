@@ -7,7 +7,7 @@ obj-y   += core/
 obj-y   += dct/dct/
 endif
 obj-y   +=  camera/camera/
-#obj-y   +=  flashlight/constant_flashlight/
+obj-y   +=  flashlight/constant_flashlight/
 obj-y   +=  vibrator/
 obj-y   +=  leds/
 obj-y   +=  keypad/
@@ -17,7 +17,13 @@ obj-y   +=  accdet/
 ifeq ($(CONFIG_MTK_HDMI_SUPPORT),y)
 obj-y	+=  hdmi/
 endif
-
+custom_kernel_flashlight:= $(addsuffix /, $(shell echo $(CUSTOM_KERNEL_FLASHLIGHT)))
+$(info "the custom_kernel_flashlight:$(custom_kernel_flashlight)")
+ifneq ($(custom_kernel_flashlight),)
+obj-y += flashlight/$(custom_kernel_flashlight)
+else
+$(info "Warning!Why custom_kernel_flashlight is empty?")
+endif
 
 obj-$(CONFIG_CUSTOM_KERNEL_ALSPS) += alsps/
 obj-$(CONFIG_CUSTOM_KERNEL_ACCELEROMETER) += accelerometer/
