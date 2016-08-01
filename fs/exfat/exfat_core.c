@@ -1141,7 +1141,7 @@ s32 ffsGetStat(struct inode *inode, DIR_ENTRY_T *info)
 		if (!ep)
 			return FFS_MEDIAERR;
 		ep2 = ep;
-		buf_lock(sb, sector);
+		exfat_buf_lock(sb, sector);
 	}
 
 	/* set FILE_INFO structure using the acquired DENTRY_T */
@@ -1171,7 +1171,7 @@ s32 ffsGetStat(struct inode *inode, DIR_ENTRY_T *info)
 	/* XXX this is very bad for exfat cuz name is already included in es.
 	 API should be revised */
 	p_fs->fs_func->get_uni_name_from_ext_entry(sb, &(fid->dir), fid->entry, uni_name.name);
-	if (*(uni_name.name) == 0x0 && p_fs->vol_type != EXFAT)
+	if (*(uni_name.name) == 0x0)
 		get_uni_name_from_dos_entry(sb, (DOS_DENTRY_T *) ep, &uni_name, 0x1);
 	nls_uniname_to_cstring(sb, info->Name, &uni_name);
 
@@ -1531,7 +1531,7 @@ s32 ffsReadDir(struct inode *inode, DIR_ENTRY_T *dir_entry)
 			if ((type != TYPE_FILE) && (type != TYPE_DIR))
 				continue;
 
-			buf_lock(sb, sector);
+			exfat_buf_lock(sb, sector);
 			dir_entry->Attr = p_fs->fs_func->get_entry_attr(ep);
 
 			p_fs->fs_func->get_entry_time(ep, &tm, TM_CREATE);
@@ -1556,7 +1556,7 @@ s32 ffsReadDir(struct inode *inode, DIR_ENTRY_T *dir_entry)
 
 			*(uni_name.name) = 0x0;
 			p_fs->fs_func->get_uni_name_from_ext_entry(sb, &dir, dentry, uni_name.name);
-			if (*(uni_name.name) == 0x0 && p_fs->vol_type != EXFAT)
+			if (*(uni_name.name) == 0x0)
 				get_uni_name_from_dos_entry(sb, (DOS_DENTRY_T *) ep, &uni_name, 0x1);
 			nls_uniname_to_cstring(sb, dir_entry->Name, &uni_name);
 			buf_unlock(sb, sector);
@@ -2306,7 +2306,7 @@ void sync_alloc_bitmap(struct super_block *sb)
 		return;
 
 	for (i = 0; i < p_fs->map_sectors; i++)
-		bdev_sync_dirty_buffer(p_fs->vol_amap[i], sb, 1);
+		sync_dirty_buffer(p_fs->vol_amap[i]);
 } /* end of sync_alloc_bitmap */
 
 /*
@@ -3099,7 +3099,7 @@ void update_dir_checksum(struct super_block *sb, CHAIN_T *p_dir, s32 entry)
 	if (!file_ep)
 		return;
 
-	buf_lock(sb, sector);
+	exfat_buf_lock(sb, sector);
 
 	num_entries = (s32) file_ep->num_ext + 1;
 	chksum = calc_checksum_2byte((void *) file_ep, DENTRY_SIZE, 0, CS_DIR_ENTRY);
@@ -4815,7 +4815,7 @@ void remove_file(struct inode *inode, CHAIN_T *p_dir, s32 entry)
 	if (!ep)
 		return;
 
-	buf_lock(sb, sector);
+	exfat_buf_lock(sb, sector);
 
 	/* buf_lock() before call count_ext_entries() */
 	num_entries = p_fs->fs_func->count_ext_entries(sb, p_dir, entry, ep);
@@ -4844,7 +4844,7 @@ s32 rename_file(struct inode *inode, CHAIN_T *p_dir, s32 oldentry, UNI_NAME_T *p
 	if (!epold)
 		return FFS_MEDIAERR;
 
-	buf_lock(sb, sector_old);
+	exfat_buf_lock(sb, sector_old);
 
 	/* buf_lock() before call count_ext_entries() */
 	num_old_entries = p_fs->fs_func->count_ext_entries(sb, p_dir, oldentry, epold);
@@ -4883,7 +4883,7 @@ s32 rename_file(struct inode *inode, CHAIN_T *p_dir, s32 oldentry, UNI_NAME_T *p
 
 		if (p_fs->vol_type == EXFAT) {
 			epold = get_entry_in_dir(sb, p_dir, oldentry+1, &sector_old);
-			buf_lock(sb, sector_old);
+			exfat_buf_lock(sb, sector_old);
 			epnew = get_entry_in_dir(sb, p_dir, newentry+1, &sector_new);
 
 			if (!epold || !epnew) {
@@ -4939,7 +4939,7 @@ s32 move_file(struct inode *inode, CHAIN_T *p_olddir, s32 oldentry, CHAIN_T *p_n
 		p_fs->fs_func->get_entry_clu0(epmov) == p_newdir->dir)
 		return FFS_INVALIDPATH;
 
-	buf_lock(sb, sector_mov);
+	exfat_buf_lock(sb, sector_mov);
 
 	/* buf_lock() before call count_ext_entries() */
 	num_old_entries = p_fs->fs_func->count_ext_entries(sb, p_olddir, oldentry, epmov);
@@ -4977,7 +4977,7 @@ s32 move_file(struct inode *inode, CHAIN_T *p_olddir, s32 oldentry, CHAIN_T *p_n
 
 	if (p_fs->vol_type == EXFAT) {
 		epmov = get_entry_in_dir(sb, p_olddir, oldentry+1, &sector_mov);
-		buf_lock(sb, sector_mov);
+		exfat_buf_lock(sb, sector_mov);
 		epnew = get_entry_in_dir(sb, p_newdir, newentry+1, &sector_new);
 		if (!epmov || !epnew) {
 			buf_unlock(sb, sector_mov);

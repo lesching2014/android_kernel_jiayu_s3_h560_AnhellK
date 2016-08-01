@@ -593,7 +593,7 @@ void buf_modify(struct super_block *sb, u32 sec)
 	sm_V(&b_sem);
 } /* end of buf_modify */
 
-void buf_lock(struct super_block *sb, u32 sec)
+void exfat_buf_lock(struct super_block *sb, u32 sec)
 {
 	BUF_CACHE_T *bp;
 
@@ -682,7 +682,7 @@ void buf_sync(struct super_block *sb)
 	bp = p_fs->buf_cache_lru_list.next;
 	while (bp != &p_fs->buf_cache_lru_list) {
 		if ((bp->drv == p_fs->drv) && (bp->flag & DIRTYBIT)) {
-			bdev_sync_dirty_buffer(bp->buf_bh, sb, 1);
+			sync_dirty_buffer(bp->buf_bh);
 			bp->flag &= ~(DIRTYBIT);
 		}
 		bp = bp->next;
