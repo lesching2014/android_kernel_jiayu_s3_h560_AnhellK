@@ -83,7 +83,7 @@ u32 prandom_u32(void)
 	unsigned long r;
 	struct rnd_state *state = &get_cpu_var(net_rand_state);
 	r = prandom_u32_state(state);
-	put_cpu_var(state);
+	put_cpu_var(net_rand_state);
 	return r;
 }
 EXPORT_SYMBOL(prandom_u32);
@@ -129,7 +129,7 @@ void prandom_bytes(void *buf, size_t bytes)
 	struct rnd_state *state = &get_cpu_var(net_rand_state);
 
 	prandom_bytes_state(state, buf, bytes);
-	put_cpu_var(state);
+	put_cpu_var(net_rand_state);
 }
 EXPORT_SYMBOL(prandom_bytes);
 
