@@ -60,16 +60,9 @@ extern int sec_usbdl_enabled(void);
 extern int sec_modem_auth_enabled(void);
 extern int sec_schip_enabled(void);
 extern int sec_get_random_id(unsigned int *rid);
-extern long sec_core_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
-extern void sec_core_init(void);
-extern void sec_core_exit(void);
 
-/**************************************************************************
-*  EXTERNAL VARIABLE
-**************************************************************************/
-extern const struct sec_ops         *sec_get_ops(void);
-extern bool                         bMsg;
-extern struct semaphore             hacc_sem;
 /* HACC HW init */
 extern unsigned int sec_boot_hacc_init(void);
+
+
 #endif				/* SEC_BOOT_LIB_H */

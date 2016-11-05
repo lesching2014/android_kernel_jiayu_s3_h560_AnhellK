@@ -47,20 +47,6 @@ void sec_core_exit(void)
 	pr_debug("[%s] version '%s%s', exit.\n", MOD, BUILD_TIME, BUILD_BRANCH);
 }
 
-void sec_update_lks(unsigned char tr, unsigned char dn, unsigned char fb_ulk)
-{
-	if (fb_ulk)		/* FB */
-		lks = 0;
-	else if (sec_schip_enabled())	/* SC */
-		lks = 1;
-	else if (!sec_boot_enabled())	/* NSC */
-		lks = 0;
-	else if (0 == tr && 2 == dn)	/* SWSEC */
-		lks = 0;
-	else			/* SWSEC */
-		lks = 1;
-}
-
 /* extern void osal_msleep(unsigned int msec); */
 
 /**************************************************************************
