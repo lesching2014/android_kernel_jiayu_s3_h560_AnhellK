@@ -155,6 +155,12 @@ config CPU_FREQ_DEFAULT_GOV_WHEATLEY
 	help
 	  Use the CPUFreq governor 'wheatley' as default.
 
+config CPU_FREQ_DEFAULT_GOV_PEGASUSQ
+        bool "pegasusq"
+        select CPU_FREQ_GOV_PEGASUSQ
+        help
+          Use the CPUFreq governor 'pegasusq' as default
+
 endchoice
 
 config CPU_FREQ_GOV_BALANCE
@@ -174,6 +180,9 @@ config CPU_FREQ_GOV_BALANCE
 	  For details, take a look at linux/Documentation/cpu-freq.
 
 	  If in doubt, say N.
+
+config CPU_FREQ_GOV_PEGASUSQ
+	tristate "'pegasusq' cpufreq policy governor"
 
 config CPU_FREQ_GOV_PERFORMANCE
 	tristate "'performance' governor"
