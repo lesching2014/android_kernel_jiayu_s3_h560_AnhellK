@@ -218,7 +218,7 @@ static inline void __submit_bio(struct f2fs_sb_info *sbi,
 		if (type == NODE)
 			set_sbi_flag(sbi, SBI_NEED_CP);
 	}
-submit_io:
+	}
 	if (is_read_io(bio_op(bio)))
 		trace_f2fs_submit_read_bio(sbi->sb, type, bio);
 	else
@@ -233,12 +233,12 @@ static void __submit_merged_bio(struct f2fs_bio_info *io)
 	if (!io->bio)
 		return;
 
-	if (is_read_io(fio->op))
-		trace_f2fs_submit_read_bio(io->sbi->sb, fio, io->bio);
-	else
-		trace_f2fs_submit_write_bio(io->sbi->sb, fio, io->bio);
-
 	bio_set_op_attrs(io->bio, fio->op, fio->op_flags);
+
+	if (is_read_io(fio->op))
+		trace_f2fs_prepare_read_bio(io->sbi->sb, fio->type, io->bio);
+	else
+		trace_f2fs_prepare_write_bio(io->sbi->sb, fio->type, io->bio);
 
 	__submit_bio(io->sbi, io->bio, fio->type);
 	io->bio = NULL;
