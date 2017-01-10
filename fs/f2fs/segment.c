@@ -687,54 +687,71 @@ static void locate_dirty_segment(struct f2fs_sb_info *sbi, unsigned int segno)
 	mutex_unlock(&dirty_i->seglist_lock);
 }
 
-static struct discard_cmd *__add_discard_cmd(struct f2fs_sb_info *sbi,
+static void __add_discard_cmd(struct f2fs_sb_info *sbi,
 			struct bio *bio, block_t lstart, block_t len)
 {
-	struct list_head *wait_list = &(SM_I(sbi)->discard_cmd_list);
+	struct discard_cmd_control *dcc = SM_I(sbi)->dcc_info;
+	struct list_head *cmd_list = &(dcc->discard_cmd_list);
 	struct discard_cmd *dc;
 
 	dc = f2fs_kmem_cache_alloc(discard_cmd_slab, GFP_NOFS);
 	INIT_LIST_HEAD(&dc->list);
 	dc->bio = bio;
+	bio->bi_private = dc;
 	dc->lstart = lstart;
 	dc->len = len;
+	dc->state = D_PREP;
 	init_completion(&dc->wait);
-	list_add_tail(&dc->list, wait_list);
 
-	return dc;
+	mutex_lock(&dcc->cmd_lock);
+	list_add_tail(&dc->list, cmd_list);
+	mutex_unlock(&dcc->cmd_lock);
+}
+
+static void __remove_discard_cmd(struct f2fs_sb_info *sbi, struct discard_cmd *dc)
+{
+	int err = dc->error;
+
+	if (err == -EOPNOTSUPP)
+		err = 0;
+
+	if (err)
+		f2fs_msg(sbi->sb, KERN_INFO,
+				"Issue discard failed, ret: %d", err);
+	bio_put(dc->bio);
+	list_del(&dc->list);
+	kmem_cache_free(discard_cmd_slab, dc);
 }
 
 /* This should be covered by global mutex, &sit_i->sentry_lock */
 void f2fs_wait_discard_bio(struct f2fs_sb_info *sbi, block_t blkaddr)
 {
-	struct list_head *wait_list = &(SM_I(sbi)->discard_cmd_list);
+	struct discard_cmd_control *dcc = SM_I(sbi)->dcc_info;
+	struct list_head *wait_list = &(dcc->discard_cmd_list);
 	struct discard_cmd *dc, *tmp;
 
+	mutex_lock(&dcc->cmd_lock);
 	list_for_each_entry_safe(dc, tmp, wait_list, list) {
-		struct bio *bio = dc->bio;
-		int err;
 
-		if (!completion_done(&dc->wait)) {
-			if ((dc->lstart <= blkaddr &&
-					blkaddr < dc->lstart + dc->len) ||
-					blkaddr == NULL_ADDR)
-				wait_for_completion_io(&dc->wait);
-			else
-				continue;
+		if (blkaddr == NULL_ADDR) {
+			if (dc->state == D_PREP) {
+				dc->state = D_SUBMIT;
+				submit_bio(REQ_SYNC, dc->bio);
+			}
+			wait_for_completion_io(&dc->wait);
+
+			__remove_discard_cmd(sbi, dc);
+			continue;
 		}
 
-		err = dc->error;
-		if (err == -EOPNOTSUPP)
-			err = 0;
-
-		if (err)
-			f2fs_msg(sbi->sb, KERN_INFO,
-				"Issue discard failed, ret: %d", err);
-
-		bio_put(bio);
-		list_del(&dc->list);
-		kmem_cache_free(discard_cmd_slab, dc);
+		if (dc->lstart <= blkaddr && blkaddr < dc->lstart + dc->len) {
+			if (dc->state == D_SUBMIT)
+				wait_for_completion_io(&dc->wait);
+			else
+				__remove_discard_cmd(sbi, dc);
+		}
 	}
+	mutex_unlock(&dcc->cmd_lock);
 }
 
 static void f2fs_submit_discard_endio(struct bio *bio, int err)
@@ -743,6 +760,7 @@ static void f2fs_submit_discard_endio(struct bio *bio, int err)
 
 	dc->error = err;
 	complete(&dc->wait);
+	dc->state = D_DONE;
 }
 
 /* copied from block/blk-lib.c in 4.10-rc1 */
@@ -826,6 +844,45 @@ static int __blkdev_issue_discard(struct block_device *bdev, sector_t sector,
 	return 0;
 }
 
+static int issue_discard_thread(void *data)
+{
+	struct f2fs_sb_info *sbi = data;
+	struct discard_cmd_control *dcc = SM_I(sbi)->dcc_info;
+	wait_queue_head_t *q = &dcc->discard_wait_queue;
+	struct list_head *cmd_list = &dcc->discard_cmd_list;
+	struct discard_cmd *dc, *tmp;
+	struct blk_plug plug;
+	int iter = 0;
+repeat:
+	if (kthread_should_stop())
+		return 0;
+
+	blk_start_plug(&plug);
+
+	mutex_lock(&dcc->cmd_lock);
+	list_for_each_entry_safe(dc, tmp, cmd_list, list) {
+		if (dc->state == D_PREP) {
+			dc->state = D_SUBMIT;
+			submit_bio(REQ_SYNC, dc->bio);
+			if (iter++ > DISCARD_ISSUE_RATE)
+				break;
+		} else if (dc->state == D_DONE) {
+			__remove_discard_cmd(sbi, dc);
+		}
+	}
+	mutex_unlock(&dcc->cmd_lock);
+
+	blk_finish_plug(&plug);
+
+	iter = 0;
+	congestion_wait(BLK_RW_SYNC, HZ/50);
+
+	wait_event_interruptible(*q,
+		kthread_should_stop() || !list_empty(&dcc->discard_cmd_list));
+	goto repeat;
+}
+
+
 /* this function is copied from blkdev_issue_discard from block/blk-lib.c */
 static int __f2fs_issue_discard_async(struct f2fs_sb_info *sbi,
 		struct block_device *bdev, block_t blkstart, block_t blklen)
@@ -846,12 +903,9 @@ static int __f2fs_issue_discard_async(struct f2fs_sb_info *sbi,
 				SECTOR_FROM_BLOCK(blklen),
 				GFP_NOFS, 0, &bio);
 	if (!err && bio) {
-		struct discard_cmd *dc = __add_discard_cmd(sbi, bio,
-						lblkstart, blklen);
-
-		bio->bi_private = dc;
 		bio->bi_end_io = f2fs_submit_discard_endio;
-		submit_bio(REQ_SYNC, bio);
+		__add_discard_cmd(sbi, bio, lblkstart, blklen);
+		wake_up(&SM_I(sbi)->dcc_info->discard_wait_queue);
 	}
 	return err;
 }
@@ -957,7 +1011,7 @@ static void __add_discard_entry(struct f2fs_sb_info *sbi,
 		struct cp_control *cpc, struct seg_entry *se,
 		unsigned int start, unsigned int end)
 {
-	struct list_head *head = &SM_I(sbi)->discard_entry_list;
+	struct list_head *head = &SM_I(sbi)->dcc_info->discard_entry_list;
 	struct discard_entry *new, *last;
 
 	if (!list_empty(head)) {
@@ -975,7 +1029,7 @@ static void __add_discard_entry(struct f2fs_sb_info *sbi,
 	new->len = end - start;
 	list_add_tail(&new->list, head);
 done:
-	SM_I(sbi)->nr_discards += end - start;
+	SM_I(sbi)->dcc_info->nr_discards += end - start;
 }
 
 static bool add_discard_addrs(struct f2fs_sb_info *sbi, struct cp_control *cpc,
@@ -997,7 +1051,8 @@ static bool add_discard_addrs(struct f2fs_sb_info *sbi, struct cp_control *cpc,
 
 	if (!force) {
 		if (!test_opt(sbi, DISCARD) || !se->valid_blocks ||
-		    SM_I(sbi)->nr_discards >= SM_I(sbi)->max_discards)
+			SM_I(sbi)->dcc_info->nr_discards >=
+				SM_I(sbi)->dcc_info->max_discards)
 			return false;
 	}
 
@@ -1006,7 +1061,8 @@ static bool add_discard_addrs(struct f2fs_sb_info *sbi, struct cp_control *cpc,
 		dmap[i] = force ? ~ckpt_map[i] & ~discard_map[i] :
 				(cur_map[i] ^ ckpt_map[i]) & ckpt_map[i];
 
-	while (force || SM_I(sbi)->nr_discards <= SM_I(sbi)->max_discards) {
+	while (force || SM_I(sbi)->dcc_info->nr_discards <=
+				SM_I(sbi)->dcc_info->max_discards) {
 		start = __find_rev_next_bit(dmap, max_blocks, end + 1);
 		if (start >= max_blocks)
 			break;
@@ -1026,7 +1082,7 @@ static bool add_discard_addrs(struct f2fs_sb_info *sbi, struct cp_control *cpc,
 
 void release_discard_addrs(struct f2fs_sb_info *sbi)
 {
-	struct list_head *head = &(SM_I(sbi)->discard_entry_list);
+	struct list_head *head = &(SM_I(sbi)->dcc_info->discard_entry_list);
 	struct discard_entry *entry, *this;
 
 	/* drop caches */
@@ -1052,16 +1108,13 @@ static void set_prefree_as_free_segments(struct f2fs_sb_info *sbi)
 
 void clear_prefree_segments(struct f2fs_sb_info *sbi, struct cp_control *cpc)
 {
-	struct list_head *head = &(SM_I(sbi)->discard_entry_list);
+	struct list_head *head = &(SM_I(sbi)->dcc_info->discard_entry_list);
 	struct discard_entry *entry, *this;
 	struct dirty_seglist_info *dirty_i = DIRTY_I(sbi);
-	struct blk_plug plug;
 	unsigned long *prefree_map = dirty_i->dirty_segmap[PRE];
 	unsigned int start = 0, end = -1;
 	unsigned int secno, start_segno;
 	bool force = (cpc->reason == CP_DISCARD);
-
-	blk_start_plug(&plug);
 
 	mutex_lock(&dirty_i->seglist_lock);
 
@@ -1112,11 +1165,61 @@ next:
 		cpc->trimmed += entry->len;
 skip:
 		list_del(&entry->list);
-		SM_I(sbi)->nr_discards -= entry->len;
+		SM_I(sbi)->dcc_info->nr_discards -= entry->len;
 		kmem_cache_free(discard_entry_slab, entry);
 	}
+}
 
-	blk_finish_plug(&plug);
+int create_discard_cmd_control(struct f2fs_sb_info *sbi)
+{
+	dev_t dev = sbi->sb->s_bdev->bd_dev;
+	struct discard_cmd_control *dcc;
+	int err = 0;
+
+	if (SM_I(sbi)->dcc_info) {
+		dcc = SM_I(sbi)->dcc_info;
+		goto init_thread;
+	}
+
+	dcc = kzalloc(sizeof(struct discard_cmd_control), GFP_KERNEL);
+	if (!dcc)
+		return -ENOMEM;
+
+	INIT_LIST_HEAD(&dcc->discard_entry_list);
+	INIT_LIST_HEAD(&dcc->discard_cmd_list);
+	mutex_init(&dcc->cmd_lock);
+	dcc->nr_discards = 0;
+	dcc->max_discards = 0;
+
+	init_waitqueue_head(&dcc->discard_wait_queue);
+	SM_I(sbi)->dcc_info = dcc;
+init_thread:
+	dcc->f2fs_issue_discard = kthread_run(issue_discard_thread, sbi,
+				"f2fs_discard-%u:%u", MAJOR(dev), MINOR(dev));
+	if (IS_ERR(dcc->f2fs_issue_discard)) {
+		err = PTR_ERR(dcc->f2fs_issue_discard);
+		kfree(dcc);
+		SM_I(sbi)->dcc_info = NULL;
+		return err;
+	}
+
+	return err;
+}
+
+void destroy_discard_cmd_control(struct f2fs_sb_info *sbi, bool free)
+{
+	struct discard_cmd_control *dcc = SM_I(sbi)->dcc_info;
+
+	if (dcc && dcc->f2fs_issue_discard) {
+		struct task_struct *discard_thread = dcc->f2fs_issue_discard;
+
+		dcc->f2fs_issue_discard = NULL;
+		kthread_stop(discard_thread);
+	}
+	if (free) {
+		kfree(dcc);
+		SM_I(sbi)->dcc_info = NULL;
+	}
 }
 
 static bool __mark_sit_entry_dirty(struct f2fs_sb_info *sbi, unsigned int segno)
@@ -2848,11 +2951,6 @@ int build_segment_manager(struct f2fs_sb_info *sbi)
 	sm_info->min_ipu_util = DEF_MIN_IPU_UTIL;
 	sm_info->min_fsync_blocks = DEF_MIN_FSYNC_BLOCKS;
 
-	INIT_LIST_HEAD(&sm_info->discard_entry_list);
-	INIT_LIST_HEAD(&sm_info->discard_cmd_list);
-	sm_info->nr_discards = 0;
-	sm_info->max_discards = 0;
-
 	sm_info->trim_sections = DEF_BATCHED_TRIM_SECTIONS;
 
 	INIT_LIST_HEAD(&sm_info->sit_entry_set);
@@ -2862,6 +2960,10 @@ int build_segment_manager(struct f2fs_sb_info *sbi)
 		if (err)
 			return err;
 	}
+
+	err = create_discard_cmd_control(sbi);
+	if (err)
+		return err;
 
 	err = build_sit_info(sbi);
 	if (err)
@@ -2984,6 +3086,7 @@ void destroy_segment_manager(struct f2fs_sb_info *sbi)
 	if (!sm_info)
 		return;
 	destroy_flush_cmd_control(sbi, true);
+	destroy_discard_cmd_control(sbi, true);
 	destroy_dirty_segmap(sbi);
 	destroy_curseg(sbi);
 	destroy_free_segmap(sbi);

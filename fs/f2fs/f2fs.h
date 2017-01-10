@@ -232,6 +232,8 @@ enum {
 		(SM_I(sbi)->trim_sections * (sbi)->segs_per_sec)
 #define BATCHED_TRIM_BLOCKS(sbi)	\
 		(BATCHED_TRIM_SEGMENTS(sbi) << (sbi)->log_blocks_per_seg)
+
+#define DISCARD_ISSUE_RATE	8
 #define DEF_CP_INTERVAL			60	/* 60 secs */
 #define DEF_IDLE_INTERVAL		5	/* 5 secs */
 
@@ -280,6 +282,12 @@ struct discard_entry {
 	int len;		/* # of consecutive blocks of the discard */
 };
 
+enum {
+	D_PREP,
+	D_SUBMIT,
+	D_DONE,
+};
+
 struct discard_cmd {
 	struct list_head list;		/* command list */
 	struct completion wait;		/* compleation */
@@ -287,6 +295,17 @@ struct discard_cmd {
 	block_t len;			/* length */
 	struct bio *bio;		/* bio */
 	int error;
+	int state;			/* state */
+};
+
+struct discard_cmd_control {
+	struct task_struct *f2fs_issue_discard;	/* discard thread */
+	struct list_head discard_entry_list;	/* 4KB discard entry list */
+	int nr_discards;			/* # of discards in the list */
+	struct list_head discard_cmd_list;	/* discard cmd list */
+	wait_queue_head_t discard_wait_queue;	/* waiting queue for wake-up */
+	struct mutex cmd_lock;
+	int max_discards;			/* max. discards to be issued */
 };
 
 /* for the list of fsync inodes, used only during recovery */
@@ -732,12 +751,6 @@ struct f2fs_sm_info {
 	/* a threshold to reclaim prefree segments */
 	unsigned int rec_prefree_segments;
 
-	/* for small discard management */
-	struct list_head discard_entry_list;	/* 4KB discard entry list */
-	struct list_head discard_cmd_list;	/* discard cmd list */
-	int nr_discards;			/* # of discards in the list */
-	int max_discards;			/* max. discards to be issued */
-
 	/* for batched trimming */
 	unsigned int trim_sections;		/* # of sections to trim */
 
@@ -749,6 +762,9 @@ struct f2fs_sm_info {
 
 	/* for flush command control */
 	struct flush_cmd_control *fcc_info;
+
+	/* for discard command control */
+	struct discard_cmd_control *dcc_info;
 };
 
 /*
