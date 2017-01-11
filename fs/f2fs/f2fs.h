@@ -308,6 +308,13 @@ struct discard_cmd_control {
 	int max_discards;			/* max. discards to be issued */
 };
 
+struct discard_cmd_control {
+	struct list_head discard_entry_list;	/* 4KB discard entry list */
+	int nr_discards;			/* # of discards in the list */
+	struct list_head discard_cmd_list;	/* discard cmd list */
+	int max_discards;			/* max. discards to be issued */
+};
+
 /* for the list of fsync inodes, used only during recovery */
 struct fsync_inode_entry {
 	struct list_head list;	/* list head */
