@@ -2,9 +2,9 @@
 #define _KD_IMGSENSOR_H
 
 #include <linux/ioctl.h>
-/* #define CONFIG_COMPAT */
+//#define CONFIG_COMPAT
 #ifdef CONFIG_COMPAT
-/* 64 bit */
+//64 bit
 #include <linux/fs.h>
 #include <linux/compat.h>
 #endif
@@ -26,25 +26,25 @@
 *
 ********************************************************************************/
 #define YUV_INFO(_id, name, getCalData)\
-	{ \
-		_id, name, \
-NSFeature :  : YUVSensorInfo < _id >  :  : createInstance(name, #name), \
-		(NSFeature :  : SensorInfoBase*(*)()) \
-NSFeature :  : YUVSensorInfo < _id >  :  : getInstance, \
-NSFeature :  : YUVSensorInfo < _id >  :  : getDefaultData, \
-		getCalData, \
-NSFeature :  : YUVSensorInfo < _id >  :  : getNullFlickerPara \
-	}
+    { \
+    _id, name, \
+    NSFeature::YUVSensorInfo <_id>::createInstance(name, #name), \
+    (NSFeature::SensorInfoBase*(*)()) \
+    NSFeature::YUVSensorInfo <_id>::getInstance, \
+    NSFeature::YUVSensorInfo <_id>::getDefaultData, \
+    getCalData, \
+    NSFeature::YUVSensorInfo <_id>::getNullFlickerPara \
+    }
 #define RAW_INFO(_id, name, getCalData)\
-	{ \
-		_id, name, \
-NSFeature :  : RAWSensorInfo < _id >  :  : createInstance(name, #name), \
-		(NSFeature :  : SensorInfoBase*(*)()) \
-NSFeature :  : RAWSensorInfo < _id >  :  : getInstance, \
-NSFeature :  : RAWSensorInfo < _id >  :  : getDefaultData, \
-		getCalData, \
-NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
-	}
+    { \
+    _id, name, \
+    NSFeature::RAWSensorInfo <_id>::createInstance(name, #name), \
+    (NSFeature::SensorInfoBase*(*)()) \
+    NSFeature::RAWSensorInfo <_id>::getInstance, \
+    NSFeature::RAWSensorInfo <_id>::getDefaultData, \
+    getCalData, \
+    NSFeature::RAWSensorInfo <_id>::getFlickerPara \
+    }
 /*******************************************************************************
 *
 ********************************************************************************/
@@ -80,10 +80,10 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 #define KDIMGSENSORIOC_X_GETINFO2                   _IOWR(IMGSENSORMAGIC, 65, IMAGESENSOR_GETINFO_STRUCT)
 /* set open/close sensor index */
 #define KDIMGSENSORIOC_X_SET_CURRENT_SENSOR         _IOWR(IMGSENSORMAGIC, 70, u32)
-/* set GPIO */
-#define KDIMGSENSORIOC_X_SET_GPIO                   _IOWR(IMGSENSORMAGIC, 75, IMGSENSOR_GPIO_STRUCT)
-/* Get ISP CLK */
-#define KDIMGSENSORIOC_X_GET_ISP_CLK                _IOWR(IMGSENSORMAGIC, 80, u32)
+//set GPIO
+#define KDIMGSENSORIOC_X_SET_GPIO                   _IOWR(IMGSENSORMAGIC,75,IMGSENSOR_GPIO_STRUCT)
+//Get ISP CLK
+#define KDIMGSENSORIOC_X_GET_ISP_CLK                _IOWR(IMGSENSORMAGIC,80,u32)
 
 #ifdef CONFIG_COMPAT
 #define COMPAT_KDIMGSENSORIOC_X_GETINFO            _IOWR(IMGSENSORMAGIC, 5, COMPAT_ACDK_SENSOR_GETINFO_STRUCT)
@@ -98,10 +98,6 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 ********************************************************************************/
 /* SENSOR CHIP VERSION */
 /*IMX*/
-#define IMX377_SENSOR_ID                        0x0377
-#define IMX278_SENSOR_ID                        0x0278
-#define IMX258_SENSOR_ID                        0x0258
-#define IMX230_SENSOR_ID                        0x0230
 #define IMX220_SENSOR_ID                        0x0220
 #define IMX219_SENSOR_ID                        0x0219
 #define IMX215_SENSOR_ID                        0x0215
@@ -116,7 +112,6 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 #define IMX073_SENSOR_ID                        0x0046
 #define IMX058_SENSOR_ID                        0x0058
 /*OV*/
-#define OV23850_SENSOR_ID                       0x023850
 #define OV16825MIPI_SENSOR_ID                   0x016820
 #define OV13850_SENSOR_ID                       0xD850
 #define OV12830_SENSOR_ID                       0xC830
@@ -132,9 +127,7 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 #define OV7675_SENSOR_ID                        0x7673
 #define OV5693_SENSOR_ID                        0x5690
 #define OV5670MIPI_SENSOR_ID                    0x5670
-//lenovo.sw START wangsx3 add for AIO backup sub_camera
-#define OV5670LITEMIPI_SENSOR_ID                    0x5671
-//lenovo.sw ENG wangsx3 add for AIO backup sub_camera
+#define OV5671MIPI_SENSOR_ID                    0x5671
 #define OV5650_SENSOR_ID                        0x5651
 #define OV5650MIPI_SENSOR_ID                    0x5651
 #define OV5648MIPI_SENSOR_ID                    0x5648
@@ -144,7 +137,6 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 #define OV5642_SENSOR_ID                        0x5642
 #define OV4688MIPI_SENSOR_ID                    0x4688
 #define OV3640_SENSOR_ID                        0x364C
-#define OV2724MIPI_SENSOR_ID                    0x2724
 #define OV2722MIPI_SENSOR_ID                    0x2722
 #define OV2680MIPI_SENSOR_ID                    0x2680
 #define OV2680_SENSOR_ID                        0x2680
@@ -155,7 +147,6 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 #define OV2650_SENSOR_ID_2                      0x2652
 #define OV2650_SENSOR_ID_3                      0x2655
 /*S5K*/
-#define S5K2X8_SENSOR_ID                        0x2188
 #define S5K2P8_SENSOR_ID                        0x2108
 #define S5K3M2_SENSOR_ID                        0x30D2
 #define S5K3AAEA_SENSOR_ID                      0x07AC
@@ -182,9 +173,6 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 #define HI707_SENSOR_ID                         0x00b8
 #define HI704_SENSOR_ID                         0x0096
 #define HI551_SENSOR_ID                         0x0551
-//lenovo.sw start wangsx3 add for aio_cmcc
-#define HI551QTECHV2_SENSOR_ID			0x0552
-//lenovo.sw end wangsx3 add for aio_cmcc
 #define HI545MIPI_SENSOR_ID                     0x0545
 #define HI544MIPI_SENSOR_ID                     0x0544
 #define HI542_SENSOR_ID                         0x00B1
@@ -211,11 +199,6 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 #define MT9D113_SENSOR_ID                       0x2580
 #define MT9D115_SENSOR_ID                       0x2580
 #define MT9D115MIPI_SENSOR_ID                   0x2580
-//lenovo.sw  START wangsx add for AIO
-#define OV13850SUNNY_SENSOR_ID			  0xD850
-#define OV13850OFILM_SENSOR_ID			  0xD851
-#define OV13850OFILMA50_SENSOR_ID	          0xD852
-//lenovo.sw  END wangsx add for AIO
 #define MT9V113_SENSOR_ID                       0x2280
 #define MT9V114_SENSOR_ID                       0x2283
 #define MT9V115_SENSOR_ID                       0x2284
@@ -226,13 +209,33 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 /*GC*/
 #define GC2355_SENSOR_ID                        0x2355
 #define GC2235_SENSOR_ID                        0x2235
+
+/* Vanzo:xuechuanzheng on: 20150516
+ * add new camera
+ */
+#define GC2235MIPI_SENSOR_ID                        0x2235
+// End of Vanzo: xuechuanzheng
+
 #define GC2035_SENSOR_ID                        0x2035
 #define GC2145_SENSOR_ID                        0x2145
+#define GC2145MIPI_SENSOR_ID                    0x2145
 #define GC0330_SENSOR_ID                        0xC1
 #define GC0329_SENSOR_ID                        0xC0
 #define GC0310_SENSOR_ID                        0xa310
+/* Vanzo:zhangxinyu on: Fri, 10 Apr 2015 17:49:05 +0800
+ * add new camera gc2155
+ */
+#define GC2155MIPI_SENSOR_ID                    0x2155
+
+// End of Vanzo: zhangxinyu
+
+/* Vanzo:xuechuanzheng on: 2015-04-11
+ * add new camera
+ */
+#define GC2755_SENSOR_ID            0x2655
+// End of Vanzo: xuechuanzheng
+
 #define GC0313MIPI_YUV_SENSOR_ID                0xD0
-#define GC0312_SENSOR_ID                        0xb310
 /*SP*/
 #define SP0A19_YUV_SENSOR_ID                    0xA6
 #define SP2518_YUV_SENSOR_ID                    0x53
@@ -267,18 +270,12 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 /*Others*/
 #define SHARP3D_SENSOR_ID                       0x003d
 #define T8EV5_SENSOR_ID                         0x1011
+#define OV8858R1A_SENSOR_ID			  0x8859
 
 /* CAMERA DRIVER NAME */
 #define CAMERA_HW_DEVNAME                       "kd_camera_hw"
 /* SENSOR DEVICE DRIVER NAME */
-#define SENSOR_DRVNAME_OV13850SUNNY_MIPI_RAW   "ov13850sunnymipiraw"
-#define SENSOR_DRVNAME_OV13850OFILM_MIPI_RAW   "ov13850ofilmmipiraw"
-#define SENSOR_DRVNAME_OV13850OFILMA50_MIPI_RAW   "ov13850ofilma50mipiraw"
 /*IMX*/
-#define SENSOR_DRVNAME_IMX377_MIPI_RAW          "imx377mipiraw"
-#define SENSOR_DRVNAME_IMX278_MIPI_RAW          "imx278mipiraw"
-#define SENSOR_DRVNAME_IMX258_MIPI_RAW          "imx258mipiraw"
-#define SENSOR_DRVNAME_IMX230_MIPI_RAW          "imx230mipiraw"
 #define SENSOR_DRVNAME_IMX220_MIPI_RAW          "imx220mipiraw"
 #define SENSOR_DRVNAME_IMX219_MIPI_RAW          "imx219mipiraw"
 #define SENSOR_DRVNAME_IMX215_MIPI_RAW          "imx215mipiraw"
@@ -292,7 +289,6 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 #define SENSOR_DRVNAME_IMX091_MIPI_RAW          "imx091mipiraw"
 #define SENSOR_DRVNAME_IMX073_MIPI_RAW          "imx073mipiraw"
 /*OV*/
-#define SENSOR_DRVNAME_OV23850_MIPI_RAW         "ov23850mipiraw"
 #define SENSOR_DRVNAME_OV16825_MIPI_RAW         "ov16825mipiraw"
 #define SENSOR_DRVNAME_OV13850_MIPI_RAW         "ov13850mipiraw"
 #define SENSOR_DRVNAME_OV12830_MIPI_RAW         "ov12830mipiraw"
@@ -309,10 +305,10 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 #define SENSOR_DRVNAME_OV5693_MIPI_RAW          "ov5693mipi"
 #define SENSOR_DRVNAME_OV5670_MIPI_RAW          "ov5670mipiraw"
 #define SENSOR_DRVNAME_OV5671_MIPI_RAW          "ov5671mipiraw"
-#define SENSOR_DRVNAME_OV5670LITE_MIPI_RAW          "ov5670litemipi"
 #define SENSOR_DRVNAME_OV5647MIPI_RAW           "ov5647mipiraw"
 #define SENSOR_DRVNAME_OV5645_MIPI_YUV          "ov5645_mipi_yuv"
 #define SENSOR_DRVNAME_OV5650MIPI_RAW           "ov5650mipiraw"
+#define SENSOR_DRVNAME_OV5648SUB_MIPI_RAW      "ov5648submipi"
 #define SENSOR_DRVNAME_OV5650_RAW               "ov5650raw"
 #define SENSOR_DRVNAME_OV5648_MIPI_RAW          "ov5648mipi"
 #define SENSOR_DRVNAME_OV5647_RAW               "ov5647"
@@ -325,17 +321,16 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 #define SENSOR_DRVNAME_OV4688_MIPI_RAW          "ov4688mipiraw"
 #define SENSOR_DRVNAME_OV3640_RAW               "ov3640"
 #define SENSOR_DRVNAME_OV3640_YUV               "ov3640yuv"
-#define SENSOR_DRVNAME_OV2724_MIPI_RAW          "ov2724mipiraw"
 #define SENSOR_DRVNAME_OV2722_MIPI_RAW          "ov2722mipiraw"
 #define SENSOR_DRVNAME_OV2680_MIPI_RAW          "ov2680mipiraw"
 #define SENSOR_DRVNAME_OV2659_YUV               "ov2659yuv"
 #define SENSOR_DRVNAME_OV2655_YUV               "ov2655yuv"
 #define SENSOR_DRVNAME_OV2650_RAW               "ov265x"
 /*S5K*/
-#define SENSOR_DRVNAME_S5K2X8_MIPI_RAW          "s5k2x8mipiraw"
 #define SENSOR_DRVNAME_S5K2P8_MIPI_RAW          "s5k2p8mipiraw"
 #define SENSOR_DRVNAME_S5K3M2_MIPI_RAW          "s5k3m2mipiraw"
 #define SENSOR_DRVNAME_S5K3H2YX_MIPI_RAW        "s5k3h2yxmipiraw"
+
 #define SENSOR_DRVNAME_S5K3H7Y_MIPI_RAW         "s5k3h7ymipiraw"
 #define SENSOR_DRVNAME_S5K4H5YC_MIPI_RAW        "s5k4h5ycmipiraw"
 #define SENSOR_DRVNAME_S5K4E1GA_MIPI_RAW        "s5k4e1gamipiraw"
@@ -352,6 +347,7 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 #define SENSOR_DRVNAME_HI551_MIPI_RAW           "hi551mipiraw"
 #define SENSOR_DRVNAME_HI545_MIPI_RAW           "hi545mipiraw"
 #define SENSOR_DRVNAME_HI542_RAW                "hi542raw"
+#define SENSOR_DRVNAME_OV8858R1A_MIPI_RAW   "ov8858r1amipiraw"
 #define SENSOR_DRVNAME_HI542MIPI_RAW            "hi542mipiraw"
 #define SENSOR_DRVNAME_HI544_MIPI_RAW           "hi544mipiraw"
 #define SENSOR_DRVNAME_HI253_YUV                "hi253yuv"
@@ -370,13 +366,31 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 /*GC*/
 #define SENSOR_DRVNAME_GC2035_YUV               "gc2035_yuv"
 #define SENSOR_DRVNAME_GC2235_RAW               "gc2235_raw"
+
+/* Vanzo:xuechuanzheng on: 20150516
+ * add new camera
+ */
+#define SENSOR_DRVNAME_GC2235_MIPI_RAW   	"gc2235mipiraw"
+// End of Vanzo: xuechuanzheng
+
 #define SENSOR_DRVNAME_GC2355_MIPI_RAW          "gc2355mipiraw"
 #define SENSOR_DRVNAME_GC0330_YUV               "gc0330_yuv"
 #define SENSOR_DRVNAME_GC0329_YUV               "gc0329yuv"
 #define SENSOR_DRVNAME_GC2145_MIPI_YUV          "gc2145mipiyuv"
 #define SENSOR_DRVNAME_GC0310_MIPI_YUV          "gc0310mipiyuv"
-#define SENSOR_DRVNAME_GC0310_YUV               "gc0310yuv"
-#define SENSOR_DRVNAME_GC0312_YUV               "gc0312yuv"
+
+/* Vanzo:xuechuanzheng on: 2015-04-11
+ * add new camera
+ */
+#define SENSOR_DRVNAME_GC2755_MIPI_RAW      "gc2755mipiraw"
+// End of Vanzo: xuechuanzheng
+
+/* Vanzo:zhangxinyu on: Fri, 10 Apr 2015 17:49:33 +0800
+ * add new camera gc2155
+ */
+#define SENSOR_DRVNAME_GC2155_MIPI_YUV          "gc2155mipiyuv"
+
+// End of Vanzo: zhangxinyu
 #define SENSOR_DRVNAME_GC0313MIPI_YUV           "gc0313mipiyuv"
 /*SP*/
 #define SENSOR_DRVNAME_SP0A19_YUV               "sp0a19yuv"
@@ -400,15 +414,8 @@ NSFeature :  : RAWSensorInfo < _id >  :  : getFlickerPara \
 /*Others*/
 #define SENSOR_DRVNAME_SHARP3D_MIPI_YUV         "sharp3dmipiyuv"
 #define SENSOR_DRVNAME_T8EV5_YUV                "t8ev5_yuv"
-//add for aio row
-#define SENSOR_DRVNAME_HI551QTECH_MIPI_RAW   "hi551qtechmipiraw"
-#define SENSOR_DRVNAME_IMX219OFILM_MIPI_RAW "imx219ofilmmipiraw"
-//lenovo.sw start wangsx3 add for aio_cmcc
-#define SENSOR_DRVNAME_HI551QTECHV2_MIPI_RAW   "hi551qtechv2mipiraw"
-//lenovo.sw end wangsx3 add for aio_cmcc
-//end
-
-#define SENSOR_DRVNAME_MN34152_MIPI_RAW   "mn34152mipiraw"
+/*Test*/
+#define SENSOR_DRVNAME_IMX135_MIPI_RAW_5MP      "imx135mipiraw5mp"
 
 /*******************************************************************************
 *
