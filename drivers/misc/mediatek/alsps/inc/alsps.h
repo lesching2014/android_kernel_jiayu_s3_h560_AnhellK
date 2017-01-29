@@ -106,7 +106,10 @@ struct alsps_drv_obj {
 };
 
 struct alsps_context {
-	struct input_dev   		*idev;
+	/*lenovo-sw molg1 add 20141126 begin*/
+	struct input_dev   		*idev_ps;
+	struct input_dev   		*idev_als;
+	/*lenovo-sw molg1 add 20141126 end*/
 	struct miscdevice   	mdev;
 	struct work_struct  	report_ps;
 	struct work_struct  	report_als;
@@ -151,6 +154,7 @@ extern int alsps_aal_get_data(void);
 //for auto detect
 extern int alsps_driver_add(struct alsps_init_info* obj) ;
 extern int ps_report_interrupt_data(int value);
+extern int als_report_interrupt_data(int value);
 extern int als_data_report(struct input_dev *dev, int value,int status);
 extern int als_register_control_path(struct als_control_path *ctl);
 extern int als_register_data_path(struct als_data_path *data);
