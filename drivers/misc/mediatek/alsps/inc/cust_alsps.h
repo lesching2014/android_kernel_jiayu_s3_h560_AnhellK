@@ -16,6 +16,7 @@ struct alsps_hw {
 	int polling_mode;                               /*!< 1: polling mode ; 0:interrupt mode*/
 	int polling_mode_ps;                               /*!< 1: polling mode ; 0:interrupt mode*/
 	int polling_mode_als;                               /*!< 1: polling mode ; 0:interrupt mode*/
+    int polling_mode_gesture;
     unsigned char   i2c_addr[C_CUST_I2C_ADDR_NUM];  /*!< i2c address list, some chip will have multiple address */
     unsigned int    als_level[C_CUST_ALS_LEVEL-1];  /*!< (C_CUST_ALS_LEVEL-1) levels divides all range into C_CUST_ALS_LEVEL levels*/
     unsigned int    als_value[C_CUST_ALS_LEVEL];    /*!< the value reported in each level */
