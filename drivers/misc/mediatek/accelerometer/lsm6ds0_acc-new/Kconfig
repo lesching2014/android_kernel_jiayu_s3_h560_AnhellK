@@ -1,4 +1,0 @@
-
-config MTK_LSM6DS0_ACC_NEW
-        bool "LSM6DS0_ACC for MediaTek package"
-        default n

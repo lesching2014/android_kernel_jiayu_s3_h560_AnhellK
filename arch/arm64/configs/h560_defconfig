@@ -328,8 +328,8 @@ CONFIG_MTK_SYNC=y
 #Sensor
 #lenovo-sw molg1 add begin
 #lenovo-sw chenlj2 modify start
-CONFIG_CUSTOM_KERNEL_ACCELEROMETER=y
-CONFIG_MTK_LSM6DS0_ACC_NEW=y
+# CONFIG_CUSTOM_KERNEL_ACCELEROMETER=y
+# CONFIG_MTK_LSM6DS0_ACC_NEW=y
 # CONFIG_MTK_BMA222E_SISLEY2 is not set
 #lenovo-sw chenlj2 modify end
 # CONFIG_MTK_BMA222E_AIO=y

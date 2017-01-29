@@ -39,4 +39,3 @@ source "drivers/misc/mediatek/accelerometer/mpu6515/Kconfig"
 #lenovo-sw chenlj2 add 20151013 add
 source "drivers/misc/mediatek/accelerometer/bma222e-sisley2/Kconfig"
 source "drivers/misc/mediatek/accelerometer/bma222E-aio/Kconfig"
-source "drivers/misc/mediatek/accelerometer/lsm6ds0_acc-new/Kconfig"
