@@ -26,6 +26,7 @@ obj-$(CONFIG_MTK_BMA255_SDO1)   +=  bma255-sdo1/
 obj-$(CONFIG_MTK_BMA056)   +=  bma056/
 obj-$(CONFIG_MTK_LSM6DS3)   +=  lsm6ds3/
 obj-$(CONFIG_MTK_BMA222E_AIO)   +=  bma222E-aio/
+obj-$(CONFIG_MTK_LSM6DS0_ACC_NEW)   +=  lsm6ds0_acc-new/
 #lenovo-sw chenlj2 add 20151013 begin
 ifeq ($(CONFIG_MTK_BMA222E_SISLEY2),y)
 obj-y   +=  bma222e-sisley2/
