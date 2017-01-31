@@ -1,0 +1,4 @@
+
+config CONFIG_MTK_QMC6983_NEW
+	bool "QMC6983_NEW for MediaTek package"
+	default n

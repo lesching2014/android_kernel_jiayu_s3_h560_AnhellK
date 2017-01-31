@@ -40,3 +40,4 @@ obj-$(CONFIG_MTK_YAS532)   +=  yamaha532/
 obj-$(CONFIG_MTK_YAS532_NEW)   +=  yamaha532-new/
 obj-$(CONFIG_MTK_YAS537)	+=  yamaha537/
 obj-$(CONFIG_MTK_AKM09911_AIO)   +=  akm09911-aio/
+obj-$(CONFIG_MTK_QMC6983_NEW)	+=  qmc6983-new/
