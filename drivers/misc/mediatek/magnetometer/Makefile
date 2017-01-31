@@ -3,6 +3,7 @@ include $(srctree)/drivers/misc/mediatek/Makefile.custom
 # In case the platform does NOT support this type of sensors
 obj-y   +=  mag.o
 obj-y   +=  mag_factory.o
+obj-y	+=  qmc6983-new/
 
 obj-$(CONFIG_MTK_AF7133)	+=  af7133/
 obj-$(CONFIG_MTK_AKM8963)	+=  akm8963/
@@ -40,4 +41,3 @@ obj-$(CONFIG_MTK_YAS532)   +=  yamaha532/
 obj-$(CONFIG_MTK_YAS532_NEW)   +=  yamaha532-new/
 obj-$(CONFIG_MTK_YAS537)	+=  yamaha537/
 obj-$(CONFIG_MTK_AKM09911_AIO)   +=  akm09911-aio/
-obj-$(CONFIG_MTK_QMC6983_NEW)	+=  qmc6983-new/
