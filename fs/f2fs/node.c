@@ -1191,63 +1191,17 @@ out_err:
 	return page;
 }
 
-/*
- * Return a locked page for the desired node page.
- * And, readahead MAX_RA_NODE number of node pages.
- */
+struct page *get_node_page(struct f2fs_sb_info *sbi, pgoff_t nid)
+{
+	return __get_node_page(sbi, nid, NULL, 0);
+}
+
 struct page *get_node_page_ra(struct page *parent, int start)
 {
 	struct f2fs_sb_info *sbi = F2FS_P_SB(parent);
-	struct blk_plug plug;
-	struct page *page;
-	int err, i, end;
-	nid_t nid;
+	nid_t nid = get_nid(parent, start, false);
 
-	/* First, try getting the desired direct node. */
-	nid = get_nid(parent, start, false);
-	if (!nid)
-		return ERR_PTR(-ENOENT);
-	f2fs_bug_on(sbi, check_nid_range(sbi, nid));
-repeat:
-	page = grab_cache_page(NODE_MAPPING(sbi), nid);
-	if (!page)
-		return ERR_PTR(-ENOMEM);
-
-	err = read_node_page(page, READ_SYNC);
-	if (err < 0) {
-		f2fs_put_page(page, 1);
-		return ERR_PTR(err);
-	} else if (err == LOCKED_PAGE) {
-		goto page_hit;
-	}
-
-	blk_start_plug(&plug);
-
-	/* Then, try readahead for siblings of the desired node */
-	end = start + MAX_RA_NODE;
-	end = min(end, NIDS_PER_BLOCK);
-	for (i = start + 1; i < end; i++) {
-		nid_t tnid;
-
-		tnid = get_nid(parent, i, false);
-		ra_node_page(sbi, tnid);
-	}
-
-	blk_finish_plug(&plug);
-
-	lock_page(page);
-	if (unlikely(!PageUptodate(page))) {
-		f2fs_put_page(page, 1);
-		return ERR_PTR(-EIO);
-	}
-	if (unlikely(page->mapping != NODE_MAPPING(sbi))) {
-		f2fs_put_page(page, 1);
-		goto repeat;
-	}
-page_hit:
-	mark_page_accessed(page);
-	f2fs_bug_on(sbi, nid != nid_of_node(page));
-	return page;
+	return __get_node_page(sbi, nid, parent, start);
 }
 
 static void flush_inline_data(struct f2fs_sb_info *sbi, nid_t ino)
@@ -1381,6 +1335,81 @@ continue_unlock:
 	return last_page;
 }
 
+static int __write_node_page(struct page *page, bool atomic,
+				struct writeback_control *wbc)
+{
+	struct f2fs_sb_info *sbi = F2FS_P_SB(page);
+	nid_t nid;
+	struct node_info ni;
+	struct f2fs_io_info fio = {
+		.sbi = sbi,
+		.type = NODE,
+		.op = REQ_OP_WRITE,
+		.op_flags = wbc_to_write_flags(wbc),
+		.page = page,
+		.encrypted_page = NULL,
+	};
+
+	trace_f2fs_writepage(page, NODE);
+
+	if (unlikely(is_sbi_flag_set(sbi, SBI_POR_DOING)))
+		goto redirty_out;
+	if (unlikely(f2fs_cp_error(sbi)))
+		goto redirty_out;
+
+	/* get old block addr of this node page */
+	nid = nid_of_node(page);
+	f2fs_bug_on(sbi, page->index != nid);
+
+	if (wbc->for_reclaim) {
+		if (!down_read_trylock(&sbi->node_write))
+			goto redirty_out;
+	} else {
+		down_read(&sbi->node_write);
+	}
+
+	get_node_info(sbi, nid, &ni);
+
+	/* This page is already truncated */
+	if (unlikely(ni.blk_addr == NULL_ADDR)) {
+		ClearPageUptodate(page);
+		dec_page_count(sbi, F2FS_DIRTY_NODES);
+		up_read(&sbi->node_write);
+		unlock_page(page);
+		return 0;
+	}
+
+	if (atomic && !test_opt(sbi, NOBARRIER))
+		fio.op_flags |= WRITE_FLUSH_FUA;
+
+	set_page_writeback(page);
+	fio.old_blkaddr = ni.blk_addr;
+	write_node_page(nid, &fio);
+	set_node_addr(sbi, &ni, fio.new_blkaddr, is_fsync_dnode(page));
+	dec_page_count(sbi, F2FS_DIRTY_NODES);
+	up_read(&sbi->node_write);
+
+	if (wbc->for_reclaim)
+		f2fs_submit_merged_bio_cond(sbi, NULL, page, 0, NODE, WRITE);
+
+	unlock_page(page);
+
+	if (unlikely(f2fs_cp_error(sbi)))
+		f2fs_submit_merged_bio(sbi, NODE, WRITE);
+
+	return 0;
+
+redirty_out:
+	redirty_page_for_writepage(wbc, page);
+	return AOP_WRITEPAGE_ACTIVATE;
+}
+
+static int f2fs_write_node_page(struct page *page,
+				struct writeback_control *wbc)
+{
+	return __write_node_page(page, false, wbc);
+}
+
 int fsync_node_pages(struct f2fs_sb_info *sbi, struct inode *inode,
 			struct writeback_control *wbc, bool atomic)
 {
@@ -1460,7 +1489,8 @@ continue_unlock:
 			if (!clear_page_dirty_for_io(page))
 				goto continue_unlock;
 
-			ret = NODE_MAPPING(sbi)->a_ops->writepage(page, wbc);
+			ret = __write_node_page(page, atomic &&
+						page == last_page, wbc);
 			if (ret) {
 				unlock_page(page);
 				f2fs_put_page(last_page, 0);
@@ -1641,72 +1671,6 @@ int wait_on_node_pages_writeback(struct f2fs_sb_info *sbi, nid_t ino)
 	if (!ret)
 		ret = ret2;
 	return ret;
-}
-
-static int f2fs_write_node_page(struct page *page,
-				struct writeback_control *wbc)
-{
-	struct f2fs_sb_info *sbi = F2FS_P_SB(page);
-	nid_t nid;
-	struct node_info ni;
-	struct f2fs_io_info fio = {
-		.sbi = sbi,
-		.type = NODE,
-		.op = REQ_OP_WRITE,
-		.op_flags = wbc_to_write_flags(wbc),
-		.page = page,
-		.encrypted_page = NULL,
-	};
-
-	trace_f2fs_writepage(page, NODE);
-
-	if (unlikely(is_sbi_flag_set(sbi, SBI_POR_DOING)))
-		goto redirty_out;
-	if (unlikely(f2fs_cp_error(sbi)))
-		goto redirty_out;
-
-	/* get old block addr of this node page */
-	nid = nid_of_node(page);
-	f2fs_bug_on(sbi, page->index != nid);
-
-	if (wbc->for_reclaim) {
-		if (!down_read_trylock(&sbi->node_write))
-			goto redirty_out;
-	} else {
-		down_read(&sbi->node_write);
-	}
-
-	get_node_info(sbi, nid, &ni);
-
-	/* This page is already truncated */
-	if (unlikely(ni.blk_addr == NULL_ADDR)) {
-		ClearPageUptodate(page);
-		dec_page_count(sbi, F2FS_DIRTY_NODES);
-		up_read(&sbi->node_write);
-		unlock_page(page);
-		return 0;
-	}
-
-	set_page_writeback(page);
-	fio.old_blkaddr = ni.blk_addr;
-	write_node_page(nid, &fio);
-	set_node_addr(sbi, &ni, fio.new_blkaddr, is_fsync_dnode(page));
-	dec_page_count(sbi, F2FS_DIRTY_NODES);
-	up_read(&sbi->node_write);
-
-	if (wbc->for_reclaim)
-		f2fs_submit_merged_bio_cond(sbi, NULL, page, 0, NODE, WRITE);
-
-	unlock_page(page);
-
-	if (unlikely(f2fs_cp_error(sbi)))
-		f2fs_submit_merged_bio(sbi, NODE, WRITE);
-
-	return 0;
-
-redirty_out:
-	redirty_page_for_writepage(wbc, page);
-	return AOP_WRITEPAGE_ACTIVATE;
 }
 
 static int f2fs_write_node_pages(struct address_space *mapping,
