@@ -25,12 +25,8 @@
 #include <linux/scatterlist.h>
 #include <linux/ratelimit.h>
 #include <linux/dcache.h>
-<<<<<<< HEAD
-#include <linux/fscrypto.h>
-=======
 #include <linux/namei.h>
 #include "fscrypt_private.h"
->>>>>>> 2eb1cb2f3... fscrypt: catch up to v4.11-rc1
 
 static unsigned int num_prealloc_crypto_pages = 32;
 static unsigned int num_prealloc_crypto_ctxs = 128;
@@ -130,11 +126,11 @@ struct fscrypt_ctx *fscrypt_get_ctx(const struct inode *inode, gfp_t gfp_flags)
 EXPORT_SYMBOL(fscrypt_get_ctx);
 
 /**
- * fscrypt_complete() - The completion callback for page encryption
- * @req: The asynchronous encryption request context
- * @res: The result of the encryption operation
+ * page_crypt_complete() - completion callback for page crypto
+ * @req: The asynchronous cipher request context
+ * @res: The result of the cipher operation
  */
-static void fscrypt_complete(struct crypto_async_request *req, int res)
+static void page_crypt_complete(struct crypto_async_request *req, int res)
 {
 	struct fscrypt_completion_result *ecr = req->data;
 
@@ -172,25 +168,17 @@ int fscrypt_do_page_crypto(const struct inode *inode, fscrypt_direction_t rw,
 
 	ablkcipher_request_set_callback(
 		req, CRYPTO_TFM_REQ_MAY_BACKLOG | CRYPTO_TFM_REQ_MAY_SLEEP,
-		fscrypt_complete, &ecr);
+		page_crypt_complete, &ecr);
 
 	BUILD_BUG_ON(sizeof(xts_tweak) != FS_XTS_TWEAK_SIZE);
 	xts_tweak.index = cpu_to_le64(lblk_num);
 	memset(xts_tweak.padding, 0, sizeof(xts_tweak.padding));
 
 	sg_init_table(&dst, 1);
-<<<<<<< HEAD
-	sg_set_page(&dst, dest_page, PAGE_CACHE_SIZE, 0);
-	sg_init_table(&src, 1);
-	sg_set_page(&src, src_page, PAGE_CACHE_SIZE, 0);
-	ablkcipher_request_set_crypt(req, &src, &dst, PAGE_CACHE_SIZE,
-					xts_tweak);
-=======
 	sg_set_page(&dst, dest_page, len, offs);
 	sg_init_table(&src, 1);
 	sg_set_page(&src, src_page, len, offs);
 	ablkcipher_request_set_crypt(req, &src, &dst, len, &xts_tweak);
->>>>>>> 2eb1cb2f3... fscrypt: catch up to v4.11-rc1
 	if (rw == FS_DECRYPT)
 		res = crypto_ablkcipher_decrypt(req);
 	else
@@ -331,67 +319,6 @@ int fscrypt_decrypt_page(const struct inode *inode, struct page *page,
 }
 EXPORT_SYMBOL(fscrypt_decrypt_page);
 
-<<<<<<< HEAD
-int fscrypt_zeroout_range(struct inode *inode, pgoff_t lblk,
-				sector_t pblk, unsigned int len)
-{
-	struct fscrypt_ctx *ctx;
-	struct page *ciphertext_page = NULL;
-	struct bio *bio;
-	int ret, err = 0;
-
-	BUG_ON(inode->i_sb->s_blocksize != PAGE_CACHE_SIZE);
-
-	ctx = fscrypt_get_ctx(inode, GFP_NOFS);
-	if (IS_ERR(ctx))
-		return PTR_ERR(ctx);
-
-	ciphertext_page = alloc_bounce_page(ctx, GFP_NOWAIT);
-	if (IS_ERR(ciphertext_page)) {
-		err = PTR_ERR(ciphertext_page);
-		goto errout;
-	}
-
-	while (len--) {
-		err = do_page_crypto(inode, FS_ENCRYPT, lblk,
-					ZERO_PAGE(0), ciphertext_page,
-					GFP_NOFS);
-		if (err)
-			goto errout;
-
-		bio = bio_alloc(GFP_NOWAIT, 1);
-		if (!bio) {
-			err = -ENOMEM;
-			goto errout;
-		}
-		bio->bi_bdev = inode->i_sb->s_bdev;
-		bio->bi_sector =
-			pblk << (inode->i_sb->s_blocksize_bits - 9);
-		ret = bio_add_page(bio, ciphertext_page,
-					inode->i_sb->s_blocksize, 0);
-		if (ret != inode->i_sb->s_blocksize) {
-			/* should never happen! */
-			WARN_ON(1);
-			bio_put(bio);
-			err = -EIO;
-			goto errout;
-		}
-		err = submit_bio_wait(WRITE, bio);
-		bio_put(bio);
-		if (err)
-			goto errout;
-		lblk++;
-		pblk++;
-	}
-	err = 0;
-errout:
-	fscrypt_release_ctx(ctx);
-	return err;
-}
-EXPORT_SYMBOL(fscrypt_zeroout_range);
-
-=======
->>>>>>> 2eb1cb2f3... fscrypt: catch up to v4.11-rc1
 /*
  * Validate dentries for encrypted directories to make sure we aren't
  * potentially caching stale data after a key has been added or
@@ -399,37 +326,24 @@ EXPORT_SYMBOL(fscrypt_zeroout_range);
  */
 static int fscrypt_d_revalidate(struct dentry *dentry, unsigned int flags)
 {
-	struct inode *dir = dentry->d_parent->d_inode;
-	struct fscrypt_info *ci = dir->i_crypt_info;
+	struct dentry *dir;
 	int dir_has_key, cached_with_key;
 
-<<<<<<< HEAD
-	if (!dir->i_sb->s_cop->is_encrypted(dir))
-=======
 	if (flags & LOOKUP_RCU)
 		return -ECHILD;
 
 	dir = dget_parent(dentry);
 	if (!d_inode(dir)->i_sb->s_cop->is_encrypted(d_inode(dir))) {
 		dput(dir);
->>>>>>> 2eb1cb2f3... fscrypt: catch up to v4.11-rc1
 		return 0;
-
-<<<<<<< HEAD
-=======
-	ci = d_inode(dir)->i_crypt_info;
->>>>>>> 2eb1cb2f3... fscrypt: catch up to v4.11-rc1
-	if (ci && ci->ci_keyring_key &&
-	    (ci->ci_keyring_key->flags & ((1 << KEY_FLAG_INVALIDATED) |
-					  (1 << KEY_FLAG_REVOKED) |
-					  (1 << KEY_FLAG_DEAD))))
-		ci = NULL;
+	}
 
 	/* this should eventually be an flag in d_flags */
 	spin_lock(&dentry->d_lock);
 	cached_with_key = dentry->d_flags & DCACHE_ENCRYPTED_WITH_KEY;
 	spin_unlock(&dentry->d_lock);
-	dir_has_key = (ci != NULL);
+	dir_has_key = (d_inode(dir)->i_crypt_info != NULL);
+	dput(dir);
 
 	/*
 	 * If the dentry was cached without the key, and it is a
