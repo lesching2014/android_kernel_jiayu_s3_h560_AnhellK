@@ -258,7 +258,7 @@ void update_cpu_power(unsigned int cpu, unsigned long hwid)
 
 	set_power_scale(cpu, (cpu_capacity[idx].capacity << SCHED_POWER_SHIFT) / max_capacity);
 
-	printk(KERN_INFO "CPU%u: update cpu_power %lu\n",
+	pr_debug("CPU%u: update cpu_power %lu\n",
 		   cpu, arch_scale_freq_power(NULL, cpu));
 }
 
