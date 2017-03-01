@@ -67,18 +67,13 @@ struct devalarm {
 
 static struct devalarm alarms[ANDROID_ALARM_TYPE_COUNT];
 
-/**
- * is_wakeup() - Checks to see if this alarm can wake the device
- * @type:	 The type of alarm being checked
- *
- * Return: 1 if this is a wakeup alarm, otherwise 0
- */
+
 static int is_wakeup(enum android_alarm_type type)
 {
-	return type == ANDROID_ALARM_RTC_WAKEUP ||
-		type == ANDROID_ALARM_ELAPSED_REALTIME_WAKEUP ||
-		type == ANDROID_ALARM_POWER_ON;
+	return (type == ANDROID_ALARM_RTC_WAKEUP ||
+		type == ANDROID_ALARM_ELAPSED_REALTIME_WAKEUP);
 }
+
 
 static void devalarm_start(struct devalarm *alrm, ktime_t exp)
 {
@@ -87,6 +82,7 @@ static void devalarm_start(struct devalarm *alrm, ktime_t exp)
 	else
 		hrtimer_start(&alrm->u.hrt, exp, HRTIMER_MODE_ABS);
 }
+
 
 static int devalarm_try_to_cancel(struct devalarm *alrm)
 {
@@ -101,6 +97,45 @@ static void devalarm_cancel(struct devalarm *alrm)
 		alarm_cancel(&alrm->u.alrm);
 	else
 		hrtimer_cancel(&alrm->u.hrt);
+}
+
+void alarm_set_power_on(struct timespec new_pwron_time, bool logo)
+{
+	unsigned long pwron_time;
+	struct rtc_wkalrm alm;
+	struct rtc_device *alarm_rtc_dev;
+
+	alarm_dbg(INFO, "alarm set power on\n");
+
+#ifdef RTC_PWRON_SEC
+	/* round down the second */
+	new_pwron_time.tv_sec = (new_pwron_time.tv_sec / 60) * 60;
+#endif
+	if (new_pwron_time.tv_sec > 0) {
+		pwron_time = new_pwron_time.tv_sec;
+#ifdef RTC_PWRON_SEC
+		pwron_time += RTC_PWRON_SEC;
+#endif
+		alm.enabled = (logo ? 3 : 2);
+	} else {
+		pwron_time = 0;
+		alm.enabled = 4;
+	}
+	alarm_rtc_dev = alarmtimer_get_rtcdev();
+	rtc_time_to_tm(pwron_time, &alm.time);
+	rtc_set_alarm(alarm_rtc_dev, &alm);
+	rtc_set_alarm_poweron(alarm_rtc_dev, &alm);
+}
+
+void alarm_get_power_on(struct rtc_wkalrm *alm)
+{
+	if (!alm)
+		return;
+
+	memset(alm, 0, sizeof(struct rtc_wkalrm));
+#ifndef CONFIG_MTK_FPGA
+	rtc_read_pwron_alarm(alm);
+#endif
 }
 
 static void alarm_clear(enum android_alarm_type alarm_type,
@@ -125,6 +160,7 @@ static void alarm_clear(enum android_alarm_type alarm_type,
 	}
 	alarm_enabled &= ~alarm_type_mask;
 	spin_unlock_irqrestore(&alarm_slock, flags);
+
 }
 
 static void alarm_set(enum android_alarm_type alarm_type,
@@ -133,8 +169,6 @@ static void alarm_set(enum android_alarm_type alarm_type,
 	uint32_t alarm_type_mask = 1U << alarm_type;
 	unsigned long flags;
 
-	alarm_dbg(INFO, "alarm %d set %ld.%09ld\n",
-			alarm_type, ts->tv_sec, ts->tv_nsec);
 	if (alarm_type == ANDROID_ALARM_POWER_ON) {
 		alarm_set_power_on(*ts, false);
 		return;
@@ -238,6 +272,9 @@ static long alarm_do_ioctl(struct file *file, unsigned int cmd,
 	unsigned long flags;
 	enum android_alarm_type alarm_type = ANDROID_ALARM_IOCTL_TO_TYPE(cmd);
 
+	alarm_dbg(INFO, "alarm_do_ioctl cmd:%d type:%d (%lu)\n",
+		cmd, alarm_type, (uintptr_t)file->private_data);
+
 	if (alarm_type >= ANDROID_ALARM_TYPE_COUNT &&
 		alarm_type != ANDROID_ALARM_POWER_ON &&
 		alarm_type != ANDROID_ALARM_POWER_ON_LOGO) {
@@ -254,11 +291,14 @@ static long alarm_do_ioctl(struct file *file, unsigned int cmd,
 			spin_lock_irqsave(&alarm_slock, flags);
 			if (alarm_opened) {
 				spin_unlock_irqrestore(&alarm_slock, flags);
+				alarm_dbg(INFO, "alarm_do_ioctl EBUSY\n");
+				file->private_data = NULL;
 				return -EBUSY;
 			}
 			alarm_opened = 1;
 			file->private_data = (void *)1;
 			spin_unlock_irqrestore(&alarm_slock, flags);
+			alarm_dbg(INFO, "alarm_do_ioctl opened\n");
 		}
 	}
 
@@ -344,7 +384,6 @@ static long alarm_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 	return 0;
 }
-
 #ifdef CONFIG_COMPAT
 static long alarm_compat_ioctl(struct file *file, unsigned int cmd,
 							unsigned long arg)
@@ -451,6 +490,7 @@ static void devalarm_triggered(struct devalarm *alarm)
 	spin_unlock_irqrestore(&alarm_slock, flags);
 }
 
+
 static enum hrtimer_restart devalarm_hrthandler(struct hrtimer *hrt)
 {
 	struct devalarm *devalrm = container_of(hrt, struct devalarm, u.hrt);
@@ -500,8 +540,6 @@ static int __init alarm_dev_init(void)
 			ALARM_REALTIME, devalarm_alarmhandler);
 	hrtimer_init(&alarms[ANDROID_ALARM_RTC].u.hrt,
 			CLOCK_REALTIME, HRTIMER_MODE_ABS);
-	alarm_init(&alarms[ANDROID_ALARM_POWER_ON].u.alrm,
-			ALARM_REALTIME, devalarm_alarmhandler);
 	alarm_init(&alarms[ANDROID_ALARM_ELAPSED_REALTIME_WAKEUP].u.alrm,
 			ALARM_BOOTTIME, devalarm_alarmhandler);
 	hrtimer_init(&alarms[ANDROID_ALARM_ELAPSED_REALTIME].u.hrt,
@@ -527,4 +565,4 @@ static void  __exit alarm_dev_exit(void)
 
 module_init(alarm_dev_init);
 module_exit(alarm_dev_exit);
-MODULE_LICENSE("GPL");
+
