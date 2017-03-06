@@ -76,20 +76,24 @@ static int __ion_cache_sync_kernel(unsigned long start, size_t size, ION_CACHE_S
 	size = (end - start + L1_CACHE_BYTES - 1) / L1_CACHE_BYTES * L1_CACHE_BYTES;
 	/* L1 cache sync */
 	if ((sync_type == ION_CACHE_CLEAN_BY_RANGE)
-    {
-        MMProfileLogEx(ION_MMP_Events[PROFILE_DMA_CLEAN_RANGE], MMProfileFlagStart, size, 0);
-        //printk("[ion_sys_cache_sync]: ION cache clean by range. start=0x%08X size=0x%08X\n", start, size);
-        dmac_map_area((void*)start, size, DMA_TO_DEVICE);
-    }
-    else if ((sync_type == ION_CACHE_INVALID_BY_RANGE)||(sync_type == ION_CACHE_INVALID_BY_RANGE_USE_VA))
-    {
-        MMProfileLogEx(ION_MMP_Events[PROFILE_DMA_INVALID_RANGE], MMProfileFlagStart, size, 0);
-        //printk("[ion_sys_cache_sync]: ION cache invalid by range. start=0x%08X size=0x%08X\n", start, size);
-        dmac_unmap_area((void*)start, size, DMA_FROM_DEVICE);
-    }
-    else if ((sync_type == ION_CACHE_FLUSH_BY_RANGE)||(sync_type == ION_CACHE_FLUSH_BY_RANGE_USE_VA))
-    {
-        MMProfileLogEx(ION_MMP_Events[PROFILE_DMA_FLUSH_RANGE], MMProfileFlagStart, size, 0);
+	    || (sync_type == ION_CACHE_CLEAN_BY_RANGE_USE_VA)) {
+		MMProfileLogEx(ION_MMP_Events[PROFILE_DMA_CLEAN_RANGE], MMProfileFlagStart, size,
+			       0);
+		/* printk("[ion_sys_cache_sync]: ION cache clean by range.
+			start=0x%08X size=0x%08X\n", start, size); */
+		dmac_map_area((void *)start, size, DMA_TO_DEVICE);
+	} else if ((sync_type == ION_CACHE_INVALID_BY_RANGE)
+		   || (sync_type == ION_CACHE_INVALID_BY_RANGE_USE_VA)) {
+		MMProfileLogEx(ION_MMP_Events[PROFILE_DMA_INVALID_RANGE], MMProfileFlagStart, size,
+			       0);
+		/* printk("[ion_sys_cache_sync]: ION cache invalid by range.
+			start=0x%08X size=0x%08X\n", start, size); */
+		dmac_unmap_area((void *)start, size, DMA_FROM_DEVICE);
+	} else if ((sync_type == ION_CACHE_FLUSH_BY_RANGE)
+		   || (sync_type == ION_CACHE_FLUSH_BY_RANGE_USE_VA)) {
+		MMProfileLogEx(ION_MMP_Events[PROFILE_DMA_FLUSH_RANGE], MMProfileFlagStart, size,
+			       0);
+		/* printk("[ion_sys_cache_sync]: ION cache flush by range.
 			start=0x%08X size=0x%08X\n", start, size); */
 		dmac_flush_range((void *)start, (void *)(start + size - 1));
 	}
@@ -645,27 +649,35 @@ int ion_drv_remove(struct platform_device *pdev)
 }
 
 
-static struct ion_platform_heap ion_drv_platform_heaps[] = 
-{
-    {
-        .type = ION_HEAP_TYPE_MULTIMEDIA,
-        .id = ION_HEAP_TYPE_MULTIMEDIA,
-        .name = "ion_mm_heap",
-        .base = 0,
-        .size = 0,
-        .align = 0,
-        .priv = NULL,
-    },
-    {
-        .type = ION_HEAP_TYPE_CARVEOUT,
-        .id = ION_HEAP_TYPE_CARVEOUT,
-        .name = "ion_carveout_heap",
-        .base = 0,
-        .size = 0, //32*1024*1024, //reserve in /kernel/arch/arm/mm/init.c ion_reserve();
-        .align = 0x1000,    //this must not be 0. (or ion_reserve wiil fail)
-        .priv = NULL,
-    },
-  
+static struct ion_platform_heap ion_drv_platform_heaps[] = {
+	{
+	 .type = ION_HEAP_TYPE_SYSTEM_CONTIG,
+	 .id = ION_HEAP_TYPE_SYSTEM_CONTIG,
+	 .name = "ion_system_contig_heap",
+	 .base = 0,
+	 .size = 0,
+	 .align = 0,
+	 .priv = NULL,
+	 },
+	{
+	 .type = ION_HEAP_TYPE_MULTIMEDIA,
+	 .id = ION_HEAP_TYPE_MULTIMEDIA,
+	 .name = "ion_mm_heap",
+	 .base = 0,
+	 .size = 0,
+	 .align = 0,
+	 .priv = NULL,
+	 },
+	{
+	 .type = ION_HEAP_TYPE_CARVEOUT,
+	 .id = ION_HEAP_TYPE_CARVEOUT,
+	 .name = "ion_carveout_heap",
+	 .base = 0,
+	 .size = 0,		/* 32*1024*1024, //reserve in /kernel/arch/arm/mm/init.c ion_reserve(); */
+	 .align = 0x1000,	/* this must not be 0. (or ion_reserve wiil fail) */
+	 .priv = NULL,
+	 },
+
 };
 
 struct ion_platform_data ion_drv_platform_data = {
