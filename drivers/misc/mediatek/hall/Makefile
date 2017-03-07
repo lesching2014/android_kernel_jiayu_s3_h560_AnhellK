@@ -3,6 +3,7 @@
 #
 include $(srctree)/drivers/misc/mediatek/Makefile.custom
 
-HALL_LISTS := $(subst ",,$(CUSTOM_KERNEL_HALL))
-obj-y += $(foreach HALL,$(HALL_LISTS),$(HALL)/)
+#HALL_LISTS := $(subst ",,$(CUSTOM_KERNEL_HALL))
+#obj-y += $(foreach HALL,$(HALL_LISTS),$(HALL)/)
+obj-y += hall_default/
 
