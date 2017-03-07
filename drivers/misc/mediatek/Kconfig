@@ -214,6 +214,11 @@ config MTK_TC7_FEATURE
 config MTK_TC1_FM_AT_SUSPEND
 	bool "MTK_TC1_FM_AT_SUSPEND"
 	default n
+	
+config CUSTOM_KERNEL_HALL
+	string "CUSTOM_KERNEL_HALL"
+	help
+	  To choose kernel HALL driver name 
 
 config MTK_CLKMGR
 	bool "Mediatek proprietary clock management"

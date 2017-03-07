@@ -307,3 +307,21 @@ obj-$(CONFIG_MTK_MULTIBRIDGE_SUPPORT) += multibridge/
 #Classic DRM
 $(info "CONFIG_TRUSTONIC_TEE_SUPPORT = $(CONFIG_TRUSTONIC_TEE_SUPPORT)")
 obj-$(CONFIG_TRUSTONIC_TEE_SUPPORT) += secwidevine/
+
+# Vanzo:wangfei on: Tue, 10 Mar 2015 15:57:44 +0800
+# add hall framework
+
+project_name:=$(shell echo $(CONFIG_VANZO_INNER_PROJECT_NAME))
+ifneq ($(project_name),)
+
+ifneq ($(strip $(CUSTOM_KERNEL_HALL)),)
+CONFIG_CUSTOM_KERNEL_HALL:=$(CUSTOM_KERNEL_HALL)
+endif
+
+custom_kernel_hall:= $(addprefix hall/,$(addsuffix /, $(shell echo $(CONFIG_CUSTOM_KERNEL_HALL))))
+
+$(info "custom_kernel_hall:$(custom_kernel_hall)")
+obj-y += $(custom_kernel_hall)
+
+endif
+
