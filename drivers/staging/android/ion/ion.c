@@ -1014,7 +1014,7 @@ static int ion_get_client_serial(const struct rb_root *root,
 	return serial + 1;
 }
 
-struct ion_client *__ion_client_create(struct ion_device *dev,
+struct ion_client *ion_client_create(struct ion_device *dev,
 				     const char *name)
 {
 	struct ion_client *client;
@@ -1102,23 +1102,6 @@ err_put_task_struct:
 	if (task)
 		put_task_struct(current->group_leader);
 	return ERR_PTR(-ENOMEM);
-}
-
-
-struct ion_client *ion_client_create(struct ion_device *dev,
-				     const char *name)
-{
-    struct ion_client *client;
-
-    client = __ion_client_create(dev, name);
-    if(IS_ERR_OR_NULL(client)) {
-        IONMSG("%s client is error or null 0x%pK.\n", __func__, client);
-	return client;
-    }
-
-    ion_debug_kern_rec(client, NULL, NULL, ION_FUNCTION_CREATE_CLIENT, 0, 0, 0, 0);
-
-    return client;
 }
 EXPORT_SYMBOL(ion_client_create);
 
@@ -1743,7 +1726,7 @@ static int ion_open(struct inode *inode, struct file *file)
 
 	pr_debug("%s: %d\n", __func__, __LINE__);
 	snprintf(debug_name, 64, "%u", task_pid_nr(current->group_leader));
-	client = __ion_client_create(dev, debug_name);
+	client = ion_client_create(dev, debug_name);
 	if (IS_ERR(client)) {
                 IONMSG("%s ion client create failed 0x%pK.\n", __func__, client);
 		return PTR_ERR(client);
