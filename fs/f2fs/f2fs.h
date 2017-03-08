@@ -22,7 +22,11 @@
 #include <linux/vmalloc.h>
 #include <linux/bio.h>
 #include <linux/blkdev.h>
-#include <linux/fscrypto.h>
+#ifdef CONFIG_F2FS_FS_ENCRYPTION
+#include <linux/fscrypt_supp.h>
+#else
+#include <linux/fscrypt_notsupp.h>
+#endif
 #include <crypto/hash.h>
 #include <linux/writeback.h>
 
@@ -894,21 +898,12 @@ enum {
 	MAX_TIME,
 };
 
-#ifdef CONFIG_F2FS_FS_ENCRYPTION
-#define F2FS_KEY_DESC_PREFIX "f2fs:"
-#define F2FS_KEY_DESC_PREFIX_SIZE 5
-#endif
 struct f2fs_sb_info {
 	struct super_block *sb;			/* pointer to VFS super block */
 	struct proc_dir_entry *s_proc;		/* proc entry */
 	struct f2fs_super_block *raw_super;	/* raw super block pointer */
 	int valid_super_block;			/* valid super block no */
 	unsigned long s_flag;				/* flags for sbi */
-
-#ifdef CONFIG_F2FS_FS_ENCRYPTION
-	u8 key_prefix[F2FS_KEY_DESC_PREFIX_SIZE];
-	u8 key_prefix_size;
-#endif
 
 #ifdef CONFIG_BLK_DEV_ZONED
 	unsigned int blocks_per_blkz;		/* F2FS blocks per zone */
@@ -2759,6 +2754,7 @@ static inline bool f2fs_may_encrypt(struct inode *inode)
 	return 0;
 #endif
 }
+<<<<<<< HEAD
 
 #ifndef CONFIG_F2FS_FS_ENCRYPTION
 #define fscrypt_set_d_op(i)
@@ -2784,4 +2780,6 @@ static inline bool f2fs_may_encrypt(struct inode *inode)
 #define fscrypt_fname_disk_to_usr	fscrypt_notsupp_fname_disk_to_usr
 #define fscrypt_fname_usr_to_disk	fscrypt_notsupp_fname_usr_to_disk
 #endif
+=======
+>>>>>>> 2eb1cb2f3... fscrypt: catch up to v4.11-rc1
 #endif
