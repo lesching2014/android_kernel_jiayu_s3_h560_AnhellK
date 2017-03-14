@@ -27,4 +27,4 @@ typedef enum fm_drv_err_t {
 			} \
 		}
 
-#endif /* __FM_ERR_H__ */
+#endif				/* __FM_ERR_H__ */

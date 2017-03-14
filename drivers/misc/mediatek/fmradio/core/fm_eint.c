@@ -42,7 +42,7 @@ fm_s32 fm_disable_eint(void)
 
 fm_s32 fm_request_eint(void (*parser) (void))
 {
-	WCN_DBG(FM_DBG | EINT, "%s\n", __func__);
+	WCN_DBG(FM_NTC | EINT, "%s\n", __func__);
 
 	mtk_wcn_stp_register_event_cb(FM_TASK_INDX, parser);
 
