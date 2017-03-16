@@ -1,239 +1,276 @@
-#include <linux/kernel.h>
+
+/****************************************************************************************
+File: hall.c
+History:
+Aka.jiang    2013-12-14    Init    aka.jiang@hotmail.com
+****************************************************************************************/
 #include <linux/module.h>
-#include <linux/init.h>
-#include <linux/device.h>
+#include <linux/kernel.h>
 #include <linux/slab.h>
-#include <linux/fs.h>
-#include <linux/mm.h>
-#include <linux/interrupt.h>
-#include <linux/vmalloc.h>
 #include <linux/platform_device.h>
-#include <linux/miscdevice.h>
-#include <linux/wait.h>
-#include <linux/spinlock.h>
-#include <linux/ctype.h>
-
-#include <asm/uaccess.h>
-#include <asm/io.h>
-#include <linux/workqueue.h>
-#include <linux/switch.h>
-#include <linux/delay.h>
-
-#include <linux/device.h>
-#include <linux/kdev_t.h>
-#include <linux/fs.h>
-#include <asm/uaccess.h>
-#include <linux/kthread.h>
-#include <linux/time.h>
-
-#include <linux/string.h>
-
-#include <mach/mt_typedefs.h>
-#include <mach/mt_reg_base.h>
-#include <mach/irqs.h>
-
-#include "hall.h"
-#include <mach/mt_boot.h>
-#include <cust_eint.h>
-#include <cust_gpio_usage.h>
-#include <mach/mt_gpio.h>
-
 #include <linux/input.h>
+#include <linux/interrupt.h>
 
-//#define GPIO_HALL_EINT_PIN GPIO116	//move to dct
-//#define CUST_EINT_HALL_NUM 11		//move to dct
+#include <linux/of.h>
+#include <linux/of_address.h>
+#include <linux/of_irq.h>
+#include <linux/gpio.h>
+#include <linux/of_gpio.h>
 
-int hall_cur_eint_state = HALL_FAR;
 
-extern void mt_eint_mask(unsigned int eint_num);                                                                                                                         
-extern void mt_eint_unmask(unsigned int eint_num);
-extern void mt_eint_set_hw_debounce(unsigned int eint_num, unsigned int ms); 
-extern void mt_eint_set_polarity(unsigned int eint_num, unsigned int pol);
-extern unsigned int mt_eint_set_sens(unsigned int eint_num, unsigned int sens);
-extern void mt_eint_registration(unsigned int eint_num, unsigned int flow, void (EINT_FUNC_PTR)(void), unsigned int is_auto_umask);
-extern void mt_eint_print_status(void);
+#define HALL_NAME "cover"
 
-static struct workqueue_struct * hall_eint_workqueue = NULL;
-static struct work_struct hall_eint_work;
+//#define HALL_DEBUG
 
-static struct input_dev	*idev;
+#define HALL_DEBUG_MASK_IRQ 1
+#define HALL_DEBUG_MASK_SYS (1 << 1)
 
-void hall_eint_work_callback(struct work_struct *work)
-{
-        int err = 1;
-	HALL_FUNC();
-        mt_eint_mask(CUST_EINT_HALL_NUM);
 
-        if (idev == NULL) {
-                hall_setup_switch_dev();
-        }
+//#define HALL_DEBUG_ON
 
-	if (idev != NULL) {
-                input_report_switch(idev, SW_LID, !hall_cur_eint_state);
-                input_sync(idev);
-        }
-        mt_eint_unmask(CUST_EINT_HALL_NUM);
-}
+#ifdef HALL_DEBUG_ON
+    #define HALL_DEBUG_TAG                  "[HALL] "
+    #define HALL_DEBUG_FUN(f)               pr_err(HALL_DEBUG_TAG"%s\n", __func__)
+    #define HALL_DEBUG_ERR(fmt, args...)    pr_err(HALL_DEBUG_TAG"%s %d : "fmt, __func__, __LINE__, ##args)
+    #define HALL_DEBUG_LOG(fmt, args...)    pr_err(HALL_DEBUG_TAG fmt, ##args)
+#else
+    #define HALL_DEBUG_TAG
+    #define HALL_DEBUG_FUN(f)
+    #define HALL_DEBUG_ERR(fmt, args...)
+    #define HALL_DEBUG_LOG(fmt, args...)
+#endif 
 
-void hall_eint_func(void)
-{
-	int ret;
-	
-	HALL_FUNC();
-	if(hall_cur_eint_state ==  HALL_FAR ) 
-	{
-		mt_eint_set_polarity(CUST_EINT_HALL_NUM, 1);
-		hall_cur_eint_state = HALL_NEAR;
-	}
-	else
-	{
-		mt_eint_set_polarity(CUST_EINT_HALL_NUM, 0);
-		hall_cur_eint_state = HALL_FAR;
-	}
-
-	ret = queue_work(hall_eint_workqueue, &hall_eint_work); 
-}
-
-void hall_setup_switch_dev(void)
-{
-	int ret = 0;
-
-        idev = input_allocate_device();    
-	input_set_capability(idev, EV_SW, SW_LID);
-
-	ret = input_register_device(idev);
-	if (ret) {
-		pr_info("[Hall_switch] input registration fails\n");
-                input_free_device(idev);
-                idev = NULL;
-        }
-}
-
-static inline int hall_setup_eint(void)
-{
-	HALL_FUNC();
-	
-	mt_set_gpio_mode(GPIO_HALL_EINT_PIN, GPIO_HALL_EINT_PIN_M_EINT);
-	mt_set_gpio_dir(GPIO_HALL_EINT_PIN, GPIO_DIR_IN);
-	mt_set_gpio_pull_enable(GPIO_HALL_EINT_PIN, GPIO_PULL_DISABLE);
-
-    //mt65xx_eint_set_sens(CUST_EINT_HALL_NUM, CUST_EINT_HALL_SENSITIVE);
-	mt_eint_set_hw_debounce(CUST_EINT_HALL_NUM,CUST_EINT_HALL_DEBOUNCE_CN);
-	mt_eint_registration(CUST_EINT_HALL_NUM, hall_cur_eint_state?CUST_EINTF_TRIGGER_LOW:CUST_EINTF_TRIGGER_HIGH,  hall_eint_func, 0);
-	mt_eint_unmask(CUST_EINT_HALL_NUM);  
-
-	return 0;
-}
-
-static int hall_probe(struct platform_device *dev)
-{
-	HALL_FUNC();
-
-	bool curr_state;
-	mt_set_gpio_mode(GPIO_HALL_EINT_PIN, 0);
-	mt_set_gpio_dir(GPIO_HALL_EINT_PIN, GPIO_DIR_IN);
-	mt_set_gpio_pull_enable(GPIO_HALL_EINT_PIN, GPIO_PULL_DISABLE);
-	curr_state = mt_get_gpio_in(GPIO_HALL_EINT_PIN);
-	printk("%s line %d curr_state %d\n",__func__,__LINE__, curr_state);
-	
-	if(!curr_state){
-		hall_cur_eint_state = HALL_FAR;
-	}else{
-		hall_cur_eint_state = HALL_NEAR;
-	}
-        hall_setup_switch_dev();
-	hall_eint_workqueue = create_singlethread_workqueue("hall_eint");
-	INIT_WORK(&hall_eint_work, hall_eint_work_callback);
-
-	hall_setup_eint();
-
-	return 0;
-}
-
-static int hall_remove(struct platform_device *dev)
-{
-	HALL_FUNC();
-
-	destroy_workqueue(hall_eint_workqueue);
-        input_free_device(idev);
-        idev = NULL;
-
-	return 0;
-}
-#if 0
-struct platform_device hall_device = {
-  .name = "hall_driver",
-  .id = -1,
+struct hall_info {
+	struct input_dev	*idev;
+        struct device_node 	*irq_node;
+	struct work_struct	work;
+	unsigned int		irq;
+	unsigned int		irq_gpio;
+	unsigned int		sw_code;
+	const char *name;
+	unsigned int debug_mask;
 };
-#endif
-static int hall_suspend(struct platform_device *pdev, pm_message_t mesg)
+
+
+static void hall_work(struct work_struct *work)
 {
-    return 0;
+    struct hall_info *info = container_of(work, struct hall_info, work);
+    int state;
+    int temp;
+
+    temp = !!gpio_get_value(info->irq_gpio);
+
+    if (temp == 1)
+    {
+        state = 0;
+    } else {
+        state = 1;
+    }
+
+    HALL_DEBUG_LOG("state = %d", state);
+    input_report_switch(info->idev, info->sw_code, state);
+    input_sync(info->idev);
+    enable_irq(info->irq);
 }
 
-static int hall_resume(struct platform_device *pdev)
+static irqreturn_t hall_irq_handler(int irq, void *data)
 {
-    return 0;
+
+    struct hall_info *info = data;
+
+    disable_irq_nosync(info->irq);
+    schedule_work(&info->work);
+
+    return IRQ_HANDLED;
 }
-#ifdef CONFIG_OF
-static const struct of_device_id hall_of_match[] = {
-    { .compatible = "mediatek,hall_driver", },
-    {},
+
+
+static ssize_t hall_status_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct input_dev *input = to_input_dev(dev);
+	struct hall_info *info = input_get_drvdata(input);
+	int state;
+
+	state = !!gpio_get_value(info->irq_gpio);
+
+	return sprintf(buf, "%d\n", state);
+}
+
+
+static DEVICE_ATTR(status, S_IRUGO,
+		hall_status_show, NULL);
+
+static struct attribute *hall_attributes[] = {
+	&dev_attr_status.attr,
+	NULL
 };
+
+static struct attribute_group hall_attribute_group = {
+	.attrs = hall_attributes
+};
+
+int hall_setup_eint(struct hall_info *info)
+{
+    int ret = 0;
+    u32 ints[2] = {0};
+
+    info->irq_node = of_find_compatible_node(NULL, NULL, "mediatek, hall-eint");
+    of_property_read_u32_array(info->irq_node, "debounce", ints, ARRAY_SIZE(ints));
+    info->irq_gpio = ints[0];
+		
+    info->irq = irq_of_parse_and_map(info->irq_node, 0);
+    HALL_DEBUG_LOG("irq = %d, irq_gpio = %d\n", info->irq, info->irq_gpio);
+    if (!info->irq) {
+        HALL_DEBUG_ERR("irq_of_parse_and_map fail!!\n");
+        return -EINVAL;
+    }
+
+    ret = request_irq(info->irq, hall_irq_handler, 
+		//IRQF_TRIGGER_LOW | IRQF_TRIGGER_HIGH | IRQF_ONESHOT,
+		IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+		info->name, info);
+
+    if (ret != 0) {
+        HALL_DEBUG_ERR("IRQ LINE NOT AVAILABLE!!\n");
+        return -EINVAL;
+    }
+//    enable_irq(info->irq);
+
+    return ret;
+}
+
+
+static int hall_probe(struct platform_device *pdev)
+{
+    struct hall_info *info;
+    struct input_dev *input;
+    char pyhs_str[50];
+    int ret = 0;
+	int state;
+    
+    HALL_DEBUG_LOG("Enter!");
+    info = kzalloc(sizeof(struct hall_info), GFP_KERNEL);
+    input = input_allocate_device();
+    if (!info || !input) {
+        ret = -ENOMEM;
+        goto err_free_mem;
+    }
+
+    info->idev = input;
+    info->sw_code = SW_LID;
+    info->name = HALL_NAME;
+    input->name = info->name;
+    
+    sprintf(pyhs_str, "%s/input0", input->name);
+    input->phys = pyhs_str;
+    input_set_capability(input, EV_SW, info->sw_code);
+
+    HALL_DEBUG_LOG("sw_code = 0x%x\n", info->sw_code);
+    HALL_DEBUG_LOG("name = %s", info->name);
+    info->debug_mask = 0;
+
+    ret = hall_setup_eint(info);
+    if (ret < 0) {
+        goto err_free_mem;
+    }
+
+    ret = input_register_device(info->idev);
+    if (ret) {
+        HALL_DEBUG_ERR("Can't register input device: %d\n", ret);
+        goto err_free_mem;
+    }
+
+    input_set_drvdata(info->idev, info);
+    platform_set_drvdata(pdev, info);
+	state = !!gpio_get_value(info->irq_gpio);
+	if(state == 1)
+	__change_bit(info->sw_code, input->sw);
+
+    ret = sysfs_create_group(&info->idev->dev.kobj, &hall_attribute_group);
+    if (ret < 0){
+        HALL_DEBUG_ERR("Can't create sysfs: %d\n", ret);
+        goto err_sysfs;
+    }
+
+    INIT_WORK(&info->work, hall_work);
+    device_init_wakeup(&pdev->dev, 1);
+
+//    g_num = 1;
+    HALL_DEBUG_LOG("OK!");
+    return 0;
+
+
+err_sysfs:
+    input_unregister_device(info->idev);
+err_free_mem:
+    input_free_device(input);
+    kfree(info);
+
+    HALL_DEBUG_LOG("Fail ret = %d!\n", ret);
+    return ret;
+
+}
+
+static struct of_device_id hall_of_match[] = {
+	{ .compatible = "hall-cover", },
+	{ },
+};
+MODULE_DEVICE_TABLE(of, hall_of_match);
+
+static int hall_remove(struct platform_device *pdev)
+{
+	struct hall_info *info = platform_get_drvdata(pdev);
+
+	device_init_wakeup(&pdev->dev, 0);
+	input_unregister_device(info->idev);
+	cancel_work_sync(&info->work);
+	kfree(info);
+
+	platform_set_drvdata(pdev, NULL);
+	return 0;
+}
+
+#ifdef CONFIG_PM_SLEEP
+static int hall_suspend(struct device *dev)
+{
+
+	return 0;
+}
+
+static int hall_resume(struct device *dev)
+{
+
+	return 0;
+}
 #endif
 
+static SIMPLE_DEV_PM_OPS(hall_pm_ops, hall_suspend, hall_resume);
 
 static struct platform_driver hall_driver = {
-	.probe = hall_probe,
-	.suspend = hall_suspend,
-	.resume = hall_resume,
-	.remove = hall_remove,
-	.driver = {
-		.name = "hall_driver",
-        #ifdef CONFIG_OF
+	.probe		= hall_probe,
+	.remove		= hall_remove,
+	.driver		= {
+		.name	= "hall_driver",
+		.owner	= THIS_MODULE,
+		.pm	= &hall_pm_ops,
         .of_match_table = hall_of_match,
-        #endif
-
 	},
 };
 
-static int hall_mod_init(void)
+static int __init hall_init(void)
 {
-	int ret = 0;
-int retval = 0;
-#if 0
-	HALL_FUNC();
-    retval = platform_device_register(&hall_device);
-    printk("register hall device\n");
-
-    if(retval != 0)
-    {
-      printk("platform_device_register hall error:(%d)\n", retval);
-    }
-    else
-    {
-      printk("platform_device_register hall done!\n");
-    }
-#endif	
-	if(platform_driver_register(&hall_driver) != 0)
-	{
-		HALL_DEBUG("unable to register hall driver\n");
-		return -1;
-	}
-	
-	return 0;
+	return platform_driver_register(&hall_driver);
 }
 
-static void hall_mod_exit(void)
+static void __exit hall_exit(void)
 {
-	HALL_FUNC();
-
 	platform_driver_unregister(&hall_driver);
 }
 
-module_init(hall_mod_init);
-module_exit(hall_mod_exit);
+late_initcall(hall_init);
+module_exit(hall_exit);
 
-MODULE_DESCRIPTION("Vanzo Hall driver");
-MODULE_AUTHOR("AL <lubaoquan@vanzotec.com>");
+MODULE_DESCRIPTION("Prowave Hall driver");
+MODULE_AUTHOR("Aka.Jiang <aka.jiang@hotmail.com>");
 MODULE_LICENSE("GPL");
