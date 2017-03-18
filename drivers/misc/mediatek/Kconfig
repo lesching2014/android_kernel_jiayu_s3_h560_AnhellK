@@ -220,6 +220,11 @@ config CUSTOM_KERNEL_HALL
 	help
 	  To choose kernel HALL driver name 
 
+config KERNEL_HALL_MAD_SUPPORT
+	string "KERNEL_HALL_AOSP_SUPPORT"
+	help
+	  To choose kernel HALL driver on non MAD roms 
+	  
 config MTK_CLKMGR
 	bool "Mediatek proprietary clock management"
 	default n
