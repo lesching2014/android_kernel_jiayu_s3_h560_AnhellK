@@ -10,14 +10,15 @@
 #define BAT_NTC_47 0
 
 #if (BAT_NTC_10 == 1)
-#define RBAT_PULL_UP_R             24000	
+#define RBAT_PULL_UP_R             16900	
+#define RBAT_PULL_DOWN_R		   27000	
 #endif
 
 #if (BAT_NTC_47 == 1)
 #define RBAT_PULL_UP_R             61900	
+#define RBAT_PULL_DOWN_R		  100000	
 #endif
-
-#define RBAT_PULL_UP_VOLT          2800
+#define RBAT_PULL_UP_VOLT          1800
 
 
 
@@ -109,8 +110,8 @@ typedef enum
 // T0 -10C
 BATTERY_PROFILE_STRUC battery_profile_t0[] =
 {
-	{0,4250},
-	{3,4243},
+	{0,4280},
+	{3,4259},
 	{7,4238},
 	{10,4220},
 	{14,4202},
@@ -183,10 +184,10 @@ BATTERY_PROFILE_STRUC battery_profile_t0[] =
 // T1 0C
 BATTERY_PROFILE_STRUC battery_profile_t1[] =
 {
-	{0,4250},
-	{2,4248},
-	{4,4245},
-	{6,4241},
+	{0,4313},
+	{2,4293},
+	{4,4275},
+	{6,4257},
 	{8,4239},
 	{10,4222},
 	{12,4204},
@@ -257,10 +258,10 @@ BATTERY_PROFILE_STRUC battery_profile_t1[] =
 // T2 25C
 BATTERY_PROFILE_STRUC battery_profile_t2[] =
 {
-	{0,4250},
-	{1,4245},
-	{3,4240},
-	{4,4235},
+	{0,4319},
+	{1,4292},
+	{3,4270},
+	{4,4250},
 	{6,4232},
 	{8,4213},
 	{9,4195},
@@ -331,11 +332,11 @@ BATTERY_PROFILE_STRUC battery_profile_t2[] =
 // T3 50C
 BATTERY_PROFILE_STRUC battery_profile_t3[] =
 {
-	{0,4250},
-	{1,4248},
-	{3,4244},
-	{4,4240},
-	{6,4234},
+	{0,4331},
+	{1,4307},
+	{3,4287},
+	{4,4267},
+	{6,4248},
 	{8,4229},
 	{9,4211},
 	{11,4193},
@@ -474,12 +475,16 @@ BATTERY_PROFILE_STRUC battery_profile_temperature[] =
 	{0  , 0 },
 	{0  , 0 },
 	{0  , 0 }
-};
+};    
+
+// ============================================================
+// <Rbat, Battery_Voltage> Table
+// ============================================================
 // T0 -10C
 R_PROFILE_STRUC r_profile_t0[] =
 {
-	{555,4250},
-	{555,4243},
+	{555,4280},
+	{555,4259},
 	{575,4238},
 	{595,4220},
 	{600,4202},
@@ -552,10 +557,10 @@ R_PROFILE_STRUC r_profile_t0[] =
 // T1 0C
 R_PROFILE_STRUC r_profile_t1[] =
 {
-	{263,4250},
-	{262,4248},
-	{272,4245},
-	{277,4242},
+	{263,4313},
+	{262,4293},
+	{272,4275},
+	{277,4257},
 	{282,4239},
 	{285,4222},
 	{287,4204},
@@ -626,10 +631,10 @@ R_PROFILE_STRUC r_profile_t1[] =
 // T2 25C
 R_PROFILE_STRUC r_profile_t2[] =
 {
-	{158,4250},
-	{157,4248},
-	{160,4244},
-	{160,4238},
+	{158,4319},
+	{157,4292},
+	{160,4270},
+	{160,4250},
 	{162,4232},
 	{162,4213},
 	{165,4195},
@@ -700,11 +705,11 @@ R_PROFILE_STRUC r_profile_t2[] =
 // T3 50C
 R_PROFILE_STRUC r_profile_t3[] =
 {
-	{110,4250},
-	{110,4248},
-	{115,4242},
-	{115,4238},
-	{115,4234},
+	{110,4331},
+	{110,4307},
+	{115,4287},
+	{115,4267},
+	{115,4248},
 	{115,4229},
 	{115,4211},
 	{117,4193},
@@ -855,3 +860,4 @@ int fgauge_get_saddles_r_table(void);
 R_PROFILE_STRUC_P fgauge_get_profile_r_table(kal_uint32 temperature);
 
 #endif	//#ifndef _CUST_BATTERY_METER_TABLE_H
+
