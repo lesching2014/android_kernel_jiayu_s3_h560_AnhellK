@@ -8,8 +8,8 @@
 // ============================================================
 //#define SOC_BY_AUXADC
 #define SOC_BY_HW_FG
-//#define HW_FG_FORCE_USE_SW_OCV
 //#define SOC_BY_SW_FG
+//#define HW_FG_FORCE_USE_SW_OCV
 
 //#define CONFIG_DIS_CHECK_BATTERY
 //#define FIXED_TBAT_25
@@ -37,15 +37,15 @@
 #define FG_METER_RESISTANCE 	0
 
 /* Qmax for battery  */
-#define Q_MAX_POS_50	3060
-#define Q_MAX_POS_25	3040
-#define Q_MAX_POS_0		2750
-#define Q_MAX_NEG_10	2300
+#define Q_MAX_POS_50	2500
+#define Q_MAX_POS_25	2432
+#define Q_MAX_POS_0		2244
+#define Q_MAX_NEG_10	1654
 
-#define Q_MAX_POS_50_H_CURRENT	3012
-#define Q_MAX_POS_25_H_CURRENT	2953
-#define Q_MAX_POS_0_H_CURRENT	2450
-#define Q_MAX_NEG_10_H_CURRENT	1200
+#define Q_MAX_POS_50_H_CURRENT	2500
+#define Q_MAX_POS_25_H_CURRENT	2390
+#define Q_MAX_POS_0_H_CURRENT	1814
+#define Q_MAX_NEG_10_H_CURRENT	696
 
 
 /* Discharge Percentage */
@@ -54,8 +54,8 @@
 
 /* battery meter parameter */
 #define CHANGE_TRACKING_POINT
-#define CUST_TRACKING_POINT  15
-#define CUST_R_SENSE         56
+#define CUST_TRACKING_POINT  1
+#define CUST_R_SENSE         68
 #define CUST_HW_CC 		    0
 #define AGING_TUNING_VALUE   103
 #define CUST_R_FG_OFFSET    0
@@ -63,7 +63,7 @@
 #define OCV_BOARD_COMPESATE	0 //mV 
 #define R_FG_BOARD_BASE		1000
 #define R_FG_BOARD_SLOPE	1000 //slope
-#define CAR_TUNE_VALUE		100 //1.00
+#define CAR_TUNE_VALUE		97 //1.00
 
 
 /* HW Fuel gague  */
@@ -72,15 +72,13 @@
 #define FG_VBAT_AVERAGE_SIZE 18
 #define R_FG_VALUE 			10 // mOhm, base is 20
 
-#define CUST_POWERON_DELTA_CAPACITY_TOLRANCE	30
+#define CUST_POWERON_DELTA_CAPACITY_TOLRANCE	25
 #define CUST_POWERON_LOW_CAPACITY_TOLRANCE		5
 #define CUST_POWERON_MAX_VBAT_TOLRANCE			90
 #define CUST_POWERON_DELTA_VBAT_TOLRANCE		30
-#define CUST_POWERON_DELTA_HW_SW_OCV_CAPACITY_TOLRANCE	10
-
 
 /* Disable Battery check for HQA */
-#ifdef MTK_DISABLE_POWER_ON_OFF_VOLTAGE_LIMITATION
+#ifdef CONFIG_MTK_DISABLE_POWER_ON_OFF_VOLTAGE_LIMITATION
 #define FIXED_TBAT_25
 #endif
 
@@ -91,8 +89,11 @@
 #define LOW_POWER_WAKEUP_PERIOD		300		//5 * 60 = 5 min
 #define CLOSE_POWEROFF_WAKEUP_PERIOD	30	//30 s
 
-#define FG_BAT_INT
-#define IS_BATTERY_REMOVE_BY_PMIC
+#define INIT_SOC_BY_SW_SOC
+//#define SYNC_UI_SOC_IMM			//3. UI SOC sync to FG SOC immediately
+#define MTK_ENABLE_AGING_ALGORITHM	//6. Q_MAX aging algorithm
+#define MD_SLEEP_CURRENT_CHECK	//5. Gauge Adjust by OCV 9. MD sleep current check
+#define Q_MAX_BY_CURRENT		//7. Qmax varient by current loading.
 
-
+#define DISABLE_RFG_EXIST_CHECK
 #endif	//#ifndef _CUST_BATTERY_METER_H

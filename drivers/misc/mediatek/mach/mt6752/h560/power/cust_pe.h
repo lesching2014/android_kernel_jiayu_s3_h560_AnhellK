@@ -2,7 +2,7 @@
 #define _CUST_PE_H_
 
 /* Pump Express support (fast charging) */
-#ifdef MTK_PUMP_EXPRESS_PLUS_SUPPORT
+#ifdef CONFIG_MTK_PUMP_EXPRESS_PLUS_SUPPORT
 #define TA_START_BATTERY_SOC	1
 #define TA_STOP_BATTERY_SOC 	95
 #define TA_AC_9V_INPUT_CURRENT	CHARGE_CURRENT_1500_00_MA
