@@ -238,6 +238,12 @@ config LCM_SEND_CMD_IN_VIDEO
 	bool "LCM_SEND_CMD_IN_VIDEO"
 	default n
 
+config MTK_VIDEOX_CYNGN_LIVEDISPLAY
+	bool CONFIG_MTK_VIDEOX_CYNGN_LIVEDISPLAY
+	default n
+	help
+		Enable the RGB interface for color calibration.
+
 # TODO check what's MT6516_EVB_BOARD
 config MTK_FB_EVB_USE_HVGA_LCM # FB_MT6516_EVB_USE_HVGA_LCM
 	bool "Use MagnaChip TA7601 HVGA LCM on EVB"
