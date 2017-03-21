@@ -28,13 +28,20 @@
 
 #define USB_CHARGER_CURRENT					CHARGE_CURRENT_500_00_MA	//500mA
 //#define AC_CHARGER_CURRENT					CHARGE_CURRENT_650_00_MA
-#define AC_CHARGER_CURRENT					CHARGE_CURRENT_1000_00_MA
+/*Begin, lenovo-sw wangxf14 modify for 2A charge at 20140903 */
+#define AC_CHARGER_CURRENT				CHARGE_CURRENT_1000_00_MA
+/*End, lenovo-sw wangxf14 modify for 2A charge at 20140903 */
 #define NON_STD_AC_CHARGER_CURRENT			CHARGE_CURRENT_500_00_MA
 #define CHARGING_HOST_CHARGER_CURRENT       CHARGE_CURRENT_650_00_MA
 #define APPLE_0_5A_CHARGER_CURRENT          CHARGE_CURRENT_500_00_MA
 #define APPLE_1_0A_CHARGER_CURRENT          CHARGE_CURRENT_650_00_MA
 #define APPLE_2_1A_CHARGER_CURRENT          CHARGE_CURRENT_800_00_MA
-
+/*Begin, lenovo-sw mahj2 modify for current limit at 20141113 */
+#define AC_CHARGER_CURRENT_LIMIT	              CHARGE_CURRENT_900_00_MA   //lenovo standard 0.3C
+/*End, lenovo-sw mahj2 modify for current limit at 20141113 */
+/*Begin, lenovo-sw mahj2 modify for input current limit at 20150106 */
+#define INPUT_CHARGER_CURRENT_LIMIT	              CHARGE_CURRENT_1800_00_MA
+/*End, lenovo-sw mahj2 modify for input current limit at 20150106 */
 
 /* Precise Tunning */
 #define BATTERY_AVERAGE_DATA_NUMBER	3	
@@ -47,7 +54,9 @@
 #define V_CHARGER_MIN 4400				// 4.4 V
 
 /* Tracking TIME */
-#define ONEHUNDRED_PERCENT_TRACKING_TIME	10	// 10 second
+//lenovo-sw mahj2 modify for 100% tracking time Begin
+#define ONEHUNDRED_PERCENT_TRACKING_TIME	60	// 60 second
+//lenovo-sw mahj2 modify for 100% tracking time End
 #define NPERCENT_TRACKING_TIME	   			20	// 20 second
 #define SYNC_TO_REAL_TRACKING_TIME  		60	// 60 second
 #define V_0PERCENT_TRACKING							3450 //3450mV
@@ -93,6 +102,40 @@
 #define JEITA_TEMP_NEG_10_TO_POS_0_CC2TOPOFF_THRESHOLD	3850
 
 
+/*lenovo-sw weiweij added for charging terminate as 0.1c*/
+#define LENOVO_CHARGING_TERM
+#ifdef LENOVO_CHARGING_TERM
+#ifdef CONFIG_MTK_BQ24157_SUPPORT
+#define LENOVO_CHARGING_TERM_CUR_STAGE_1	3	//250ma
+#define LENOVO_CHARGING_TERM_CUR_STAGE_2	2	//200ma
+#else
+#define LENOVO_CHARGING_TERM_CUR_STAGE_1	7	//275ma
+#define LENOVO_CHARGING_TERM_CUR_STAGE_2	2	//150ma
+#endif
+#endif
+/*lenovo-sw weiweij added for charging terminate as 0.1c end*/
+/* lenovo-sw zhangrc2 use pmic to control charging led 2014-12-08 */
+#define LENOVO_USE_PMIC_CONTROL_LED
+/* lenovo-sw zhangrc2 use pmic to control charging led 2014-12-08 */
+
+/*lenovo-sw mahj2 added for ntc temp cut 2 degree Begin*/
+#define LENOVO_NTC_TEMP_CUT_2_DEGREE
+/*lenovo-sw mahj2 added for ntc temp cut 2 degree End*/
+
+#ifdef CONFIG_LENOVO_POWEROFF_CHARGING_UI
+//draw
+#ifdef CONFIG_MTK_BQ24157_SUPPORT
+#define LENOVO_CHARGING_DRAW_LEFT                 (360-168) // percent number_left + 2*number_width
+#define LENOVO_CHARGING_DRAW_RIGHT                (LENOVO_CHARGING_DRAW_LEFT+337)
+#define LENOVO_CHARGING_DRAW_BOTTOM               (1280)
+#define LENOVO_CHARGING_DRAW_TOP                  (LENOVO_CHARGING_DRAW_BOTTOM-80)
+#else
+#define LENOVO_CHARGING_DRAW_LEFT                 (540-144) // percent number_left + 2*number_width
+#define LENOVO_CHARGING_DRAW_RIGHT                (LENOVO_CHARGING_DRAW_LEFT+288)
+#define LENOVO_CHARGING_DRAW_BOTTOM               (1920-40)
+#define LENOVO_CHARGING_DRAW_TOP                  (LENOVO_CHARGING_DRAW_BOTTOM-108)
+#endif
+#endif
 /* For CV_E1_INTERNAL */
 #define CV_E1_INTERNAL
 
@@ -104,5 +147,8 @@
 #ifdef CONFIG_MTK_FAN5405_SUPPORT
 #define FAN5405_BUSNUM 1
 #endif
+
+//for bq24517
+#define BQ24157_BUSNUM 0
 
 #endif /* _CUST_BAT_H_ */ 
