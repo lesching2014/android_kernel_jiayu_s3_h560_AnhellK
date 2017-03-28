@@ -148,51 +148,8 @@ static inline void alarmtimer_rtc_interface_remove(void) { }
 static inline void alarmtimer_rtc_timer_init(void) { }
 #endif
 
-void alarm_set_power_on(struct timespec new_pwron_time, bool logo)
-{
-	unsigned long pwron_time;
-	struct rtc_wkalrm alm;
-	struct rtc_device *alarm_rtc_dev;
-//	ktime_t now;
-	
-	alarm_dbg(INFO, "alarm set power on\n");
-	
-#ifdef RTC_PWRON_SEC
-	/* round down the second */
-	new_pwron_time.tv_sec = (new_pwron_time.tv_sec / 60) * 60;
-#endif
-	if (new_pwron_time.tv_sec > 0) {
-		pwron_time = new_pwron_time.tv_sec;
-#ifdef RTC_PWRON_SEC
-		pwron_time += RTC_PWRON_SEC;
-#endif
-		alm.enabled = (logo ? 3 : 2);
-	} else {
-		pwron_time = 0;
-		alm.enabled = 4;
-	}
-	alarm_rtc_dev = alarmtimer_get_rtcdev();
-	rtc_time_to_tm(pwron_time, &alm.time);
-/*	
-	rtc_timer_cancel(alarm_rtc_dev, &rtctimer);
-	now = rtc_tm_to_ktime(alm.time);
-	rtc_timer_start(alarm_rtc_dev, &rtctimer, now, ktime_set(0, 0));
-*/
-	rtc_timer_cancel(alarm_rtc_dev, &rtctimer);
-	rtc_set_alarm(alarm_rtc_dev, &alm);
-	rtc_set_alarm_poweron(alarm_rtc_dev, &alm);
-}
 
-void alarm_get_power_on(struct rtc_wkalrm *alm)
-{
-	if (!alm)
-		return;
 
-	memset(alm, 0, sizeof(struct rtc_wkalrm));
-#ifndef CONFIG_MTK_FPGA
-	rtc_read_pwron_alarm(alm);
-#endif
-}
 
 /**
  * alarmtimer_enqueue - Adds an alarm timer to an alarm_base timerqueue
