@@ -7,7 +7,7 @@ ifeq ($(CONFIG_MTK_INTERNAL), y)
 KBUILD_CFLAGS += -DMTK_INTERNAL_BUILD  # add for LMK
 endif
 ccflags-y += -I$(srctree)/drivers/staging/android/ion
-
+obj-y					+= alarm-dev.o
 obj-$(CONFIG_ASHMEM)			+= ashmem.o
 obj-$(CONFIG_ANDROID_TIMED_OUTPUT)	+= timed_output.o
 obj-$(CONFIG_ANDROID_TIMED_GPIO)	+= timed_gpio.o
