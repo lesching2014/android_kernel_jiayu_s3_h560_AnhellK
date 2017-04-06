@@ -1570,11 +1570,6 @@ extern struct sk_buff **tcp4_gro_receive(struct sk_buff **head,
 extern int tcp_gro_complete(struct sk_buff *skb);
 extern int tcp4_gro_complete(struct sk_buff *skb);
 
-extern int tcp_nuke_addr(struct net *net, struct sockaddr *addr);
-/* MTK_NET_CHANGES */
-extern void tcp_v4_reset_connections_by_uid(struct uid_err uid_e);
-extern void tcp_v4_handle_retrans_time_by_uid(struct uid_err uid_e);
-
 #ifdef CONFIG_PROC_FS
 extern int tcp4_proc_init(void);
 extern void tcp4_proc_exit(void);
