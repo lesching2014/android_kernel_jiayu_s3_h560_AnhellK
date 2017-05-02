@@ -65,7 +65,7 @@
 #define FM_TX_SCAN_HOLE_LOW  923	/* 92.30MHz~95.40MHz should not show to user */
 #define FM_TX_SCAN_HOLE_HIGH 954	/* 92.30MHz~95.40MHz should not show to user */
 
-#endif				/* CONFIG_MTK_FM_50KHZ_SUPPORT */
+#endif /* CONFIG_MTK_FM_50KHZ_SUPPORT */
 
 /* space */
 #define FM_SPACE_UNKNOWN    0
@@ -214,4 +214,4 @@ extern fm_s32 MT6630fm_cust_config_setup(const fm_s8 *filepath);
 extern fm_u16 MT6630fm_cust_config_fetch(enum fm_cust_cfg_op op_code);
 #endif
 
-#endif				/* __FM_CONFIG_H__ */
+#endif /* __FM_CONFIG_H__ */
