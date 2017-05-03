@@ -175,12 +175,10 @@ static int hall_resume(struct platform_device *pdev)
 {
     return 0;
 }
-#ifdef CONFIG_OF
 static const struct of_device_id hall_of_match[] = {
     { .compatible = "mediatek,hall_driver", },
     {},
 };
-#endif
 
 
 static struct platform_driver hall_driver = {
@@ -190,9 +188,7 @@ static struct platform_driver hall_driver = {
 	.remove = hall_remove,
 	.driver = {
 		.name = "hall_driver",
-        #ifdef CONFIG_OF
         .of_match_table = hall_of_match,
-        #endif
 
 	},
 };

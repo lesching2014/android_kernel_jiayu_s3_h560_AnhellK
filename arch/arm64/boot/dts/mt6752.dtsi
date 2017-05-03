@@ -1764,7 +1764,13 @@
 		compatible = "trustonic,mobicore";
 		interrupts = <0 248 0x1>;
 	};
-
+/* Vanzo:zhangxinyu on: Mon, 30 Mar 2015 21:25:43 +0800
+ * add hall devicetree
+ */
+        hall_driver@0 {
+            compatible = "mediatek,hall_driver";
+       };
+//End of vanzo:zhangxinyu
 };
 
 /include/ "cust_eint.dtsi"
