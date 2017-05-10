@@ -40,7 +40,6 @@
 #include <linux/fs.h>
 #include <linux/swap.h>
 #include <linux/rcupdate.h>
-#include <linux/sched.h>
 #include <linux/notifier.h>
 
 #if defined(CONFIG_MTK_AEE_FEATURE) && defined(CONFIG_MT_ENG_BUILD)
