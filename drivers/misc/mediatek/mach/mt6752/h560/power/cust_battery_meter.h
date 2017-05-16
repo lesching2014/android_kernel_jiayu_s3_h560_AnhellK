@@ -107,7 +107,7 @@
 #define R_FG_BOARD_SLOPE	1000 //slope
 //<2015/03/17-tedwu, change car_tune_value by hardware team request.
 #if defined(COSMOS)
-#define CAR_TUNE_VALUE		102 //1.02   //97 //1.00
+#define CAR_TUNE_VALUE		100 //1.02   //97 //1.00
 #elif defined(LAVENDER)
 #define CAR_TUNE_VALUE		97 //1.00
 #else
