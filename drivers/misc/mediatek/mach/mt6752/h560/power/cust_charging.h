@@ -59,7 +59,10 @@
 //lenovo-sw mahj2 modify for 100% tracking time End
 #define NPERCENT_TRACKING_TIME	   			20	// 20 second
 #define SYNC_TO_REAL_TRACKING_TIME  		60	// 60 second
-#define V_0PERCENT_TRACKING							3450 //3450mV
+#define V_0PERCENT_TRACKING							3300 //3450mV
+
+#define CUST_SYSTEM_OFF_VOLTAGE			3300
+#define SYSTEM_OFF_VOLTAGE			CUST_SYSTEM_OFF_VOLTAGE
 
 /* Battery Notify */
 #define BATTERY_NOTIFY_CASE_0001_VCHARGER

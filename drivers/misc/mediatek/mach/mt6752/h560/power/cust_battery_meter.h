@@ -77,7 +77,7 @@
 #define R_FG_BOARD_SLOPE	1000 //slope
 /*Begin, lenovo-sw mahj2 modify at 20141105*/
 //#define CAR_TUNE_VALUE		97 //1.00
-#define CAR_TUNE_VALUE		103 //1.00
+#define CAR_TUNE_VALUE		100 //1.00
 /*end, lenovo-sw mahj2 modify at 20141105 */
 
 
