@@ -1735,8 +1735,8 @@ static void battery_update(struct battery_data *bat_data)
 	bat_data->BAT_batt_vol = BMT_status.bat_vol;
 	bat_data->BAT_batt_temp = BMT_status.temperature * 10;
 	bat_data->BAT_PRESENT = BMT_status.bat_exist;
-	bat_data->charge_full_design = 3000 * 1000;
- 	bat_data->charge_full = 3000 * 1000;
+	bat_data->charge_full_design = 3060 * 1000;
+ 	bat_data->charge_full = 3060 * 1000;
 
 	
 	if ((BMT_status.charger_exist == KAL_TRUE) && (BMT_status.bat_charging_state != CHR_ERROR)) {
