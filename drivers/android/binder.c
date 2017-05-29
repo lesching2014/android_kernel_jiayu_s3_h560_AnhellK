@@ -66,7 +66,6 @@ static struct binder_node *binder_context_mgr_node;
 static kuid_t binder_context_mgr_uid = INVALID_UID;
 static int binder_last_id;
 static struct workqueue_struct *binder_deferred_workqueue;
-static pid_t system_server_pid;
 
 #define RT_PRIO_INHERIT			"v1.7"
 #ifdef RT_PRIO_INHERIT
