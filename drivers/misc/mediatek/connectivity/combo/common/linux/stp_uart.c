@@ -108,7 +108,7 @@ UINT8 tx_buf[MTKSTP_BUFFER_SIZE] = { 0x0 };
 INT32 rd_idx = 0;
 INT32 wr_idx = 0;
 /* struct semaphore buf_mtx; */
-spinlock_t buf_lock;
+//spinlock_t buf_lock;
 static INT32 mtk_wcn_uart_tx(const PUINT8 data, const UINT32 size, PUINT32 written_size);
 
 
