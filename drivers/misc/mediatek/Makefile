@@ -210,7 +210,6 @@ obj-y	+= devapc/
 obj-y	+= devinfo/
 obj-$(CONFIG_MTK_GPU_SUPPORT)	+= gpu/
 
-obj-y	+= almk/
 obj-$(CONFIG_MTK_JPEG)	+= jpeg/
 
 obj-$(CONFIG_MTK_LEDS)	+= leds/
