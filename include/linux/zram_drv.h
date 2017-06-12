@@ -103,4 +103,5 @@ struct zram {
 	struct zram_stats stats;
 	char compressor[10];
 };
+extern struct zram *zram_devices;
 #endif
