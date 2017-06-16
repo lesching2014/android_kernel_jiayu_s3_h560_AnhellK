@@ -1379,6 +1379,9 @@ static int __write_node_page(struct page *page, bool atomic, bool *submitted,
 		return 0;
 	}
 
+	if (atomic && !test_opt(sbi, NOBARRIER))
+		fio.op_flags |= WRITE_FLUSH_FUA;
+
 	set_page_writeback(page);
 	fio.old_blkaddr = ni.blk_addr;
 	write_node_page(nid, &fio);

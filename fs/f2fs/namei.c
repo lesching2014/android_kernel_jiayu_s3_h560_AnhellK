@@ -462,7 +462,7 @@ static int f2fs_symlink(struct inode *dir, struct dentry *dentry,
 		ostr.name = sd->encrypted_path;
 		ostr.len = disk_link.len;
 		err = fscrypt_fname_usr_to_disk(inode, &istr, &ostr);
-		if (err < 0)
+		if (err)
 			goto err_out;
 
 		sd->len = cpu_to_le16(ostr.len);
@@ -782,7 +782,7 @@ static int f2fs_rename(struct inode *old_dir, struct dentry *old_dentry,
 	up_write(&F2FS_I(old_inode)->i_sem);
 
 	old_inode->i_ctime = current_time(old_inode);
-	f2fs_mark_inode_dirty_sync(old_inode);
+	f2fs_mark_inode_dirty_sync(old_inode, false);
 
 	f2fs_delete_entry(old_entry, old_page, old_dir, NULL);
 
@@ -832,6 +832,12 @@ static int f2fs_cross_rename(struct inode *old_dir, struct dentry *old_dentry,
 	struct f2fs_dir_entry *old_entry, *new_entry;
 	int old_nlink = 0, new_nlink = 0;
 	int err = -ENOENT;
+
+	if ((f2fs_encrypted_inode(old_dir) &&
+			!fscrypt_has_encryption_key(old_dir)) ||
+			(f2fs_encrypted_inode(new_dir) &&
+			!fscrypt_has_encryption_key(new_dir)))
+		return -ENOKEY;
 
 	if ((f2fs_encrypted_inode(old_dir) || f2fs_encrypted_inode(new_dir)) &&
 			(old_dir != new_dir) &&
@@ -1019,7 +1025,7 @@ static void *f2fs_encrypted_follow_link(struct dentry *dentry,
 		goto errout;
 
 	res = fscrypt_fname_disk_to_usr(inode, 0, 0, &cstr, &pstr);
-	if (res < 0)
+	if (res)
 		goto errout;
 
 	/* this is broken symlink case */
@@ -1031,7 +1037,7 @@ static void *f2fs_encrypted_follow_link(struct dentry *dentry,
 	paddr = pstr.name;
 
 	/* Null-terminate the name */
-	paddr[res] = '\0';
+	paddr[pstr.len] = '\0';
 	nd_set_link(nd, paddr);
 
 	kunmap(cpage);

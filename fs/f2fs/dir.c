@@ -112,8 +112,6 @@ struct f2fs_dir_entry *find_target_dentry(struct fscrypt_name *fname,
 	struct f2fs_dir_entry *de;
 	unsigned long bit_pos = 0;
 	int max_len = 0;
-	struct fscrypt_str de_name = FSTR_INIT(NULL, 0);
-	struct fscrypt_str *name = &fname->disk_name;
 
 	if (max_slots)
 		*max_slots = 0;
@@ -131,29 +129,11 @@ struct f2fs_dir_entry *find_target_dentry(struct fscrypt_name *fname,
 			continue;
 		}
 
-		if (de->hash_code != namehash)
-			goto not_match;
-
-		de_name.name = d->filename[bit_pos];
-		de_name.len = le16_to_cpu(de->name_len);
-
-#ifdef CONFIG_F2FS_FS_ENCRYPTION
-		if (unlikely(!name->name)) {
-			if (fname->usr_fname->name[0] == '_') {
-				if (de_name.len > 32 &&
-					!memcmp(de_name.name + ((de_name.len - 17) & ~15),
-						fname->crypto_buf.name + 8, 16))
-					goto found;
-				goto not_match;
-			}
-			name->name = fname->crypto_buf.name;
-			name->len = fname->crypto_buf.len;
-		}
-#endif
-		if (de_name.len == name->len &&
-				!memcmp(de_name.name, name->name, name->len))
+		if (de->hash_code == namehash &&
+		    fscrypt_match_name(fname, d->filename[bit_pos],
+				       le16_to_cpu(de->name_len)))
 			goto found;
-not_match:
+
 		if (max_slots && max_len > *max_slots)
 			*max_slots = max_len;
 		max_len = 0;
@@ -325,7 +305,7 @@ void f2fs_set_link(struct inode *dir, struct f2fs_dir_entry *de,
 	set_page_dirty(page);
 
 	dir->i_mtime = dir->i_ctime = current_time(dir);
-	f2fs_mark_inode_dirty_sync(dir);
+	f2fs_mark_inode_dirty_sync(dir, false);
 	f2fs_put_page(page, 1);
 }
 
@@ -463,7 +443,7 @@ void update_parent_metadata(struct inode *dir, struct inode *inode,
 		clear_inode_flag(inode, FI_NEW_INODE);
 	}
 	dir->i_mtime = dir->i_ctime = current_time(dir);
-	f2fs_mark_inode_dirty_sync(dir);
+	f2fs_mark_inode_dirty_sync(dir, false);
 
 	if (F2FS_I(dir)->i_current_depth != current_depth)
 		f2fs_i_depth_write(dir, current_depth);
@@ -748,7 +728,7 @@ void f2fs_delete_entry(struct f2fs_dir_entry *dentry, struct page *page,
 	set_page_dirty(page);
 
 	dir->i_ctime = dir->i_mtime = current_time(dir);
-	f2fs_mark_inode_dirty_sync(dir);
+	f2fs_mark_inode_dirty_sync(dir, false);
 
 	if (inode)
 		f2fs_drop_nlink(dir, inode);
@@ -832,9 +812,9 @@ int f2fs_fill_dentries(struct file *file, void *dirent, filldir_t filldir,
 
 		if (f2fs_encrypted_inode(d->inode)) {
 			int save_len = fstr->len;
-			int ret;
+			int err;
 
-			ret = fscrypt_fname_disk_to_usr(d->inode,
+			err = fscrypt_fname_disk_to_usr(d->inode,
 						(u32)de->hash_code, 0,
 						&de_name, fstr);
 			if (err)
