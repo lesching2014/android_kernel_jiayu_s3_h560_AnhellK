@@ -10,7 +10,6 @@
 
 #include <linux/random.h>
 #include <linux/string.h>
-<<<<<<< HEAD
 #include <linux/fscrypto.h>
 
 static int inode_has_encryption_context(struct inode *inode)
@@ -19,25 +18,31 @@ static int inode_has_encryption_context(struct inode *inode)
 		return 0;
 	return (inode->i_sb->s_cop->get_context(inode, NULL, 0L) > 0);
 }
-=======
-#include <linux/mount.h>
-#include "fscrypt_private.h"
->>>>>>> 2eb1cb2f3... fscrypt: catch up to v4.11-rc1
 
 /*
- * check whether an encryption policy is consistent with an encryption context
+ * check whether the policy is consistent with the encryption context
+ * for the inode
  */
-static bool is_encryption_context_consistent_with_policy(
-				const struct fscrypt_context *ctx,
+static int is_encryption_context_consistent_with_policy(struct inode *inode,
 				const struct fscrypt_policy *policy)
 {
-	return memcmp(ctx->master_key_descriptor, policy->master_key_descriptor,
-		      FS_KEY_DESCRIPTOR_SIZE) == 0 &&
-		(ctx->flags == policy->flags) &&
-		(ctx->contents_encryption_mode ==
-		 policy->contents_encryption_mode) &&
-		(ctx->filenames_encryption_mode ==
-		 policy->filenames_encryption_mode);
+	struct fscrypt_context ctx;
+	int res;
+
+	if (!inode->i_sb->s_cop->get_context)
+		return 0;
+
+	res = inode->i_sb->s_cop->get_context(inode, &ctx, sizeof(ctx));
+	if (res != sizeof(ctx))
+		return 0;
+
+	return (memcmp(ctx.master_key_descriptor, policy->master_key_descriptor,
+			FS_KEY_DESCRIPTOR_SIZE) == 0 &&
+			(ctx.flags == policy->flags) &&
+			(ctx.contents_encryption_mode ==
+			 policy->contents_encryption_mode) &&
+			(ctx.filenames_encryption_mode ==
+			 policy->filenames_encryption_mode));
 }
 
 static int create_encryption_context_from_policy(struct inode *inode,
@@ -60,12 +65,20 @@ static int create_encryption_context_from_policy(struct inode *inode,
 					FS_KEY_DESCRIPTOR_SIZE);
 
 	if (!fscrypt_valid_contents_enc_mode(
-				policy->contents_encryption_mode))
+				policy->contents_encryption_mode)) {
+		printk(KERN_WARNING
+		       "%s: Invalid contents encryption mode %d\n", __func__,
+			policy->contents_encryption_mode);
 		return -EINVAL;
+	}
 
 	if (!fscrypt_valid_filenames_enc_mode(
-				policy->filenames_encryption_mode))
+				policy->filenames_encryption_mode)) {
+		printk(KERN_WARNING
+			"%s: Invalid filenames encryption mode %d\n", __func__,
+			policy->filenames_encryption_mode);
 		return -EINVAL;
+	}
 
 	if (policy->flags & ~FS_POLICY_FLAGS_VALID)
 		return -EINVAL;
@@ -82,7 +95,6 @@ static int create_encryption_context_from_policy(struct inode *inode,
 int fscrypt_process_policy(struct inode *inode,
 				const struct fscrypt_policy *policy)
 {
-<<<<<<< HEAD
 	if (policy->version != 0)
 		return -EINVAL;
 
@@ -92,47 +104,6 @@ int fscrypt_process_policy(struct inode *inode,
 		if (!inode->i_sb->s_cop->empty_dir(inode))
 			return -ENOTEMPTY;
 		return create_encryption_context_from_policy(inode, policy);
-=======
-	struct fscrypt_policy policy;
-	struct inode *inode = file_inode(filp);
-	int ret;
-	struct fscrypt_context ctx;
-
-	if (copy_from_user(&policy, arg, sizeof(policy)))
-		return -EFAULT;
-
-	if (!inode_owner_or_capable(inode))
-		return -EACCES;
-
-	if (policy.version != 0)
-		return -EINVAL;
-
-	ret = mnt_want_write_file(filp);
-	if (ret)
-		return ret;
-
-	inode_lock(inode);
-
-	ret = inode->i_sb->s_cop->get_context(inode, &ctx, sizeof(ctx));
-	if (ret == -ENODATA) {
-		if (!S_ISDIR(inode->i_mode))
-			ret = -ENOTDIR;
-		else if (!inode->i_sb->s_cop->empty_dir)
-			ret = -EOPNOTSUPP;
-		else if (!inode->i_sb->s_cop->empty_dir(inode))
-			ret = -ENOTEMPTY;
-		else
-			ret = create_encryption_context_from_policy(inode,
-								    &policy);
-	} else if (ret == sizeof(ctx) &&
-		   is_encryption_context_consistent_with_policy(&ctx,
-								&policy)) {
-		/* The file already uses the same encryption policy. */
-		ret = 0;
-	} else if (ret >= 0 || ret == -ERANGE) {
-		/* The file already uses a different encryption policy. */
-		ret = -EEXIST;
->>>>>>> 2eb1cb2f3... fscrypt: catch up to v4.11-rc1
 	}
 
 	if (is_encryption_context_consistent_with_policy(inode, policy))
@@ -154,10 +125,8 @@ int fscrypt_get_policy(struct inode *inode, struct fscrypt_policy *policy)
 		return -ENODATA;
 
 	res = inode->i_sb->s_cop->get_context(inode, &ctx, sizeof(ctx));
-	if (res < 0 && res != -ERANGE)
-		return res;
 	if (res != sizeof(ctx))
-		return -EINVAL;
+		return -ENODATA;
 	if (ctx.format != FS_ENCRYPTION_CONTEXT_FORMAT_V1)
 		return -EINVAL;
 
@@ -214,9 +183,9 @@ EXPORT_SYMBOL(fscrypt_has_permitted_context);
  * @parent: Parent inode from which the context is inherited.
  * @child:  Child inode that inherits the context from @parent.
  * @fs_data:  private data given by FS.
- * @preload:  preload child i_crypt_info if true
+ * @preload:  preload child i_crypt_info
  *
- * Return: 0 on success, -errno on failure
+ * Return: Zero on success, non-zero otherwise
  */
 int fscrypt_inherit_context(struct inode *parent, struct inode *child,
 						void *fs_data, bool preload)
@@ -237,11 +206,19 @@ int fscrypt_inherit_context(struct inode *parent, struct inode *child,
 		return -ENOKEY;
 
 	ctx.format = FS_ENCRYPTION_CONTEXT_FORMAT_V1;
-	ctx.contents_encryption_mode = ci->ci_data_mode;
-	ctx.filenames_encryption_mode = ci->ci_filename_mode;
-	ctx.flags = ci->ci_flags;
-	memcpy(ctx.master_key_descriptor, ci->ci_master_key,
-	       FS_KEY_DESCRIPTOR_SIZE);
+	if (fscrypt_dummy_context_enabled(parent)) {
+		ctx.contents_encryption_mode = FS_ENCRYPTION_MODE_AES_256_XTS;
+		ctx.filenames_encryption_mode = FS_ENCRYPTION_MODE_AES_256_CTS;
+		ctx.flags = 0;
+		memset(ctx.master_key_descriptor, 0x42, FS_KEY_DESCRIPTOR_SIZE);
+		res = 0;
+	} else {
+		ctx.contents_encryption_mode = ci->ci_data_mode;
+		ctx.filenames_encryption_mode = ci->ci_filename_mode;
+		ctx.flags = ci->ci_flags;
+		memcpy(ctx.master_key_descriptor, ci->ci_master_key,
+				FS_KEY_DESCRIPTOR_SIZE);
+	}
 	get_random_bytes(ctx.nonce, FS_KEY_DERIVATION_NONCE_SIZE);
 	res = parent->i_sb->s_cop->set_context(child, &ctx,
 						sizeof(ctx), fs_data);
