@@ -5397,9 +5397,9 @@ void __init free_area_init_nodes(unsigned long *max_zone_pfn)
     start_pfn = find_min_pfn_with_active_regions();
 
     for (i = 0; i < MAX_NR_ZONES; i++) {
-#if !defined(CONFIG_CMA) || !defined(CONFIG_MTK_SVP) // SVP 12
-		if (i == ZONE_MOVABLE)
-			continue;
+
+       if (i == ZONE_MOVABLE)
+        continue;
 
         end_pfn = max(max_zone_pfn[i], start_pfn);
         arch_zone_lowest_possible_pfn[i] = start_pfn;
