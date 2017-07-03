@@ -155,7 +155,9 @@ enum zone_stat_item {
 	NUMA_OTHER,		/* allocation from other node */
 #endif
 	NR_ANON_TRANSPARENT_HUGEPAGES,
+#if !defined(CONFIG_CMA) || !defined(CONFIG_MTK_SVP) // SVP 16
 	NR_FREE_CMA_PAGES,
+#endif
 	NR_VM_ZONE_STAT_ITEMS };
 
 /*

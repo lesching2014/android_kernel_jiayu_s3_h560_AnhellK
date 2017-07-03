@@ -744,7 +744,9 @@ const char * const vmstat_text[] = {
 	"numa_other",
 #endif
 	"nr_anon_transparent_hugepages",
+#if !defined(CONFIG_CMA) || !defined(CONFIG_MTK_SVP) // SVP 16
 	"nr_free_cma",
+#endif
 	"nr_dirty_threshold",
 	"nr_dirty_background_threshold",
 
