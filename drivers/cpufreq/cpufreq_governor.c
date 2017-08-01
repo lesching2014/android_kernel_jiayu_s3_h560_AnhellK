@@ -61,9 +61,7 @@ void dbs_check_cpu(struct dbs_data *dbs_data, int cpu)
 		ignore_nice = od_tuners->ignore_nice_load;
 	else if (dbs_data->cdata->governor == GOV_HOTPLUG)
 		ignore_nice = hp_tuners->ignore_nice_load;
-	else
-	} else if (dbs_data->cdata->governor == GOV_ELEMENTALX) {
-		sampling_rate = ex_tuners->sampling_rate;
+	 else if (dbs_data->cdata->governor == GOV_ELEMENTALX) {
 		ignore_nice = ex_tuners->ignore_nice_load;
 	} else 
 		ignore_nice = cs_tuners->ignore_nice_load;

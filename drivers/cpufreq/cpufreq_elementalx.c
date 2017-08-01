@@ -12,6 +12,7 @@
  */
 
 #include <linux/slab.h>
+#include <linux/err.h>
 #include "cpufreq_governor.h"
 
 /* elementalx governor macros */
@@ -550,9 +551,9 @@ static void __exit cpufreq_gov_dbs_exit(void)
 
 }
 
-MODULE_AUTHOR("Aaron Segaert <asegaert@gmail.com>");
-MODULE_DESCRIPTION("'cpufreq_elementalx' - multiphase cpufreq governor");
-MODULE_LICENSE("GPL");
+//MODULE_AUTHOR("Aaron Segaert <asegaert@gmail.com>");
+//MODULE_DESCRIPTION("'cpufreq_elementalx' - multiphase cpufreq governor");
+//MODULE_LICENSE("GPL");
 
 #ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_ELEMENTALX
 fs_initcall(cpufreq_gov_dbs_init);
