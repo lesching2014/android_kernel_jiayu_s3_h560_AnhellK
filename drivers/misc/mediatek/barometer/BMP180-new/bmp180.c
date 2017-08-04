@@ -79,10 +79,10 @@ enum BMP_OVERSAMPLING_ENUM {
 
 /* trace */
 enum BAR_TRC {
-	BAR_TRC_READ  = 0x01,
+	BAR_TRC_READ = 0x01,
 	BAR_TRC_RAWDATA = 0x02,
-	BAR_TRC_IOCTL   = 0x04,
-	BAR_TRC_FILTER  = 0x08,
+	BAR_TRC_IOCTL = 0x04,
+	BAR_TRC_FILTER = 0x08,
 };
 
 /* s/w filter */
@@ -119,7 +119,7 @@ struct bmp_i2c_data {
 	/* calculated temperature correction coefficient */
 	s32 t_fine;
 
-	/*misc*/
+	/*misc */
 	atomic_t trace;
 	atomic_t suspend;
 	atomic_t filter;
@@ -132,10 +132,10 @@ struct bmp_i2c_data {
 };
 
 #define BAR_TAG                  "[barometer] "
-#define BAR_FUN(f)               printk(KERN_INFO BAR_TAG"%s\n", __func__)
+#define BAR_FUN(f)               pr_debug(BAR_TAG"%s\n", __func__)
 #define BAR_ERR(fmt, args...) \
-	printk(KERN_ERR BAR_TAG"%s %d : "fmt, __func__, __LINE__, ##args)
-#define BAR_LOG(fmt, args...)    printk(KERN_ERR BAR_TAG fmt, ##args)
+	pr_err(BAR_TAG"%s %d : "fmt, __func__, __LINE__, ##args)
+#define BAR_LOG(fmt, args...)    pr_debug(BAR_TAG fmt, ##args)
 
 static struct i2c_driver bmp_i2c_driver;
 static struct bmp_i2c_data *obj_i2c_data;
@@ -144,57 +144,51 @@ static const struct i2c_device_id bmp_i2c_id[] = {
 	{}
 };
 
-static struct i2c_board_info __initdata bmp_i2c_info = {
+static struct i2c_board_info bmp_i2c_info __initdata = {
 	I2C_BOARD_INFO(BMP_DEV_NAME, BMP180_I2C_ADDRESS)
 };
 
 static int bmp180_local_init(void);
-static int  bmp180_remove(void);
-static int bmp180_init_flag =-1; // 0<==>OK -1 <==> fail
+static int bmp180_remove(void);
+static int bmp180_init_flag = -1;
 static struct baro_init_info bmp180_init_info = {
-		.name = "bmp180",
-		.init = bmp180_local_init,
-		.uninit = bmp180_remove,
+	.name = "bmp180",
+	.init = bmp180_local_init,
+	.uninit = bmp180_remove,
 };
 
 /* I2C operation functions */
 static int bmp_i2c_read_block(struct i2c_client *client, u8 addr, u8 *data, u8 len)
 {
-    u8 beg = addr;
+	u8 beg = addr;
 	int err;
-	struct i2c_msg msgs[2]={{0},{0}};
-	
+	struct i2c_msg msgs[2] = { {0}, {0} };
+
 	mutex_lock(&bmp180_i2c_mutex);
-	
+
 	msgs[0].addr = client->addr;
 	msgs[0].flags = 0;
-	msgs[0].len =1;
+	msgs[0].len = 1;
 	msgs[0].buf = &beg;
 
 	msgs[1].addr = client->addr;
 	msgs[1].flags = I2C_M_RD;
-	msgs[1].len =len;
+	msgs[1].len = len;
 	msgs[1].buf = data;
-	
-	if (!client)
-	{
-	    mutex_unlock(&bmp180_i2c_mutex);
+
+	if (!client) {
+		mutex_unlock(&bmp180_i2c_mutex);
 		return -EINVAL;
-	}
-	else if (len > C_I2C_FIFO_SIZE) 
-	{
+	} else if (len > C_I2C_FIFO_SIZE) {
 		BAR_ERR(" length %d exceeds %d\n", len, C_I2C_FIFO_SIZE);
 		mutex_unlock(&bmp180_i2c_mutex);
 		return -EINVAL;
 	}
-	err = i2c_transfer(client->adapter, msgs, sizeof(msgs)/sizeof(msgs[0]));
-	if (err != 2) 
-	{
-		BAR_ERR("i2c_transfer error: (%d %p %d) %d\n",addr, data, len, err);
+	err = i2c_transfer(client->adapter, msgs, sizeof(msgs) / sizeof(msgs[0]));
+	if (err != 2) {
+		BAR_ERR("i2c_transfer error: (%d %p %d) %d\n", addr, data, len, err);
 		err = -EIO;
-	} 
-	else 
-	{
+	} else {
 		err = 0;
 	}
 	mutex_unlock(&bmp180_i2c_mutex);
@@ -203,39 +197,34 @@ static int bmp_i2c_read_block(struct i2c_client *client, u8 addr, u8 *data, u8 l
 }
 
 static int bmp_i2c_write_block(struct i2c_client *client, u8 addr, u8 *data, u8 len)
-{	/*because address also occupies one byte, the maximum length for write is 7 bytes*/
+{				/*because address also occupies one byte, the maximum length for write is 7 bytes */
 	int err, idx, num;
 	char buf[C_I2C_FIFO_SIZE];
-	err =0;
-	
+
+	err = 0;
+
 	mutex_lock(&bmp180_i2c_mutex);
-	
-	if (!client)
-	{
+
+	if (!client) {
 		mutex_unlock(&bmp180_i2c_mutex);
 		return -EINVAL;
-	}
-	else if (len >= C_I2C_FIFO_SIZE) 
-	{		 
+	} else if (len >= C_I2C_FIFO_SIZE) {
 		BAR_ERR(" length %d exceeds %d\n", len, C_I2C_FIFO_SIZE);
 		mutex_unlock(&bmp180_i2c_mutex);
 		return -EINVAL;
-	}	 
+	}
 
 	num = 0;
 	buf[num++] = addr;
 	for (idx = 0; idx < len; idx++)
-	{
 		buf[num++] = data[idx];
-	}
 
 	err = i2c_master_send(client, buf, num);
-	if (err < 0)
-	{
+	if (err < 0) {
 		BAR_ERR("send command error!!\n");
 		mutex_unlock(&bmp180_i2c_mutex);
 		return -EFAULT;
-	} 
+	}
 	mutex_unlock(&bmp180_i2c_mutex);
 	return err;
 }
@@ -244,14 +233,14 @@ static void bmp_power(struct baro_hw *hw, unsigned int on)
 {
 	static unsigned int power_on;
 
-	if (hw->power_id != POWER_NONE_MACRO) {/* have externel LDO */
+	if (hw->power_id != POWER_NONE_MACRO) {	/* have externel LDO */
 		BAR_LOG("power %s\n", on ? "on" : "off");
-		if (power_on == on) {/* power status not change */
+		if (power_on == on) {	/* power status not change */
 			BAR_LOG("ignore power control: %d\n", on);
-		} else if (on) {/* power on */
+		} else if (on) {	/* power on */
 			if (!hwPowerOn(hw->power_id, hw->power_vol, BMP_DEV_NAME))
 				BAR_ERR("power on failed\n");
-		} else {/* power off */
+		} else {	/* power off */
 			if (!hwPowerDown(hw->power_id, BMP_DEV_NAME))
 				BAR_ERR("power off failed\n");
 		}
@@ -265,6 +254,7 @@ static int bmp_get_chip_type(struct i2c_client *client)
 	int err = 0;
 	u8 chip_id = 0;
 	struct bmp_i2c_data *obj = i2c_get_clientdata(client);
+
 	BAR_FUN(f);
 
 	err = bmp_i2c_read_block(client, BMP_CHIP_ID_REG, &chip_id, 0x01);
@@ -293,36 +283,38 @@ static int bmp_get_chip_type(struct i2c_client *client)
 
 static int bmp_get_calibration_data(struct i2c_client *client)
 {
-	struct bmp_i2c_data *obj =
-		(struct bmp_i2c_data *)i2c_get_clientdata(client);
+	struct bmp_i2c_data *obj = (struct bmp_i2c_data *)i2c_get_clientdata(client);
 	int status = 0;
 	int i = 0;
+
 	if (obj->sensor_type == BMP180_TYPE) {
-		u8 tmp[2] = {0};
-		u16 cali_data[BMP180_CALIBRATION_DATA_LENGTH] = {0};
-		for(i = 0; i < 11; i++)
-		{
-			status = bmp_i2c_read_block(client, (BMP180_CALIBRATION_DATA_START+(i*2)), (u8 *)&cali_data[i], 0x02);
+		u8 tmp[2] = { 0 };
+		u16 cali_data[BMP180_CALIBRATION_DATA_LENGTH] = { 0 };
+
+		for (i = 0; i < 11; i++) {
+			status =
+			    bmp_i2c_read_block(client, (BMP180_CALIBRATION_DATA_START + (i * 2)),
+					       (u8 *) &cali_data[i], 0x02);
 			if (status < 0)
 				return status;
-			//cali_data[i] = tmp[0]|(tmp[1]>>8);
-			BAR_LOG("[%s] read data = 0x%x, 0x%x, i = %d \n", __func__, tmp[0], tmp[1], i);
-			BAR_LOG("[%s] read address = 0x%x\n", __func__, (BMP180_CALIBRATION_DATA_START+(i*2)));
+			/* cali_data[i] = tmp[0]|(tmp[1]>>8); */
+			BAR_LOG("[%s] read data = 0x%x, 0x%x, i = %d\n", __func__, tmp[0], tmp[1],
+				i);
+			BAR_LOG("[%s] read address = 0x%x\n", __func__,
+				(BMP180_CALIBRATION_DATA_START + (i * 2)));
 		}
-		//status = bmp_i2c_read_block(client, BMP180_CALIBRATION_DATA_START, (u8 *)tmp, BMP180_CALIBRATION_DATA_LENGTH*sizeof(u16));
 
-
-		obj->bmp180_cali.AC1 =  be16_to_cpu(cali_data[0]);
-		obj->bmp180_cali.AC2 =  be16_to_cpu(cali_data[1]);
-		obj->bmp180_cali.AC3 =  be16_to_cpu(cali_data[2]);
-		obj->bmp180_cali.AC4 =  be16_to_cpu(cali_data[3]);
-		obj->bmp180_cali.AC5 =  be16_to_cpu(cali_data[4]);
-		obj->bmp180_cali.AC6 =  be16_to_cpu(cali_data[5]);
-		obj->bmp180_cali.B1  =  be16_to_cpu(cali_data[6]);
-		obj->bmp180_cali.B2  =  be16_to_cpu(cali_data[7]);
-		obj->bmp180_cali.MB  =  be16_to_cpu(cali_data[8]);
-		obj->bmp180_cali.MC  =  be16_to_cpu(cali_data[9]);
-		obj->bmp180_cali.MD  =  be16_to_cpu(cali_data[10]);
+		obj->bmp180_cali.AC1 = be16_to_cpu(cali_data[0]);
+		obj->bmp180_cali.AC2 = be16_to_cpu(cali_data[1]);
+		obj->bmp180_cali.AC3 = be16_to_cpu(cali_data[2]);
+		obj->bmp180_cali.AC4 = be16_to_cpu(cali_data[3]);
+		obj->bmp180_cali.AC5 = be16_to_cpu(cali_data[4]);
+		obj->bmp180_cali.AC6 = be16_to_cpu(cali_data[5]);
+		obj->bmp180_cali.B1 = be16_to_cpu(cali_data[6]);
+		obj->bmp180_cali.B2 = be16_to_cpu(cali_data[7]);
+		obj->bmp180_cali.MB = be16_to_cpu(cali_data[8]);
+		obj->bmp180_cali.MC = be16_to_cpu(cali_data[9]);
+		obj->bmp180_cali.MD = be16_to_cpu(cali_data[10]);
 	}
 
 	return 0;
@@ -340,10 +332,9 @@ static int bmp_set_powermode(struct i2c_client *client, enum BMP_POWERMODE_ENUM 
 		return 0;
 	mutex_lock(&bmp180_op_mutex);
 
-	if (obj->sensor_type == BMP180_TYPE) {/* BMP180 */
+	if (obj->sensor_type == BMP180_TYPE) {	/* BMP180 */
 		/* BMP180 only support forced mode */
-		BAR_LOG("%s doesn't support hw power mode setting,"
-			"only has forced mode\n", obj->sensor_name);
+		BAR_LOG("%s doesn't support hw power mode setting,only has forced mode\n", obj->sensor_name);
 	}
 
 	if (err < 0)
@@ -356,17 +347,19 @@ static int bmp_set_powermode(struct i2c_client *client, enum BMP_POWERMODE_ENUM 
 	return err;
 }
 
-static int bmp_set_oversampling_p(struct i2c_client *client, enum BMP_OVERSAMPLING_ENUM oversampling_p)
+static int bmp_set_oversampling_p(struct i2c_client *client,
+				  enum BMP_OVERSAMPLING_ENUM oversampling_p)
 {
 	struct bmp_i2c_data *obj = i2c_get_clientdata(client);
 	u8 err = 0, data = 0, actual_oversampling_p = 0;
 
-	BAR_LOG("[%s] oversampling_p = %d, old oversampling_p = %d\n", __func__, oversampling_p, obj->oversampling_p);
+	BAR_LOG("[%s] oversampling_p = %d, old oversampling_p = %d\n", __func__, oversampling_p,
+		obj->oversampling_p);
 
 	if (oversampling_p == obj->oversampling_p)
 		return 0;
 
-	if (obj->sensor_type == BMP180_TYPE) {/* BMP180 */
+	if (obj->sensor_type == BMP180_TYPE) {	/* BMP180 */
 		if (oversampling_p == BMP_OVERSAMPLING_1X)
 			actual_oversampling_p = BMP180_OVERSAMPLING_1X;
 		else if (oversampling_p == BMP_OVERSAMPLING_2X)
@@ -377,8 +370,7 @@ static int bmp_set_oversampling_p(struct i2c_client *client, enum BMP_OVERSAMPLI
 			actual_oversampling_p = BMP180_OVERSAMPLING_8X;
 		else {
 			err = -EINVAL;
-			BAR_ERR("invalid oversampling_p = %d\n",
-				oversampling_p);
+			BAR_ERR("invalid oversampling_p = %d\n", oversampling_p);
 			return err;
 		}
 		err = bmp_i2c_read_block(client, BMP180_CTRLMEAS_REG_OSRSP__REG, &data, 1);
@@ -387,7 +379,8 @@ static int bmp_set_oversampling_p(struct i2c_client *client, enum BMP_OVERSAMPLI
 	}
 
 	if (err < 0)
-		BAR_ERR("set pressure oversampling failed, err = %d, sensor name = %s\n", err, obj->sensor_name);
+		BAR_ERR("set pressure oversampling failed, err = %d, sensor name = %s\n", err,
+			obj->sensor_name);
 	else
 		obj->oversampling_p = oversampling_p;
 
@@ -406,20 +399,17 @@ static int bmp_read_raw_temperature(struct i2c_client *client, s32 *temperature)
 		return err;
 	}
 	mutex_lock(&bmp180_op_mutex);
-	if (obj->sensor_type == BMP180_TYPE) {/* BMP180 */
+	if (obj->sensor_type == BMP180_TYPE) {	/* BMP180 */
 		data = BMP180_TEMP_MEASUREMENT;
-		err += bmp_i2c_write_block(client,
-			BMP180_CTRLMEAS_REG_MC__REG, &data, 1);
+		err += bmp_i2c_write_block(client, BMP180_CTRLMEAS_REG_MC__REG, &data, 1);
 		if (err < 0) {
-			BAR_ERR("start measure temperature failed, err = %d\n",
-				err);
+			BAR_ERR("start measure temperature failed, err = %d\n", err);
 			mutex_unlock(&bmp180_op_mutex);
 			return err;
 		}
 		/* wait for the end of conversion */
-		msleep(5);
-
-		err = bmp_i2c_read_block(client, BMP180_CONVERSION_REGISTER_MSB, (u8 *)&tmp, sizeof(tmp));
+		msleep(bmp_i2c_read_block(client, BMP180_CONVERSION_REGISTER_MSB, (u8 *) &tmp,
+				       sizeof(tmp));
 		if (err < 0) {
 			BAR_ERR("read raw temperature failed, err = %d\n", err);
 			mutex_unlock(&bmp180_op_mutex);
@@ -427,7 +417,7 @@ static int bmp_read_raw_temperature(struct i2c_client *client, s32 *temperature)
 		}
 		*temperature = be16_to_cpu(tmp);
 		if (atomic_read(&obj->trace) & BAR_TRC_IOCTL)
-		BAR_LOG("debug sensor raw temperature value: 0x%x\n", tmp);
+			BAR_LOG("debug sensor raw temperature value: 0x%x\n", tmp);
 	}
 	mutex_unlock(&bmp180_op_mutex);
 	obj->last_temp_measurement = jiffies;
@@ -447,22 +437,20 @@ static int bmp_read_raw_pressure(struct i2c_client *client, s32 *pressure)
 		return err;
 	}
 	mutex_lock(&bmp180_op_mutex);
-	if (priv->sensor_type == BMP180_TYPE) {/* BMP180 */
-		data = BMP180_PRESSURE_MEASUREMENT + ((priv->oversampling_p-1) << 6);
-		err += bmp_i2c_write_block(client,
-			BMP180_CTRLMEAS_REG_MC__REG, &data, 1);
+	if (priv->sensor_type == BMP180_TYPE) {	/* BMP180 */
+		data = BMP180_PRESSURE_MEASUREMENT + ((priv->oversampling_p - 1) << 6);
+		err += bmp_i2c_write_block(client, BMP180_CTRLMEAS_REG_MC__REG, &data, 1);
 		if (err < 0) {
-			BAR_ERR("start measure pressure failed, err = %d\n",
-				err);
+			BAR_ERR("start measure pressure failed, err = %d\n", err);
 			mutex_unlock(&bmp180_op_mutex);
 			return err;
 		}
 		/* wait for the end of conversion */
-		msleep(2+(3 << (priv->oversampling_p-1)));
+		msleep(2 + (3 << (priv->oversampling_p - 1)));
 
 		/* copy data into a u32 (4 bytes), but skip the first byte. */
 		err = bmp_i2c_read_block(client,
-			BMP180_CONVERSION_REGISTER_MSB, ((u8 *)&tmp)+1, 3);
+					 BMP180_CONVERSION_REGISTER_MSB, ((u8 *) &tmp) + 1, 3);
 		if (err < 0) {
 			BAR_ERR("read raw pressure failed, err = %d\n", err);
 			mutex_unlock(&bmp180_op_mutex);
@@ -471,7 +459,7 @@ static int bmp_read_raw_pressure(struct i2c_client *client, s32 *pressure)
 		*pressure = be32_to_cpu(tmp);
 		*pressure >>= (8 - (priv->oversampling_p - 1));
 		if (atomic_read(&priv->trace) & BAR_TRC_IOCTL)
-		BAR_LOG("debug sensor raw pressure value: 0x%x\n", tmp);
+			BAR_LOG("debug sensor raw pressure value: 0x%x\n", tmp);
 	}
 	mutex_unlock(&bmp180_op_mutex);
 #ifdef CONFIG_BMP_LOWPASS
@@ -481,19 +469,18 @@ static int bmp_read_raw_pressure(struct i2c_client *client, s32 *pressure)
 *Then, average this filter buffer and report average value to upper layer.
 */
 	if (atomic_read(&priv->filter)) {
-		if (atomic_read(&priv->fir_en) &&
-			!atomic_read(&priv->suspend)) {
+		if (atomic_read(&priv->fir_en) && !atomic_read(&priv->suspend)) {
 			int idx, firlen = atomic_read(&priv->firlen);
+
 			if (priv->fir.num < firlen) {
 				priv->fir.raw[priv->fir.num][BMP_PRESSURE] = *pressure;
 				priv->fir.sum[BMP_PRESSURE] += *pressure;
-				if (atomic_read(&priv->trace) &
-					BAR_TRC_FILTER) {
+				if (atomic_read(&priv->trace) & BAR_TRC_FILTER) {
 					BAR_LOG("add [%2d] [%5d] => [%5d]\n",
-					priv->fir.num,
-					priv->fir.raw
-					[priv->fir.num][BMP_PRESSURE],
-					priv->fir.sum[BMP_PRESSURE]);
+						priv->fir.num,
+						priv->fir.raw
+						[priv->fir.num][BMP_PRESSURE],
+						priv->fir.sum[BMP_PRESSURE]);
 				}
 				priv->fir.num++;
 				priv->fir.idx++;
@@ -503,13 +490,11 @@ static int bmp_read_raw_pressure(struct i2c_client *client, s32 *pressure)
 				priv->fir.raw[idx][BMP_PRESSURE] = *pressure;
 				priv->fir.sum[BMP_PRESSURE] += *pressure;
 				priv->fir.idx++;
-				*pressure = priv->fir.sum[BMP_PRESSURE]/firlen;
-				if (atomic_read(&priv->trace) &
-					BAR_TRC_FILTER) {
+				*pressure = priv->fir.sum[BMP_PRESSURE] / firlen;
+				if (atomic_read(&priv->trace) & BAR_TRC_FILTER) {
 					BAR_LOG("add [%2d][%5d]=>[%5d]:[%5d]\n", idx,
-					priv->fir.raw[idx][BMP_PRESSURE],
-					priv->fir.sum[BMP_PRESSURE],
-					*pressure);
+						priv->fir.raw[idx][BMP_PRESSURE],
+						priv->fir.sum[BMP_PRESSURE], *pressure);
 				}
 			}
 		}
@@ -523,13 +508,12 @@ static int bmp_read_raw_pressure(struct i2c_client *client, s32 *pressure)
 *get compensated temperature
 *unit:10 degrees centigrade
 */
-static int bmp_get_temperature(struct i2c_client *client,
-		char *buf, int bufsize)
+static int bmp_get_temperature(struct i2c_client *client, char *buf, int bufsize)
 {
 	struct bmp_i2c_data *obj = i2c_get_clientdata(client);
 	long x1, x2;
 	int status;
-	s32 utemp = 0;/* uncompensated temperature */
+	s32 utemp = 0;		/* uncompensated temperature */
 	s32 temperature = 0;
 
 	if (NULL == buf)
@@ -544,15 +528,14 @@ static int bmp_get_temperature(struct i2c_client *client,
 	if (status != 0)
 		return status;
 
-	if (obj->sensor_type == BMP180_TYPE) {/* BMP180 */
+	if (obj->sensor_type == BMP180_TYPE) {	/* BMP180 */
 		BAR_LOG("pressure sensor type is right\n");
-		x1 = ((utemp - obj->bmp180_cali.AC6) *
-			obj->bmp180_cali.AC5) >> 15;
+		x1 = ((utemp - obj->bmp180_cali.AC6) * obj->bmp180_cali.AC5) >> 15;
 		x2 = (obj->bmp180_cali.MC << 11) / (x1 + obj->bmp180_cali.MD);
 		mutex_lock(&bmp180_op_mutex);
 		obj->t_fine = x1 + x2 - 4000;
 		mutex_unlock(&bmp180_op_mutex);
-		temperature = (x1+x2+8) >> 4;
+		temperature = (x1 + x2 + 8) >> 4;
 	}
 
 	sprintf(buf, "%08x", temperature);
@@ -572,6 +555,7 @@ static int bmp_get_pressure(struct i2c_client *client, char *buf, int bufsize)
 	int status;
 	s32 temperature = 0, upressure = 0, pressure = 0;
 	char temp_buf[BMP_BUFSIZE];
+	int err;
 
 	if (NULL == buf)
 		return -1;
@@ -582,19 +566,20 @@ static int bmp_get_pressure(struct i2c_client *client, char *buf, int bufsize)
 	}
 
 	/* update the ambient temperature according to the given meas. period */
-	if (obj->last_temp_measurement +
-			obj->temp_measurement_period < jiffies) {
-		status = bmp_get_temperature(client, temp_buf, BMP_BUFSIZE);/* update t_fine */
+	if (time_before(obj->last_temp_measurement + obj->temp_measurement_peiiod, jiffies)) {
+		status = bmp_get_temperature(client, temp_buf, BMP_BUFSIZE);	/* update t_fine */
 		if (status != 0)
 			goto exit;
-		sscanf(temp_buf, "%x", &temperature);
+		err = kstrtoint(temp_buf, 10, &temperature);
+		if (err)
+			goto exit;
 	}
 
 	status = bmp_read_raw_pressure(client, &upressure);
 	if (status != 0)
 		goto exit;
 
-	if (obj->sensor_type == BMP180_TYPE) {/* BMP180 */
+	if (obj->sensor_type == BMP180_TYPE) {	/* BMP180 */
 		s32 x1, x2, x3, b3;
 		u32 b4, b7;
 		s32 p;
@@ -608,18 +593,17 @@ static int bmp_get_pressure(struct i2c_client *client, char *buf, int bufsize)
 
 		x3 = x1 + x2;
 
-		b3 = (((((s32)obj->bmp180_cali.AC1) * 4 + x3)
-			<< (obj->oversampling_p - 1)) + 2);
+		b3 = (((((s32) obj->bmp180_cali.AC1) * 4 + x3)
+		       << (obj->oversampling_p - 1)) + 2);
 		b3 >>= 2;
 
 		x1 = (obj->bmp180_cali.AC3 * obj->t_fine) >> 13;
 		x2 = (obj->bmp180_cali.B1 * ((obj->t_fine * obj->t_fine) >> 12))
-			>> 16;
+		    >> 16;
 		x3 = (x1 + x2 + 2) >> 2;
-		b4 = (obj->bmp180_cali.AC4 * (u32)(x3 + 32768)) >> 15;
+		b4 = (obj->bmp180_cali.AC4 * (u32) (x3 + 32768)) >> 15;
 
-		b7 = ((u32)upressure - b3) *
-			(50000 >> (obj->oversampling_p - 1));
+		b7 = ((u32) upressure - b3) * (50000 >> (obj->oversampling_p - 1));
 		p = ((b7 < 0x80000000) ? ((b7 << 1) / b4) : ((b7 / b4) * 2));
 
 		x1 = p >> 8;
@@ -642,6 +626,7 @@ exit:
 static int bmp_init_client(struct i2c_client *client)
 {
 	int err = 0;
+
 	BAR_FUN();
 
 	err = bmp_get_chip_type(client);
@@ -711,8 +696,7 @@ static ssize_t show_trace_value(struct device_driver *ddri, char *buf)
 	return res;
 }
 
-static ssize_t store_trace_value(struct device_driver *ddri, const char *buf,
-		size_t count)
+static ssize_t store_trace_value(struct device_driver *ddri, const char *buf, size_t count)
 {
 	struct bmp_i2c_data *obj = obj_i2c_data;
 	int trace;
@@ -741,15 +725,13 @@ static ssize_t show_status_value(struct device_driver *ddri, char *buf)
 	}
 
 	if (obj->hw)
-		len += snprintf(buf+len, PAGE_SIZE-len, "CUST: %d %d (%d %d)\n",
-			obj->hw->i2c_num,
-			obj->hw->direction,
-			obj->hw->power_id,
-			obj->hw->power_vol);
+		len += snprintf(buf + len, PAGE_SIZE - len, "CUST: %d %d (%d %d)\n",
+				obj->hw->i2c_num,
+				obj->hw->direction, obj->hw->power_id, obj->hw->power_vol);
 	else
-		len += snprintf(buf+len, PAGE_SIZE-len, "CUST: NULL\n");
+		len += snprintf(buf + len, PAGE_SIZE - len, "CUST: NULL\n");
 
-	len += snprintf(buf+len, PAGE_SIZE-len, "i2c addr:%#x,ver:%s\n",
+	len += snprintf(buf + len, PAGE_SIZE - len, "i2c addr:%#x,ver:%s\n",
 			obj->client->addr, BMP_DRIVER_VERSION);
 
 	return len;
@@ -765,14 +747,13 @@ static ssize_t show_power_mode_value(struct device_driver *ddri, char *buf)
 		return 0;
 	}
 
-	len += snprintf(buf+len, PAGE_SIZE-len, "%s mode\n",
-		obj->power_mode == BMP_NORMAL_MODE ? "normal" : "suspend");
+	len += snprintf(buf + len, PAGE_SIZE - len, "%s mode\n",
+			obj->power_mode == BMP_NORMAL_MODE ? "normal" : "suspend");
 
 	return len;
 }
 
-static ssize_t store_power_mode_value(struct device_driver *ddri,
-		const char *buf, size_t count)
+static ssize_t store_power_mode_value(struct device_driver *ddri, const char *buf, size_t count)
 {
 	struct bmp_i2c_data *obj = obj_i2c_data;
 	unsigned long power_mode;
@@ -786,8 +767,7 @@ static ssize_t store_power_mode_value(struct device_driver *ddri,
 	err = kstrtoul(buf, 10, &power_mode);
 
 	if (err == 0) {
-		err = bmp_set_powermode(obj->client,
-			(enum BMP_POWERMODE_ENUM)(!!(power_mode)));
+		err = bmp_set_powermode(obj->client, (enum BMP_POWERMODE_ENUM)(!!(power_mode)));
 		if (err)
 			return err;
 		return count;
@@ -795,18 +775,16 @@ static ssize_t store_power_mode_value(struct device_driver *ddri,
 	return err;
 }
 
-static DRIVER_ATTR(chipinfo,	S_IRUGO,	show_chipinfo_value,	NULL);
-static DRIVER_ATTR(sensordata,	S_IRUGO,	show_sensordata_value,	NULL);
-static DRIVER_ATTR(trace,	S_IWUSR | S_IRUGO,
-		show_trace_value,	store_trace_value);
-static DRIVER_ATTR(status,	S_IRUGO,	show_status_value,	NULL);
-static DRIVER_ATTR(powermode,	S_IWUSR | S_IRUGO,
-		show_power_mode_value,	store_power_mode_value);
+static DRIVER_ATTR(chipinfo, S_IRUGO, show_chipinfo_value, NULL);
+static DRIVER_ATTR(sensordata, S_IRUGO, show_sensordata_value, NULL);
+static DRIVER_ATTR(trace, S_IWUSR | S_IRUGO, show_trace_value, store_trace_value);
+static DRIVER_ATTR(status, S_IRUGO, show_status_value, NULL);
+static DRIVER_ATTR(powermode, S_IWUSR | S_IRUGO, show_power_mode_value, store_power_mode_value);
 
 static struct driver_attribute *bmp_attr_list[] = {
-	&driver_attr_chipinfo,	/* chip information*/
-	&driver_attr_sensordata,/* dump sensor data*/
-	&driver_attr_trace,	/* trace log*/
+	&driver_attr_chipinfo,	/* chip information */
+	&driver_attr_sensordata,	/* dump sensor data */
+	&driver_attr_trace,	/* trace log */
 	&driver_attr_status,	/* cust setting */
 	&driver_attr_powermode,	/* power mode */
 };
@@ -814,7 +792,7 @@ static struct driver_attribute *bmp_attr_list[] = {
 static int bmp_create_attr(struct device_driver *driver)
 {
 	int idx, err = 0;
-	int num = (int)(sizeof(bmp_attr_list)/sizeof(bmp_attr_list[0]));
+	int num = (int)(sizeof(bmp_attr_list) / sizeof(bmp_attr_list[0]));
 
 	if (NULL == driver)
 		return -EINVAL;
@@ -823,7 +801,7 @@ static int bmp_create_attr(struct device_driver *driver)
 		err = driver_create_file(driver, bmp_attr_list[idx]);
 		if (err) {
 			BAR_ERR("driver_create_file (%s) = %d\n",
-			bmp_attr_list[idx]->attr.name, err);
+				bmp_attr_list[idx]->attr.name, err);
 			break;
 		}
 	}
@@ -833,7 +811,7 @@ static int bmp_create_attr(struct device_driver *driver)
 static int bmp_delete_attr(struct device_driver *driver)
 {
 	int idx, err = 0;
-	int num = (int)(sizeof(bmp_attr_list)/sizeof(bmp_attr_list[0]));
+	int num = (int)(sizeof(bmp_attr_list) / sizeof(bmp_attr_list[0]));
 
 	if (NULL == driver)
 		return -EINVAL;
@@ -845,7 +823,7 @@ static int bmp_delete_attr(struct device_driver *driver)
 }
 
 int barometer_operate(void *self, uint32_t command, void *buff_in, int size_in,
-		void *buff_out, int size_out, int *actualout)
+		      void *buff_out, int size_out, int *actualout)
 {
 	int err = 0;
 	int value;
@@ -856,59 +834,58 @@ int barometer_operate(void *self, uint32_t command, void *buff_in, int size_in,
 	switch (command) {
 	case SENSOR_DELAY:
 		/* under construction */
-	break;
+		break;
 
 	case SENSOR_ENABLE:
-	if ((buff_in == NULL) || (size_in < sizeof(int))) {
-		BAR_ERR("enable sensor parameter error\n");
-		err = -EINVAL;
-	} else {
-		mutex_lock(&bmp180_op_mutex);
-		/* value:[0--->suspend, 1--->normal] */
-		value = *(int *)buff_in;
-		BAR_LOG("sensor enable/disable command: %s\n",
-			value ? "enable" : "disable");
+		if ((buff_in == NULL) || (size_in < sizeof(int))) {
+			BAR_ERR("enable sensor parameter error\n");
+			err = -EINVAL;
+		} else {
+			mutex_lock(&bmp180_op_mutex);
+			/* value:[0--->suspend, 1--->normal] */
+			value = *(int *)buff_in;
+			BAR_LOG("sensor enable/disable command: %s\n",
+				value ? "enable" : "disable");
 
-	err = bmp_set_powermode(priv->client,
-		(enum BMP_POWERMODE_ENUM)(!!value));
-	if (err)
-		BAR_ERR("set power mode failed, err = %d\n", err);
-	#ifdef CONFIG_BMP_LOWPASS
-	/* clear filter buffer */
-	if (value == 0) {
-		memset(&(priv->fir), 0, sizeof(struct data_filter));
-	}
-	#endif
-	mutex_unlock(&bmp180_op_mutex);
-	}
-	break;
+			err = bmp_set_powermode(priv->client, (enum BMP_POWERMODE_ENUM)(!!value));
+			if (err)
+				BAR_ERR("set power mode failed, err = %d\n", err);
+#ifdef CONFIG_BMP_LOWPASS
+			/* clear filter buffer */
+			if (value == 0)
+				memset(&(priv->fir), 0, sizeof(struct data_filter));
+#endif
+			mutex_unlock(&bmp180_op_mutex);
+		}
+		break;
 
 	case SENSOR_GET_DATA:
-	if ((buff_out == NULL) || (size_out < sizeof(hwm_sensor_data))) {
-		BAR_ERR("get sensor data parameter error\n");
-		err = -EINVAL;
-	} else {
-		mutex_lock(&bmp180_op_mutex);
-		barometer_data = (hwm_sensor_data *)buff_out;
-		err = bmp_get_pressure(priv->client, buff, BMP_BUFSIZE);
-		if (err) {
-			BAR_ERR("get compensated pressure value failed,"
-				"err = %d\n", err);
-			return -1;
+		if ((buff_out == NULL) || (size_out < sizeof(hwm_sensor_data))) {
+			BAR_ERR("get sensor data parameter error\n");
+			err = -EINVAL;
+		} else {
+			mutex_lock(&bmp180_op_mutex);
+			barometer_data = (hwm_sensor_data *) buff_out;
+			err = bmp_get_pressure(priv->client, buff, BMP_BUFSIZE);
+			if (err) {
+				BAR_ERR("get compensated pressure value failed," "err = %d\n", err);
+				return -1;
+			}
+			err = kstrtoint(buff, 10, &barometer_data->values[0]);
+			if (err)
+				return -1;
+
+			barometer_data->values[1] = barometer_data->values[2] = 0;
+			barometer_data->status = SENSOR_STATUS_ACCURACY_HIGH;
+			barometer_data->value_divide = 100;
+			mutex_unlock(&bmp180_op_mutex);
 		}
-		sscanf(buff, "%x", &barometer_data->values[0]);
-		barometer_data->values[1] = barometer_data->values[2] = 0;
-		barometer_data->status = SENSOR_STATUS_ACCURACY_HIGH;
-		barometer_data->value_divide = 100;
-		mutex_unlock(&bmp180_op_mutex);
-	}
-	break;
+		break;
 
 	default:
-		BAR_ERR("barometer operate function no this parameter %d\n",
-			command);
+		BAR_ERR("barometer operate function no this parameter %d\n", command);
 		err = -1;
-	break;
+		break;
 	}
 
 	return err;
@@ -916,7 +893,7 @@ int barometer_operate(void *self, uint32_t command, void *buff_in, int size_in,
 
 #ifdef CONFIG_ID_TEMPERATURE
 int temperature_operate(void *self, uint32_t command, void *buff_in,
-		int size_in, void *buff_out, int size_out, int *actualout)
+			int size_in, void *buff_out, int size_out, int *actualout)
 {
 	int err = 0;
 	int value;
@@ -926,61 +903,60 @@ int temperature_operate(void *self, uint32_t command, void *buff_in,
 
 	switch (command) {
 	case SENSOR_DELAY:
-	/* under construction */
-	break;
+		/* under construction */
+		break;
 
 	case SENSOR_ENABLE:
-	if ((buff_in == NULL) || (size_in < sizeof(int))) {
-		BAR_ERR("enable sensor parameter error\n");
-		err = -EINVAL;
-	} else {
-		mutex_lock(&bmp180_op_mutex);
-		/* value:[0--->suspend, 1--->normal] */
-		value = *(int *)buff_in;
-		BAR_LOG("sensor enable/disable command: %s\n",
-			value ? "enable" : "disable");
+		if ((buff_in == NULL) || (size_in < sizeof(int))) {
+			BAR_ERR("enable sensor parameter error\n");
+			err = -EINVAL;
+		} else {
+			mutex_lock(&bmp180_op_mutex);
+			/* value:[0--->suspend, 1--->normal] */
+			value = *(int *)buff_in;
+			BAR_LOG("sensor enable/disable command: %s\n",
+				value ? "enable" : "disable");
 
-		err = bmp_set_powermode(priv->client,
-			(enum BMP_POWERMODE_ENUM)(!!value));
-		if (err)
-			BAR_ERR("set power mode failed, err = %d\n", err);
+			err = bmp_set_powermode(priv->client, (enum BMP_POWERMODE_ENUM)(!!value));
+			if (err)
+				BAR_ERR("set power mode failed, err = %d\n", err);
 
-		mutex_unlock(&bmp180_op_mutex);
+			mutex_unlock(&bmp180_op_mutex);
 		}
-	break;
+		break;
 
 	case SENSOR_GET_DATA:
-	if ((buff_out == NULL) ||
-		(size_out < sizeof(hwm_sensor_data))) {
-		BAR_ERR("get sensor data parameter error\n");
-		err = -EINVAL;
-	} else {
-		mutex_lock(&bmp180_op_mutex);
-		temperature_data = (hwm_sensor_data *)buff_out;
-		err = bmp_get_temperature(priv->client, buff, BMP_BUFSIZE);
-		if (err) {
-			BAR_ERR("get compensated temperature value failed,"
-				"err = %d\n", err);
-			return -1;
+		if ((buff_out == NULL) || (size_out < sizeof(hwm_sensor_data))) {
+			BAR_ERR("get sensor data parameter error\n");
+			err = -EINVAL;
+		} else {
+			mutex_lock(&bmp180_op_mutex);
+			temperature_data = (hwm_sensor_data *) buff_out;
+			err = bmp_get_temperature(priv->client, buff, BMP_BUFSIZE);
+			if (err) {
+				BAR_ERR("get compensated temperature value failed,err = %d\n", err);
+				return -1;
+			}
+			err = kstrtoint(buff, 10, &temperature_data->values[0]);
+			if (err)
+				return -1;
+
+			temperature_data->values[1] = temperature_data->values[2] = 0;
+			temperature_data->status = SENSOR_STATUS_ACCURACY_HIGH;
+			temperature_data->value_divide = 100;
+			mutex_unlock(&bmp180_op_mutex);
 		}
-		sscanf(buff, "%x", &temperature_data->values[0]);
-		temperature_data->values[1] = temperature_data->values[2] = 0;
-		temperature_data->status = SENSOR_STATUS_ACCURACY_HIGH;
-		temperature_data->value_divide = 100;
-		mutex_unlock(&bmp180_op_mutex);
-	}
-	break;
+		break;
 
 	default:
-		BAR_ERR("temperature operate function no this parameter %d\n",
-			command);
+		BAR_ERR("temperature operate function no this parameter %d\n", command);
 		err = -1;
-	break;
+		break;
 	}
 
 	return err;
 }
-#endif/* CONFIG_ID_TEMPERATURE */
+#endif				/* CONFIG_ID_TEMPERATURE */
 
 static int bmp_open(struct inode *inode, struct file *file)
 {
@@ -999,8 +975,7 @@ static int bmp_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static long bmp_unlocked_ioctl(struct file *file, unsigned int cmd,
-	unsigned long arg)
+static long bmp_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	struct bmp_i2c_data *obj = (struct bmp_i2c_data *)file->private_data;
 	struct i2c_client *client = obj->client;
@@ -1010,15 +985,12 @@ static long bmp_unlocked_ioctl(struct file *file, unsigned int cmd,
 	int err = 0;
 
 	if (_IOC_DIR(cmd) & _IOC_READ)
-		err = !access_ok(VERIFY_WRITE,
-			(void __user *)arg, _IOC_SIZE(cmd));
+		err = !access_ok(VERIFY_WRITE, (void __user *)arg, _IOC_SIZE(cmd));
 	else if (_IOC_DIR(cmd) & _IOC_WRITE)
-		err = !access_ok(VERIFY_READ,
-			(void __user *)arg, _IOC_SIZE(cmd));
+		err = !access_ok(VERIFY_READ, (void __user *)arg, _IOC_SIZE(cmd));
 
 	if (err) {
-		BAR_ERR("access error: %08X, (%2d, %2d)\n",
-			cmd, _IOC_DIR(cmd), _IOC_SIZE(cmd));
+		BAR_ERR("access error: %08X, (%2d, %2d)\n", cmd, _IOC_DIR(cmd), _IOC_SIZE(cmd));
 		return -EFAULT;
 	}
 
@@ -1030,54 +1002,59 @@ static long bmp_unlocked_ioctl(struct file *file, unsigned int cmd,
 			err = -EFAULT;
 			break;
 		}
-	break;
+		break;
 
 	case BAROMETER_IOCTL_READ_CHIPINFO:
-		data = (void __user *) arg;
+		data = (void __user *)arg;
 		if (NULL == data) {
 			err = -EINVAL;
 			break;
 		}
 		strcpy(strbuf, obj->sensor_name);
-		if (copy_to_user(data, strbuf, strlen(strbuf)+1)) {
+		if (copy_to_user(data, strbuf, strlen(strbuf) + 1)) {
 			err = -EFAULT;
 			break;
 		}
-	break;
+		break;
 
 	case BAROMETER_GET_PRESS_DATA:
-		data = (void __user *) arg;
+		data = (void __user *)arg;
 		if (NULL == data) {
 			err = -EINVAL;
 			break;
 		}
 
 		bmp_get_pressure(client, strbuf, BMP_BUFSIZE);
-		sscanf(strbuf, "%x", &dat);
+		err = kstrtoint(strbuf, 10, &dat);
+		if (err)
+			break;
 		if (copy_to_user(data, &dat, sizeof(dat))) {
 			err = -EFAULT;
 			break;
 		}
-	break;
+		break;
 
 	case BAROMETER_GET_TEMP_DATA:
-		data = (void __user *) arg;
+		data = (void __user *)arg;
 		if (NULL == data) {
 			err = -EINVAL;
 			break;
 		}
 		bmp_get_temperature(client, strbuf, BMP_BUFSIZE);
-		sscanf(strbuf, "%x", &dat);
+
+		err = kstrtoint(strbuf, 10, &dat);
+		if (err)
+			break;
 		if (copy_to_user(data, &dat, sizeof(dat))) {
 			err = -EFAULT;
 			break;
 		}
-	break;
+		break;
 
 	default:
 		BAR_ERR("unknown IOCTL: 0x%08x\n", cmd);
 		err = -ENOIOCTLCMD;
-	break;
+		break;
 	}
 
 	return err;
@@ -1100,6 +1077,7 @@ static int bmp_suspend(struct i2c_client *client, pm_message_t msg)
 {
 	struct bmp_i2c_data *obj = i2c_get_clientdata(client);
 	int err = 0;
+
 	BAR_FUN();
 	mutex_lock(&bmp180_op_mutex);
 	if (msg.event == PM_EVENT_SUSPEND) {
@@ -1126,6 +1104,7 @@ static int bmp_resume(struct i2c_client *client)
 {
 	struct bmp_i2c_data *obj = i2c_get_clientdata(client);
 	int err;
+
 	BAR_FUN();
 	mutex_lock(&bmp180_op_mutex);
 	if (NULL == obj) {
@@ -1142,7 +1121,6 @@ static int bmp_resume(struct i2c_client *client)
 		mutex_unlock(&bmp180_op_mutex);
 		return err;
 	}
-
 #ifdef CONFIG_BMP_LOWPASS
 	memset(&obj->fir, 0x00, sizeof(obj->fir));
 #endif
@@ -1152,51 +1130,44 @@ static int bmp_resume(struct i2c_client *client)
 	return 0;
 }
 
-static int bmp_i2c_detect(struct i2c_client *client,
-		struct i2c_board_info *info)
+static int bmp_i2c_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	strcpy(info->type, BMP_DEV_NAME);
 	return 0;
 }
 
 
-// if use  this typ of enable , Gsensor should report inputEvent(x, y, z ,stats, div) to HAL
+/* if use  this typ of enable , Gsensor should report inputEvent(x, y, z ,stats, div) to HAL */
 static int bmp180_open_report_data(int open)
 {
-	//should queuq work to report event if  is_report_input_direct=true
+	/* should queuq work to report event if  is_report_input_direct=true */
 	return 0;
 }
 
-// if use  this typ of enable , Gsensor only enabled but not report inputEvent to HAL
+/* if use  this typ of enable , Gsensor only enabled but not report inputEvent to HAL */
 
 static int bmp180_enable_nodata(int en)
 {
-	int res =0;
+	int res = 0;
 	int retry = 0;
-	bool power=false;
-	
-	if(1==en)
-	{
-		power=true;
-	}
-	if(0==en)
-	{
-		power =false;
-	}
+	bool power = false;
 
-	for(retry = 0; retry < 3; retry++){
-		res = bmp_set_powermode(obj_i2c_data->client,(enum BMP_POWERMODE_ENUM)(!!power));
-		if(res == 0)
-		{
+	if (1 == en)
+		power = true;
+	if (0 == en)
+		power = false;
+
+	for (retry = 0; retry < 3; retry++) {
+		res = bmp_set_powermode(obj_i2c_data->client, (enum BMP_POWERMODE_ENUM)(!!power));
+		if (res == 0) {
 			BAR_LOG("bmp_set_powermode done\n");
 			break;
 		}
 		BAR_ERR("bmp_set_powermode fail\n");
 	}
 
-	
-	if(res != 0)
-	{
+
+	if (res != 0) {
 		BAR_ERR("bmp_set_powermode fail!\n");
 		return -1;
 	}
@@ -1209,35 +1180,38 @@ static int bmp180_set_delay(u64 ns)
 	return 0;
 }
 
-static int bmp180_get_data(int* value, int* status)
+static int bmp180_get_data(int *value, int *status)
 {
 	char buff[BMP_BUFSIZE];
 	int err = 0;
-	
+
 	err = bmp_get_pressure(obj_i2c_data->client, buff, BMP_BUFSIZE);
 	if (err) {
-		BAR_ERR("get compensated pressure value failed,"
-			"err = %d\n", err);
+		BAR_ERR("get compensated pressure value failed," "err = %d\n", err);
 		return -1;
 	}
-	sscanf(buff, "%x", value);
+
+	err = kstrtoint(buff, 10, value);
+	if (err)
+		return err;
+
 	*status = SENSOR_STATUS_ACCURACY_MEDIUM;
 
 	return 0;
 }
 
 
-static int bmp_i2c_probe(struct i2c_client *client,
-		const struct i2c_device_id *id)
+static int bmp_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct bmp_i2c_data *obj;
 #ifdef CONFIG_ID_TEMPERATURE
 	struct hwmsen_object sobj_t;
 #endif
-	struct baro_control_path ctl={0};
-	struct baro_data_path data={0};
+	struct baro_control_path ctl = { 0 };
+	struct baro_data_path data = { 0 };
 
 	int err = 0;
+
 	BAR_FUN();
 
 	obj = kzalloc(sizeof(*obj), GFP_KERNEL);
@@ -1256,7 +1230,7 @@ static int bmp_i2c_probe(struct i2c_client *client,
 	obj->power_mode = BMP_UNDEFINED_POWERMODE;
 	obj->oversampling_p = BMP_UNDEFINED_OVERSAMPLING;
 	obj->last_temp_measurement = 0;
-	obj->temp_measurement_period = 1*HZ;/* temperature update period:1s */
+	obj->temp_measurement_period = 1 * HZ;	/* temperature update period:1s */
 
 #ifdef CONFIG_BMP_LOWPASS
 	if (obj->hw->firlen > C_MAX_FIR_LENGTH)
@@ -1278,23 +1252,22 @@ static int bmp_i2c_probe(struct i2c_client *client,
 		goto exit_misc_device_register_failed;
 	}
 
-    ctl.is_use_common_factory = false;
+	ctl.is_use_common_factory = false;
 	err = bmp_create_attr(&(bmp180_init_info.platform_diver_addr->driver));
 	if (err) {
 		BAR_ERR("create attribute failed, err = %d\n", err);
 		goto exit_create_attr_failed;
 	}
 
-	ctl.open_report_data= bmp180_open_report_data;
+	ctl.open_report_data = bmp180_open_report_data;
 	ctl.enable_nodata = bmp180_enable_nodata;
-	ctl.set_delay  = bmp180_set_delay;
+	ctl.set_delay = bmp180_set_delay;
 	ctl.is_report_input_direct = false;
 	ctl.is_support_batch = obj->hw->is_batch_supported;
-	
+
 	err = baro_register_control_path(&ctl);
-	if(err)
-	{
-	 	BAR_ERR("register baro control path err\n");
+	if (err) {
+		BAR_ERR("register baro control path err\n");
 		goto exit_hwmsen_attach_pressure_failed;
 	}
 
@@ -1305,13 +1278,13 @@ static int bmp_i2c_probe(struct i2c_client *client,
 		BAR_ERR("baro_register_data_path failed, err = %d\n", err);
 		goto exit_hwmsen_attach_pressure_failed;
 	}
-	err = batch_register_support_info(ID_PRESSURE,obj->hw->is_batch_supported, data.vender_div, 0);
-	if(err)
-	{
+	err =
+	    batch_register_support_info(ID_PRESSURE, obj->hw->is_batch_supported, data.vender_div,
+					0);
+	if (err) {
 		BAR_ERR("register baro batch support err = %d\n", err);
 		goto exit_hwmsen_attach_pressure_failed;
 	}
-
 #ifdef CONFIG_ID_TEMPERATURE
 	sobj_t.self = obj;
 	sobj_t.polling = 1;
@@ -1321,15 +1294,15 @@ static int bmp_i2c_probe(struct i2c_client *client,
 		BAR_ERR("hwmsen attach failed, err = %d\n", err);
 		goto exit_hwmsen_attach_temperature_failed;
 	}
-#endif/* CONFIG_ID_TEMPERATURE */
-	bmp180_init_flag =0;
+#endif				/* CONFIG_ID_TEMPERATURE */
+	bmp180_init_flag = 0;
 	BAR_LOG("%s: OK\n", __func__);
 	return 0;
 
 #ifdef CONFIG_ID_TEMPERATURE
 exit_hwmsen_attach_temperature_failed:
 	hwmsen_detach(ID_TEMPRERATURE);
-#endif/* CONFIG_ID_TEMPERATURE */
+#endif				/* CONFIG_ID_TEMPERATURE */
 exit_hwmsen_attach_pressure_failed:
 	bmp_delete_attr(&(bmp180_init_info.platform_diver_addr->driver));
 exit_create_attr_failed:
@@ -1339,7 +1312,7 @@ exit_init_client_failed:
 	kfree(obj);
 exit:
 	BAR_ERR("err = %d\n", err);
-	bmp180_init_flag =-1;
+	bmp180_init_flag = -1;
 	return err;
 }
 
@@ -1354,8 +1327,7 @@ static int bmp_i2c_remove(struct i2c_client *client)
 #ifdef CONFIG_ID_TEMPERATURE
 	err = hwmsen_detach(ID_TEMPRERATURE);
 	if (err)
-		BAR_ERR("hwmsen_detach ID_TEMPRERATURE failed, err = %d\n",
-			err);
+		BAR_ERR("hwmsen_detach ID_TEMPRERATURE failed, err = %d\n", err);
 #endif
 
 	err = bmp_delete_attr(&(bmp180_init_info.platform_diver_addr->driver));
@@ -1375,42 +1347,41 @@ static int bmp_i2c_remove(struct i2c_client *client)
 
 static struct i2c_driver bmp_i2c_driver = {
 	.driver = {
-		.owner	=	THIS_MODULE,
-		.name	=	BMP_DEV_NAME,
-	},
-	.probe	=	bmp_i2c_probe,
-	.remove	=	bmp_i2c_remove,
-	.detect	=	bmp_i2c_detect,
-	.suspend	=	bmp_suspend,
-	.resume	=	bmp_resume,
-	.id_table	=	bmp_i2c_id,
+		   .owner = THIS_MODULE,
+		   .name = BMP_DEV_NAME,
+		   },
+	.probe = bmp_i2c_probe,
+	.remove = bmp_i2c_remove,
+	.detect = bmp_i2c_detect,
+	.suspend = bmp_suspend,
+	.resume = bmp_resume,
+	.id_table = bmp_i2c_id,
 };
 
 static int bmp180_remove(void)
 {
 	struct baro_hw *hw = get_cust_baro_hw();
+
 	BAR_FUN();
 	bmp_power(hw, 0);
 	i2c_del_driver(&bmp_i2c_driver);
 	return 0;
 }
 
-static int  bmp180_local_init(void)
+static int bmp180_local_init(void)
 {
-    struct baro_hw *hw = get_cust_baro_hw();
-	//printk("fwq loccal init+++\n");
+	struct baro_hw *hw = get_cust_baro_hw();
+	/* printk("fwq loccal init+++\n"); */
 
 	bmp_power(hw, 1);
-	if(i2c_add_driver(&bmp_i2c_driver))
-	{
+	if (i2c_add_driver(&bmp_i2c_driver)) {
 		BAR_ERR("add driver error\n");
 		return -1;
 	}
-	if(-1 == bmp180_init_flag)
-	{
-	   return -1;
-	}
-	//printk("fwq loccal init---\n");
+	if (-1 == bmp180_init_flag)
+		return -1;
+
+	/* printk("fwq loccal init---\n"); */
 	return 0;
 }
 

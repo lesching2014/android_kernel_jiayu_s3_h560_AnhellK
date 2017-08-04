@@ -63,7 +63,7 @@
 #define BMP180_OVERSAMPLING_4X               0x02
 #define BMP180_OVERSAMPLING_8X               0x03
 
-#define BMP180_CTRLMEAS_REG                  0xF4  /* Ctrl Measure Register */
+#define BMP180_CTRLMEAS_REG                  0xF4	/* Ctrl Measure Register */
 
 #define BMP180_CTRLMEAS_REG_OSRSP__POS              6
 #define BMP180_CTRLMEAS_REG_OSRSP__MSK              0xC0
@@ -81,4 +81,4 @@
 #define BMP180_CTRLMEAS_REG_MC__LEN              6
 #define BMP180_CTRLMEAS_REG_MC__REG              BMP180_CTRLMEAS_REG
 
-#endif/* BOSCH_BARO_H */
+#endif				/* BOSCH_BARO_H */
