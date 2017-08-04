@@ -1,3 +1,16 @@
+/*
+ * Copyright (C) 2015 MediaTek Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ */
+
 #include <linux/version.h>
 #include <asm/io.h>
 #include <linux/mm.h>
@@ -5,7 +18,7 @@
 #include <linux/genalloc.h>
 #include <linux/sched.h>
 #include <linux/mutex.h>
-#include <linux/xlog.h>
+//#include <linux/xlog.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/mtk_gpu_utility.h>
@@ -288,7 +301,7 @@ static ssize_t ged_vsync_offset_enable_write_entry(const char __user *pszBuffer,
 				pcCMD = acBuffer+aint32Indx[0];
 
 				pcValue = acBuffer+aint32Indx[1];
-#ifdef ENABLE_COMMON_DVFS                
+ 
 				if(strcmp(pcCMD,"touch_down")==0)
 				{
 					if ( (*pcValue)=='1'|| (*pcValue) =='0')
@@ -309,9 +322,7 @@ static ssize_t ged_vsync_offset_enable_write_entry(const char __user *pszBuffer,
 							ged_dvfs_vsync_offset_event_switch(GED_DVFS_VSYNC_OFFSET_WFD_EVENT , true);
 					}
 				}
-				else 
-#endif                    
-					if(strcmp(pcCMD,"enable_debug")==0)
+				else if(strcmp(pcCMD,"enable_debug")==0)
 					{
 						if ( (*pcValue) =='1'|| (*pcValue) =='0'||(*pcValue) =='2')
 						{
@@ -339,7 +350,47 @@ static ssize_t ged_vsync_offset_enable_write_entry(const char __user *pszBuffer,
 								ged_dvfs_vsync_offset_event_switch(GED_DVFS_VSYNC_OFFSET_GAS_EVENT, true);
 						}
 					}
-					else
+					else if(strcmp(pcCMD, "enable_VR") == 0)
+					{
+						if ( (*pcValue) =='1'|| (*pcValue) =='0')
+						{
+							if( (*pcValue) -'0'==0)
+								ged_dvfs_vsync_offset_event_switch(GED_DVFS_VSYNC_OFFSET_VR_EVENT, false);
+							else
+								ged_dvfs_vsync_offset_event_switch(GED_DVFS_VSYNC_OFFSET_VR_EVENT, true);
+						}
+					}
+					else if (strcmp(pcCMD, "mhl4k-vid") == 0)
+					{
+						if ((*pcValue) == '1'|| (*pcValue) == '0')
+						{
+							if ((*pcValue) -'0' == 0)
+								ged_dvfs_vsync_offset_event_switch(GED_DVFS_VSYNC_OFFSET_MHL4K_VID_EVENT, false);
+							else
+								ged_dvfs_vsync_offset_event_switch(GED_DVFS_VSYNC_OFFSET_MHL4K_VID_EVENT, true);
+						}
+					}
+					else if (strcmp(pcCMD, "low-power-mode") == 0)
+                                        {
+                                                if ((*pcValue) == '1'|| (*pcValue) == '0')
+                                                {
+                                                        if ((*pcValue) -'0' == 0)
+                                                                ged_dvfs_vsync_offset_event_switch(GED_DVFS_VSYNC_OFFSET_LOW_POWER_MODE_EVENT, false);
+                                                        else
+                                                                ged_dvfs_vsync_offset_event_switch(GED_DVFS_VSYNC_OFFSET_LOW_POWER_MODE_EVENT, true);
+                                                }
+					}
+					else if (strcmp(pcCMD, "vilte-vid") == 0)
+					{
+						if ((*pcValue) == '1'|| (*pcValue) == '0')
+						{
+							if ((*pcValue) -'0' == 0)
+								ged_dvfs_vsync_offset_event_switch(GED_DVFS_VSYNC_OFFSET_VILTE_VID_EVENT, false);
+							else
+								ged_dvfs_vsync_offset_event_switch(GED_DVFS_VSYNC_OFFSET_VILTE_VID_EVENT, true);
+						}
+					}
+				else
 					{
 						GED_LOGE("unknow command:%s %c",pcCMD,*pcValue);
 					}
@@ -397,7 +448,11 @@ static int ged_vsync_offset_enable_seq_show(struct seq_file *psSeqFile, void *pv
 			seq_printf(psSeqFile, "WFD: %d\n",  g_ui32EventStatus&GED_EVENT_WFD?1:0 );
 			seq_printf(psSeqFile, "MHL: %d\n",  g_ui32EventStatus&GED_EVENT_MHL?1:0 );
 			seq_printf(psSeqFile, "GAS: %d\n",  g_ui32EventStatus&GED_EVENT_GAS?1:0 );
+			seq_printf(psSeqFile, "VR: %d\n",  g_ui32EventStatus&GED_EVENT_VR?1:0 );
 			seq_printf(psSeqFile, "Thermal: %d\n", g_ui32EventStatus&GED_EVENT_THERMAL?1:0 );
+			seq_printf(psSeqFile, "Low power mode: %d\n", g_ui32EventStatus & GED_EVENT_LOW_POWER_MODE ? 1 : 0);
+			seq_printf(psSeqFile, "MHL4K Video: %d\n", g_ui32EventStatus & GED_EVENT_MHL4K_VID ? 1 : 0);
+			seq_printf(psSeqFile, "ViLTE Video: %d\n", g_ui32EventStatus & GED_EVENT_VILTE_VID ? 1 : 0);
 		}
 	}
 
@@ -685,7 +740,13 @@ static int ged_dvfs_gpu_util_seq_show(struct seq_file *psSeqFile, void *pvData)
 {
 	if (pvData != NULL)
 	{
-		seq_printf(psSeqFile, "%u %u %u\n",ged_dvfs_get_gpu_loading(),ged_dvfs_get_gpu_blocking(),ged_dvfs_get_gpu_idle());      
+		unsigned int loading;
+		unsigned int block;
+		unsigned int idle;
+		mtk_get_gpu_loading(&loading);
+		mtk_get_gpu_block(&block);
+		mtk_get_gpu_idle(&idle);
+		seq_printf(psSeqFile, "%u %u %u\n",loading,block,idle);      
 	}
 
 	return 0;
@@ -870,6 +931,14 @@ GED_ERROR ged_hal_init(void)
 			"event_notify",
 			gpsHALDir,
 			&gsVsync_offset_enableReadOps,
+			ged_vsync_offset_enable_write_entry,
+			NULL,
+			&gpsVsyncOffsetEnableEntry);
+
+	err = ged_debugFS_create_entry(
+			"media_event",
+			gpsHALDir,
+			NULL,
 			ged_vsync_offset_enable_write_entry,
 			NULL,
 			&gpsVsyncOffsetEnableEntry);

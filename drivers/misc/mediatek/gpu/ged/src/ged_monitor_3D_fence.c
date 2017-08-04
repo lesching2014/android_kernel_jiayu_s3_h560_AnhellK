@@ -1,3 +1,16 @@
+/*
+ * Copyright (C) 2015 MediaTek Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ */
+
 #include <linux/version.h>
 #include <linux/workqueue.h>
 #include <linux/sched.h>
@@ -13,7 +26,7 @@
 #include <linux/mtk_gpu_utility.h>
 #include <trace/events/gpu.h>
 #ifdef GED_DVFS_ENABLE
-#include <mach/mt_gpufreq.h>
+#include <mt_gpufreq.h>
 #endif
 
 #include "ged_monitor_3D_fence.h"
@@ -28,6 +41,7 @@
 static atomic_t g_i32Count = ATOMIC_INIT(0);
 static unsigned int ged_monitor_3D_fence_debug = 0;
 static unsigned int ged_monitor_3D_fence_disable = 0;
+static unsigned int ged_monitor_3D_fence_switch = 1;
 static unsigned int ged_monitor_3D_fence_systrace = 0;
 static unsigned long g_ul3DFenceDoneTime = 0;
 
@@ -57,7 +71,9 @@ static void ged_sync_cb(struct sync_fence *fence, struct sync_fence_waiter *wait
 	do_div(t,1000);
 
 	ged_monitor_3D_fence_notify();
+#ifdef GED_DVFS_ENABLE	
 	ged_dvfs_cal_gpu_utilization_force();
+#endif	
 	psMonitor = GED_CONTAINER_OF(waiter, GED_MONITOR_3D_FENCE, sSyncWaiter);
 
 	ged_log_buf_print(ghLogBuf_DVFS, "[-] ged_monitor_3D_fence_done (ts=%llu) %p", t, psMonitor->psSyncFence);
@@ -76,12 +92,12 @@ static void ged_monitor_3D_fence_work_cb(struct work_struct *psWork)
 
 	if (atomic_sub_return(1, &g_i32Count) < 1)
 	{
-		if (0 == ged_monitor_3D_fence_disable)
+
 		{
 			unsigned int uiFreqLevelID;
 			if (mtk_get_bottom_gpu_freq(&uiFreqLevelID))
 			{
-				if (uiFreqLevelID > 0)
+				if (uiFreqLevelID > 0 && ged_monitor_3D_fence_switch)
 				{
 #ifdef GED_DEBUG_MONITOR_3D_FENCE
 					ged_log_buf_print(ghLogBuf_GED, "mtk_set_bottom_gpu_freq(0)");
@@ -119,16 +135,18 @@ unsigned long ged_monitor_3D_fence_done_time()
 GED_ERROR ged_monitor_3D_fence_add(int fence_fd)
 {
 	int err;
-
 	unsigned long long t;
-
 	GED_MONITOR_3D_FENCE* psMonitor;
+
+	if(ged_monitor_3D_fence_disable)
+	{
+		return GED_OK;
+	}
+	
 
 	t = ged_get_time();
 
-
 	do_div(t,1000);
-
 
 	psMonitor = (GED_MONITOR_3D_FENCE*)ged_alloc(sizeof(GED_MONITOR_3D_FENCE));
 
@@ -172,7 +190,7 @@ GED_ERROR ged_monitor_3D_fence_add(int fence_fd)
 		int iCount = atomic_add_return (1, &g_i32Count);
 		if (iCount > 1)
 		{
-			if (0 == ged_monitor_3D_fence_disable)
+
 			{
 				unsigned int uiFreqLevelID;
 				if (mtk_get_bottom_gpu_freq(&uiFreqLevelID))
@@ -194,6 +212,7 @@ GED_ERROR ged_monitor_3D_fence_add(int fence_fd)
 #endif
 
 #ifdef GED_DVFS_ENABLE
+							if(ged_monitor_3D_fence_switch)
 							mtk_set_bottom_gpu_freq(mt_gpufreq_get_dvfs_table_num() - 1);
 #endif
 						}
@@ -213,11 +232,11 @@ GED_ERROR ged_monitor_3D_fence_add(int fence_fd)
 	return GED_OK;
 }
 
-void ged_monitor_3D_fence_set_disable(GED_BOOL bFlag)
+void ged_monitor_3D_fence_set_enable(GED_BOOL bEnable)
 {
-	if(bFlag!=ged_monitor_3D_fence_disable)
+	if(bEnable != ged_monitor_3D_fence_switch)
 	{
-		ged_monitor_3D_fence_disable = bFlag;
+		ged_monitor_3D_fence_switch = bEnable;
 	}
 }
 
@@ -232,6 +251,10 @@ void ged_monitor_3D_fence_notify(void)
 	g_ul3DFenceDoneTime = (unsigned long)t;
 }
 
+int ged_monitor_3D_fence_get_count(void)
+{
+	return atomic_read(&g_i32Count);
+}
 
 module_param(ged_monitor_3D_fence_debug, uint, 0644);
 module_param(ged_monitor_3D_fence_disable, uint, 0644);

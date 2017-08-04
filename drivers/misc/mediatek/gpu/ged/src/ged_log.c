@@ -1,3 +1,16 @@
+/*
+ * Copyright (C) 2015 MediaTek Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ */
+
 #include <linux/version.h>
 #include <asm/io.h>
 #include <linux/mm.h>
@@ -5,9 +18,14 @@
 #include <linux/genalloc.h>
 #include <linux/sched.h>
 #include <linux/mutex.h>
+//#include <linux/xlog.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/rtc.h>
+
+#include <linux/module.h>
+
+#include <linux/ftrace_event.h>
 
 #include "ged_base.h"
 #include "ged_log.h"
@@ -83,13 +101,15 @@ typedef struct GED_LOG_BUF_LIST_TAG
 static GED_LOG_BUF_LIST gsGEDLogBufList = {
 	.sLock          = __RW_LOCK_UNLOCKED(gsGEDLogBufList.sLock),
 	.sList_buf      = LIST_HEAD_INIT(gsGEDLogBufList.sList_buf),
-	.sList_listen   = LIST_HEAD_INIT(gsGEDLogBufList.sList_listen), 
+	.sList_listen   = LIST_HEAD_INIT(gsGEDLogBufList.sList_listen),
 };
 
 static struct dentry* gpsGEDLogEntry = NULL;
 static struct dentry* gpsGEDLogBufsDir = NULL;
 
 static GED_HASHTABLE_HANDLE ghHashTable = NULL;
+
+unsigned int ged_log_trace_enable = 0;
 
 //-----------------------------------------------------------------------------
 //
@@ -125,7 +145,7 @@ static GED_ERROR __ged_log_buf_vprint(GED_LOG_BUF *psGEDLogBuf, const char *fmt,
 		{
 			if (attrs & GED_LOG_ATTR_AUTO_INCREASE)
 			{
-				int newLineCount, newBufferSize; 
+				int newLineCount, newBufferSize;
 
 				/* incease min(25%, 1MB) */
 				if ((psGEDLogBuf->i32LineCount >> 2) <= 1024 * 1024)
@@ -185,6 +205,13 @@ static GED_ERROR __ged_log_buf_vprint(GED_LOG_BUF *psGEDLogBuf, const char *fmt,
 	buf_n = psGEDLogBuf->i32BufferSize - psGEDLogBuf->i32BufferCurrent;
 	len = vsnprintf(psGEDLogBuf->pcBuffer + psGEDLogBuf->i32BufferCurrent, buf_n, fmt, args);
 
+	if (psGEDLogBuf->pcBuffer[psGEDLogBuf->i32BufferCurrent + len - 1] == '\n')
+	{
+		/* remove tailing newline */
+		psGEDLogBuf->pcBuffer[psGEDLogBuf->i32BufferCurrent + len - 1] = 0;
+		len -= 1;
+	}
+
 	if (len > buf_n) len = buf_n;
 
 	buf_n -= len;
@@ -192,7 +219,7 @@ static GED_ERROR __ged_log_buf_vprint(GED_LOG_BUF *psGEDLogBuf, const char *fmt,
 	if (attrs & GED_LOG_ATTR_RINGBUFFER)
 	{
 		int i;
-		int check = 10 + 1; /* we check the following 10 items. */ 
+		int check = 10 + 1; /* we check the following 10 items. */
 		int a = psGEDLogBuf->i32BufferCurrent;
 		int b = psGEDLogBuf->i32BufferCurrent + len + 2;
 
@@ -251,17 +278,13 @@ static int __ged_log_buf_write(GED_LOG_BUF *psGEDLogBuf, const char __user *pszB
 	ged_copy_from_user(buf, pszBuffer, cnt);
 
 	buf[cnt] = 0;
-	if (buf[cnt-1] == '\n')
-	{
-		buf[cnt-1] = 0;
-	}
 
 	__ged_log_buf_print(psGEDLogBuf, buf);
 
 	return cnt;
 }
 
-static void __ged_log_buf_check_get_early_list(GED_LOG_BUF_HANDLE hLogBuf, const char *pszName)
+static int __ged_log_buf_check_get_early_list(GED_LOG_BUF_HANDLE hLogBuf, const char *pszName)
 {
 	struct list_head *psListEntry, *psListEntryTemp, *psList;
 	GED_LOG_LISTEN *psFound = NULL, *psLogListen;
@@ -288,6 +311,8 @@ static void __ged_log_buf_check_get_early_list(GED_LOG_BUF_HANDLE hLogBuf, const
 		list_del(&psFound->sList);
 		write_unlock_bh(&gsGEDLogBufList.sLock);
 	}
+
+	return !!psFound;
 }
 
 static ssize_t ged_log_buf_write_entry(const char __user *pszBuffer, size_t uiCount, loff_t uiPosition, void *pvData)
@@ -332,7 +357,7 @@ static int ged_log_buf_seq_show_print(struct seq_file *psSeqFile, GED_LOG_BUF *p
 			unsigned long long t;
 			unsigned long nanosec_rem;
 
-			t = line->time;                             
+			t = line->time;
 			nanosec_rem = do_div(t, 1000000000);
 
 			seq_printf(psSeqFile,"[%5llu.%06lu] ", t, nanosec_rem / 1000);
@@ -343,12 +368,12 @@ static int ged_log_buf_seq_show_print(struct seq_file *psSeqFile, GED_LOG_BUF *p
 			unsigned long local_time;
 			struct rtc_time tm;
 
-			local_time = line->time; 
+			local_time = line->time;
 			rtc_time_to_tm(local_time, &tm);
 
-			seq_printf(psSeqFile,"%02d-%02d %02d:%02d:%02d.%06lu %5d %5d ", 
-					/*tm.tm_year + 1900,*/ tm.tm_mon + 1, tm.tm_mday, 
-					tm.tm_hour, tm.tm_min, tm.tm_sec, 
+			seq_printf(psSeqFile,"%02d-%02d %02d:%02d:%02d.%06lu %5d %5d ",
+					/*tm.tm_year + 1900,*/ tm.tm_mon + 1, tm.tm_mday,
+					tm.tm_hour, tm.tm_min, tm.tm_sec,
 					line->time_usec, line->pid, line->tid);
 		}
 
@@ -405,7 +430,7 @@ static int ged_log_buf_seq_show(struct seq_file *psSeqFile, void *pvData)
 	return 0;
 }
 //-----------------------------------------------------------------------------
-static struct seq_operations gsGEDLogBufReadOps = 
+static struct seq_operations gsGEDLogBufReadOps =
 {
 	.start = ged_log_buf_seq_start,
 	.stop = ged_log_buf_seq_stop,
@@ -416,7 +441,7 @@ static struct seq_operations gsGEDLogBufReadOps =
 GED_LOG_BUF_HANDLE ged_log_buf_alloc(
 		int i32MaxLineCount,
 		int i32MaxBufferSizeByte,
-		GED_LOG_BUF_TYPE eType, 
+		GED_LOG_BUF_TYPE eType,
 		const char* pszName,
 		const char* pszNodeName)
 {
@@ -501,7 +526,7 @@ GED_LOG_BUF_HANDLE ged_log_buf_alloc(
 				psGEDLogBuf,
 				&psGEDLogBuf->psEntry);
 
-		if (unlikely(err)) 
+		if (unlikely(err))
 		{
 			GED_LOGE("ged: failed to create %s entry, err(%d)!\n", pszNodeName, err);
 			ged_log_buf_free(psGEDLogBuf->ui32HashNodeID);
@@ -519,7 +544,7 @@ GED_LOG_BUF_HANDLE ged_log_buf_alloc(
 
 	GED_LOGI("ged_log_buf_alloc OK\n");
 
-	__ged_log_buf_check_get_early_list(psGEDLogBuf->ui32HashNodeID, pszName);
+	while (__ged_log_buf_check_get_early_list(psGEDLogBuf->ui32HashNodeID, pszName));
 
 	return (GED_LOG_BUF_HANDLE)psGEDLogBuf->ui32HashNodeID;
 }
@@ -768,7 +793,7 @@ GED_ERROR ged_log_buf_print2(GED_LOG_BUF_HANDLE hLogBuf, int i32LogAttrs, const 
 		psGEDLogBuf = ged_log_buf_from_handle(hLogBuf);
 
 		/* clear reserved attrs */
-		i32LogAttrs &= ~0xff; 
+		i32LogAttrs &= ~0xff;
 
 		va_start(args, fmt);
 		err = __ged_log_buf_vprint(psGEDLogBuf, fmt, args, psGEDLogBuf->attrs | i32LogAttrs);
@@ -910,7 +935,7 @@ static void* ged_log_seq_next(struct seq_file *psSeqFile, void *pvData, loff_t *
 	return NULL;
 }
 //-----------------------------------------------------------------------------
-static struct seq_operations gsGEDLogReadOps = 
+static struct seq_operations gsGEDLogReadOps =
 {
 	.start = ged_log_seq_start,
 	.stop = ged_log_seq_stop,
@@ -949,12 +974,14 @@ GED_ERROR ged_log_system_init(void)
 	}
 
 	ghHashTable = ged_hashtable_create(5);
-	if (!ghHashTable) 
+	if (!ghHashTable)
 	{
 		err = GED_ERROR_OOM;
 		GED_LOGE("ged: failed to create a hash table!\n");
 		goto ERROR;
 	}
+
+	ged_log_trace_enable = 0;
 
 	return err;
 
@@ -978,6 +1005,48 @@ int ged_log_buf_write(GED_LOG_BUF_HANDLE hLogBuf, const char __user *pszBuffer, 
 	return __ged_log_buf_write(psGEDLogBuf, pszBuffer, i32Count);
 }
 
+static unsigned long __read_mostly tracing_mark_write_addr = 0;
+static inline void __mt_update_tracing_mark_write_addr(void)
+{
+        if(unlikely(0 == tracing_mark_write_addr))
+        tracing_mark_write_addr = kallsyms_lookup_name("tracing_mark_write");
+}
+void ged_log_trace_begin(char *name)
+{
+	if(ged_log_trace_enable)
+	{
+        	__mt_update_tracing_mark_write_addr();
+#ifdef GED_SYSTRACE_UTIL
+        	event_trace_printk(tracing_mark_write_addr, "B|%d|%s\n", current->tgid, name);
+#endif
+	}
+}
+EXPORT_SYMBOL(ged_log_trace_begin);
+ 
+void ged_log_trace_end(void)
+{
+	if(ged_log_trace_enable)
+	{
+        	__mt_update_tracing_mark_write_addr();
+#ifdef GED_SYSTRACE_UTIL
+        	event_trace_printk(tracing_mark_write_addr, "E\n");
+#endif
+	}
+}
+EXPORT_SYMBOL(ged_log_trace_end);
+ 
+void ged_log_trace_counter(char *name, int count)
+{
+	if(ged_log_trace_enable)
+	{
+        	__mt_update_tracing_mark_write_addr();
+#ifdef GED_SYSTRACE_UTIL
+        	event_trace_printk(tracing_mark_write_addr, "C|5566|%s|%d\n", name, count);
+#endif
+	}
+}
+EXPORT_SYMBOL(ged_log_trace_counter);
+
 EXPORT_SYMBOL(ged_log_buf_alloc);
 EXPORT_SYMBOL(ged_log_buf_reset);
 EXPORT_SYMBOL(ged_log_buf_get);
@@ -985,3 +1054,5 @@ EXPORT_SYMBOL(ged_log_buf_get_early);
 EXPORT_SYMBOL(ged_log_buf_free);
 EXPORT_SYMBOL(ged_log_buf_print);
 EXPORT_SYMBOL(ged_log_buf_print2);
+
+module_param(ged_log_trace_enable, uint, 0644);
