@@ -19,11 +19,11 @@ ccflags-y += -I$(srctree)/drivers/misc/mediatek/base/power/$(MTK_PLATFORM)/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/cmdq/v2/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/cmdq/v2/$(MTK_PLATFORM)/
 obj-y += smi_common.o
-obj-y += smi_debug.o
 obj-y += smi_info_util.o
 obj-y += smi_config_util.o
 obj-y += smi_configuration.o
 obj-y += smi_internal.o
+#obj-y += smi_debug.o
 
 ifeq ($(CONFIG_ARCH_MT6735),y)
 ccflags-y += -I$(srctree)/drivers/clk/mediatek
@@ -33,8 +33,7 @@ else ifeq ($(CONFIG_ARCH_MT6735M),y)
 ccflags-y += -DSMI_D2
 obj-y += mmdvfs_mgr.o
 else ifeq ($(CONFIG_ARCH_MT6752),y)
-ccflags-y += -DSMI_D3
-obj-y += mmdvfs_mgr.o
+ccflags-y += -DSMI_BRINGUP
 else ifeq ($(CONFIG_ARCH_MT6580),y)
 ccflags-y += -DSMI_R
 else ifeq ($(CONFIG_ARCH_MT6755),y)

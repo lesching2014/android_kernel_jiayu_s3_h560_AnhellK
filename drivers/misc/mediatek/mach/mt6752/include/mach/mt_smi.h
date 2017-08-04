@@ -1,3 +1,16 @@
+/*
+ * Copyright (C) 2015 MediaTek Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ */
+
 #ifndef _MTK_SMI_H_
 #define _MTK_SMI_H_
 
@@ -26,7 +39,6 @@ typedef struct {
 
 
 int mau_config(MTK_MAU_CONFIG *pMauConf);
-int mau_dump_status(int larb);
 
 
 /* --------------------------------------------------------------------------- */
@@ -35,6 +47,8 @@ typedef enum {
 	SMI_BWC_SCEN_VR,
 	SMI_BWC_SCEN_SWDEC_VP,
 	SMI_BWC_SCEN_VP,
+	SMI_BWC_SCEN_VP_HIGH_FPS,
+	SMI_BWC_SCEN_VP_HIGH_RESOLUTION,
 	SMI_BWC_SCEN_VR_SLOW,
 	SMI_BWC_SCEN_MM_GPU,
 	SMI_BWC_SCEN_WFD,
@@ -43,6 +57,10 @@ typedef enum {
 	SMI_BWC_SCEN_UI_IDLE,
 	SMI_BWC_SCEN_VSS,
 	SMI_BWC_SCEN_FORCE_MMDVFS,
+	SMI_BWC_SCEN_HDMI,
+	SMI_BWC_SCEN_HDMI4K,
+	SMI_BWC_SCEN_VPMJC,
+	SMI_BWC_SCEN_N3D,
 	SMI_BWC_SCEN_CNT
 } MTK_SMI_BWC_SCEN;
 
@@ -54,6 +72,7 @@ typedef enum {
 	MMDVFS_VOLTAGE_1,
 	MMDVFS_VOLTAGE_HIGH = MMDVFS_VOLTAGE_1,
 	MMDVFS_VOLTAGE_DEFAULT_STEP,
+	MMDVFS_VOLTAGE_LOW_LOW,
 	MMDVFS_VOLTAGE_COUNT
 } mmdvfs_voltage_enum;
 
@@ -90,7 +109,9 @@ typedef struct {
 	unsigned int sensor_size;
 	unsigned int sensor_fps;
 	unsigned int camera_mode;
-
+	unsigned int boost_disable;
+	unsigned int ddr_type;
+	unsigned int step;
 	unsigned int venc_size;
 
 	unsigned int ret;
@@ -98,6 +119,9 @@ typedef struct {
 
 #define MTK_MMDVFS_CMD_TYPE_SET		0
 #define MTK_MMDVFS_CMD_TYPE_QUERY	1
+#define MTK_MMDVFS_CMD_TYPE_GET	2
+#define MTK_MMDVFS_CMD_TYPE_CONFIG	3
+#define MTK_MMDVFS_CMD_TYPE_STEP_SET 4
 
 typedef enum {
 	SMI_BWC_INFO_CON_PROFILE = 0,
@@ -186,4 +210,34 @@ int MTK_SPC_Init(void *dev);
 extern int mmdvfs_set_step(MTK_SMI_BWC_SCEN scenario, mmdvfs_voltage_enum step);
 extern int mmdvfs_is_default_step_need_perf(void);
 extern void mmdvfs_mm_clock_switch_notify(int is_before, int is_to_high);
+
+#ifdef CONFIG_MTK_SMI_VARIANT
+/* Enable the power-domain and the clocks of the larb.
+ *
+ * larb: larb id
+ * pm: if true, this function will help enable larb's power-domain.
+ *     if false, please make sure the larb's power-domain has been enabled.
+ *     some h/w may reset if the sequence is not good while
+ *     smi-larb enable power-domain.
+ *     please call them in non-atmoic context.
+ * Return : 0 is successful, Others is failed.
+ */
+int mtk_smi_larb_clock_on(int larb, bool pm);
+void mtk_smi_larb_clock_off(int larb, bool pm);
+
+/* Return 0 is failed */
+unsigned long mtk_smi_larb_get_base(int larbid);
+#else
+
+static inline int mtk_smi_larb_clock_on(int larb, bool pm)
+{
+	return 0;
+}
+static inline void mtk_smi_larb_clock_off(int larb, bool pm) {}
+static inline unsigned long mtk_smi_larb_get_base(int larbid)
+{
+	return 0;
+}
+#endif
+
 #endif

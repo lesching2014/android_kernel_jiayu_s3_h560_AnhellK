@@ -13,7 +13,7 @@
 
 #include <asm/io.h>
 #include <linux/string.h>
-#include "mt_smi.h"
+#include "mach/mt_smi.h"
 #include "smi_configuration.h"
 #include "smi_common.h"
 #include "smi_reg.h"

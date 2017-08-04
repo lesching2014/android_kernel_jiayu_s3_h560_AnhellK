@@ -14,7 +14,7 @@
 #ifndef __SMI_COMMON_H__
 #define __SMI_COMMON_H__
 
-#include <aee.h>
+#include <linux/aee.h>
 #include "smi_configuration.h"
 #ifdef CONFIG_MTK_CMDQ
 #include "cmdq_core.h"

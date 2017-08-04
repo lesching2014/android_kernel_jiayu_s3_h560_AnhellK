@@ -14,8 +14,8 @@
 #ifndef __MMDVFS_MGR_H__
 #define __MMDVFS_MGR_H__
 
-#include <aee.h>
-#include <mt_smi.h>
+#include <linux/aee.h>
+#include <mach/mt_smi.h>
 
 #define MMDVFS_LOG_TAG	"MMDVFS"
 

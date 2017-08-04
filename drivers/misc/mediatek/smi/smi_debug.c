@@ -26,20 +26,20 @@
 #include <linux/vmalloc.h>
 #include <linux/dma-mapping.h>
 #include <linux/slab.h>
-#include <aee.h>
+#include <linux/aee.h>
 #include <linux/timer.h>
 /* #include <asm/system.h> */
 #include <asm-generic/irq_regs.h>
 /* #include <asm/mach/map.h> */
-#include <sync_write.h>
+#include <mach/sync_write.h>
 /*#include <mach/irqs.h>*/
 #include <asm/cacheflush.h>
 #include <linux/string.h>
 #include <linux/time.h>
 #include <linux/fb.h>
 #include <linux/debugfs.h>
-#include <m4u.h>
-#include <mt_smi.h>
+#include <mach/m4u.h>
+#include <mach/mt_smi.h>
 
 #include "smi_common.h"
 #include "smi_reg.h"
@@ -55,7 +55,7 @@
 #if !defined(SMI_INTERNAL_CCF_SUPPORT)
 #include <mach/mt_clkmgr.h>
 #endif
-
+extern unsigned long smi_common_debug_offset[SMI_COMMON_DEBUG_OFFSET_NUM];
 
 /* Debug Function */
 static void smi_dump_format(unsigned long base, unsigned int from, unsigned int to);

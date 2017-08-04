@@ -17,8 +17,8 @@
 #include <linux/workqueue.h>
 #include <linux/mtk_gpu_utility.h>
 
-#include <aee.h>
-#include <mt_smi.h>
+#include <linux/aee.h>
+#include <mach/mt_smi.h>
 
 #ifdef SMI_EV
 #define MMDVFS_E1

@@ -23,7 +23,7 @@
 #include <linux/mm.h>
 #include <linux/vmalloc.h>
 #include <linux/slab.h>
-#include <aee.h>
+#include <linux/aee.h>
 
 /* Define SMI_INTERNAL_CCF_SUPPORT when CCF needs to be enabled */
 #if !defined(CONFIG_MTK_CLKMGR) && !defined(SMI_BRINGUP)
@@ -56,7 +56,7 @@
 #include <linux/compat.h>
 #endif
 
-#include <mt_smi.h>
+#include <mach/mt_smi.h>
 
 #if defined(SMI_D1) || defined(SMI_D2) || defined(SMI_D3) || defined(SMI_J) ||  defined(SMI_EV)
 #define MMDVFS_HOOK
@@ -1276,15 +1276,15 @@ void smi_bus_optimization(int optimization_larbs, int smi_profile)
 
 	if (enable_bw_optimization) {
 		SMIDBG(1, "dump register before setting\n");
-		if (smi_debug_level)
-			smi_dumpDebugMsg();
+//		if (smi_debug_level)
+//			smi_dumpDebugMsg();
 
 		smi_bus_regs_setting(optimization_larbs, smi_profile,
 			smi_profile_config[smi_profile].setting);
 
 		SMIDBG(1, "dump register after setting\n");
-		if (smi_debug_level)
-			smi_dumpDebugMsg();
+//		if (smi_debug_level)
+//			smi_dumpDebugMsg();
 	}
 
 
@@ -1608,7 +1608,7 @@ static long smi_ioctl(struct file *pFile, unsigned int cmd, unsigned long param)
 			if (ret)
 				return -EFAULT;
 
-			smi_dumpLarb(larb_index);
+			//smi_dumpLarb(larb_index);
 		}
 		break;
 
@@ -1619,7 +1619,7 @@ static long smi_ioctl(struct file *pFile, unsigned int cmd, unsigned long param)
 			if (ret)
 				return -EFAULT;
 
-			smi_dumpCommon();
+		//	smi_dumpCommon();
 		}
 		break;
 

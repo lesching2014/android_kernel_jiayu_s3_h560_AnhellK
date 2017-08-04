@@ -16,9 +16,9 @@
 #endif
 
 #include <linux/uaccess.h>
-#include <aee.h>
+#include <linux/aee.h>
 
-#include <mt_smi.h>
+#include <mach/mt_smi.h>
 
 #include <linux/timer.h>
 #include <linux/jiffies.h>
