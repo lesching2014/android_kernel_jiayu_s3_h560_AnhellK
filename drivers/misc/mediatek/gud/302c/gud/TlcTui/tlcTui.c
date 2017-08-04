@@ -280,6 +280,11 @@ static void tlc_close(void)
 	}
 }
 
+void reset_global_command_id(void)
+{
+	g_cmd_id = TLC_TUI_CMD_NONE;
+}
+
 /* ------------------------------------------------------------- */
 bool tlc_notify_event(uint32_t event_type)
 {
@@ -291,12 +296,6 @@ bool tlc_notify_event(uint32_t event_type)
 			 "properly - exiting\n");
 		return false;
 	}
-
-	/* Wait for previous notification to be acknowledged */
-	while (dci->nwd_notif != NOT_TUI_NONE) {
-		pr_debug("TLC waiting for previous notification ack\n");
-		usleep_range(10000, 10000);
-	};
 
 	/* Prepare notification message in DCI */
 	pr_debug("tlc_notify_event: event_type = %d\n", event_type);
@@ -357,6 +356,7 @@ int tlc_wait_cmd(uint32_t *cmd_id)
 	}
 
 	/* Wait for signal from DCI handler */
+	/* In case of an interrupted sys call, return with -EINTR */
 	if (wait_for_completion_interruptible(&dci_comp)) {
 		pr_debug("interrupted by system\n");
 		return -ERESTARTSYS;
