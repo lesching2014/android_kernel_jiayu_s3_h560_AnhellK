@@ -1,20 +1,28 @@
+/*
+ * Copyright (C) 2015 MediaTek Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ */
+
 #include <asm/io.h>
 #include <linux/ioctl.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
-
-#include "mt_smi.h"
-#include "smi_common.h"
 #include "smi_info_util.h"
-
-#if defined(SMI_RO)
-#include "mmdvfs_mgr.h"
-#endif
+#include "smi_common.h"
 
 int smi_set_mm_info_ioctl_wrapper(struct file *pFile, unsigned int cmd, unsigned long param)
 {
 	int ret = 0;
 	MTK_SMI_BWC_INFO_SET cfg;
+
 	ret = copy_from_user(&cfg, (void *)param, sizeof(MTK_SMI_BWC_INFO_SET));
 	if (ret) {
 		SMIMSG(" MTK_IOC_SMI_BWC_INFO_SET, copy_to_user failed: %d\n", ret);
@@ -30,6 +38,7 @@ int smi_set_mm_info_ioctl_wrapper(struct file *pFile, unsigned int cmd, unsigned
 int smi_get_mm_info_ioctl_wrapper(struct file *pFile, unsigned int cmd, unsigned long param)
 {
 	int ret = 0;
+
 	ret = copy_to_user((void *)param, (void *)&g_smi_bwc_mm_info, sizeof(MTK_SMI_BWC_MM_INFO));
 
 	if (ret) {
@@ -69,16 +78,18 @@ void smi_bwc_mm_info_set(int property_id, long val1, long val2)
 		break;
 	case SMI_BWC_INFO_VIDEO_ENCODE_CODEC:
 		g_smi_bwc_mm_info.video_encode_codec = (int)val1;
-#if defined(SMI_RO)
+#if defined(SMI_J)
 		/* AVC @ 60 needs HPM */
-		if (g_smi_bwc_mm_info.video_encode_codec == 2) {
-			int is_smvr = 0;
-			spin_lock(&g_SMIInfo.SMI_lock);
-			is_smvr = g_SMIInfo.pu4ConcurrencyTable[SMI_BWC_SCEN_VR_SLOW] ? 1 : 0;
-			spin_unlock(&g_SMIInfo.SMI_lock);
-			if (is_smvr)
-				mmdvfs_notify_scenario_enter(SMI_BWC_SCEN_VR_SLOW);
-		}
+		/*
+		   if (g_smi_bwc_mm_info.video_encode_codec == 2) {
+		   int is_smvr = 0;
+		   spin_lock(&g_SMIInfo.SMI_lock);
+		   is_smvr = g_SMIInfo.pu4ConcurrencyTable[SMI_BWC_SCEN_VR_SLOW] ? 1 : 0;
+		   spin_unlock(&g_SMIInfo.SMI_lock);
+		   if (is_smvr)
+		   mmdvfs_notify_scenario_enter(SMI_BWC_SCEN_VR_SLOW);
+		   }
+		 */
 #endif
 		break;
 	case SMI_BWC_INFO_VIDEO_DECODE_CODEC:
