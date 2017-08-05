@@ -1,3 +1,16 @@
+/*
+ * Copyright (C) 2015 MediaTek Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ */
+
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
 #include <linux/file.h>
@@ -11,10 +24,9 @@
 #include <linux/platform_device.h>
 
 #include <asm/uaccess.h>
-//#include <asm/mach-types.h>
+/* #include <asm/mach-types.h> */
 
-#define MMPROFILE_INTERNAL
-#include <linux/mmprofile_internal.h>
+#include <mmprofile_internal.h>
 /* #pragma GCC optimize ("O0") */
 #define MMP_DEVNAME "mmp"
 
@@ -72,14 +84,14 @@ long MMProfileLogMeta(MMP_Event event, MMP_LogType type, MMP_MetaData_t *pMetaDa
 EXPORT_SYMBOL(MMProfileLogMeta);
 
 long MMProfileLogMetaStructure(MMP_Event event, MMP_LogType type,
-			      MMP_MetaDataStructure_t *pMetaData)
+			       MMP_MetaDataStructure_t *pMetaData)
 {
 	return 0;
 }
 EXPORT_SYMBOL(MMProfileLogMetaStructure);
 
 long MMProfileLogMetaStringEx(MMP_Event event, MMP_LogType type, unsigned long data1,
-			     unsigned long data2, const char *str)
+			      unsigned long data2, const char *str)
 {
 	return 0;
 }
@@ -136,7 +148,7 @@ static int mmprofile_mmap(struct file *file, struct vm_area_struct *vma)
 	return -EINVAL;
 }
 
-struct file_operations mmprofile_fops = {
+const struct file_operations mmprofile_fops = {
 	.owner = THIS_MODULE,
 	.unlocked_ioctl = mmprofile_ioctl,
 	.open = mmprofile_open,
@@ -146,7 +158,7 @@ struct file_operations mmprofile_fops = {
 	.mmap = mmprofile_mmap,
 };
 
-// fix build warning: unused
+/* fix build warning: unused */
 #if 0
 static int mmprofile_probe(struct platform_device *pdev)
 {
@@ -167,7 +179,7 @@ static int mmprofile_probe(struct platform_device *pdev)
 }
 #endif
 
-// fix build warning: unused
+/* fix build warning: unused */
 #if 0
 static int mmprofile_remove(struct platform_device *pdev)
 {
@@ -192,9 +204,9 @@ static struct platform_device mmprofile_device = {
 static int __init mmprofile_init(void)
 {
 #if 0
-	if (platform_device_register(&mmprofile_device)) {
+	if (platform_device_register(&mmprofile_device))
 		return -ENODEV;
-	}
+
 	if (platform_driver_register(&mmprofile_driver)) {
 		platform_device_unregister(&mmprofile_device);
 		return -ENODEV;
