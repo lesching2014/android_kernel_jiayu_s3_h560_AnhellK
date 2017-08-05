@@ -1,16 +1,3 @@
-/*
- * Copyright (C) 2015 MediaTek Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- */
-
 #ifndef __MJC_KERNEL_DRIVER_H__
 #define __MJC_KERNEL_DRIVER_H__
 
@@ -76,3 +63,4 @@ typedef struct {
 #define MJC_REG_INFO                      _IOW(MJC_IOC_MAGIC, 0x07, MJC_IOCTL_REG_INFO_T)
 
 #endif				/* __MJC_KERNEL_DRIVER_H__ */
+
