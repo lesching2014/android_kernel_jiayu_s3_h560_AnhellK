@@ -16,8 +16,7 @@
 
 /* #include <mach/mt_reg_base.h> */
 
-/* #include <mach/sync_write.h> */
-#include <mt-plat/sync_write.h>
+ #include <mach/sync_write.h> 
 
 #include "jpeg_drv.h"
 
