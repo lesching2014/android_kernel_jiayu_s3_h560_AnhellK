@@ -40,7 +40,7 @@
 #include <linux/proc_fs.h>
 
 #include "m4u_priv.h"
-#include "m4u.h"
+#include "mach/m4u.h"
 #include "m4u_hw.h"
 
 #include <linux/of.h>
