@@ -259,6 +259,12 @@ config MTK_GPU_FREQT
 	---help---
 	  Calculated this value from PLL settings
 
+config HIGH_BATTERY_VOLTAGE_SUPPORT
+	bool "HIGH_BATTERY_VOLTAGE_SUPPORT"
+	default n
+	help
+	  This option is used to enable HIGH_BATTERY_VOLTAGE_SUPPORT support
+
 source "drivers/misc/mediatek/Kconfig.kernel"
 source "drivers/misc/mediatek/Kconfig.drivers"
 source "drivers/misc/mediatek/smartpa/Kconfig"

@@ -1,14 +1,6 @@
 include $(srctree)/drivers/misc/mediatek/Makefile.custom
 
-ifeq ($(CONFIG_MTK_HAFG_20),y)
-    obj-$(CONFIG_MTK_SMART_BATTERY) += battery_meter_fg_20.o battery_common_fg_20.o
-else
-    obj-$(CONFIG_MTK_SMART_BATTERY) += battery_meter.o battery_common.o
-endif
-
-ifeq ($(CONFIG_LENOVO_CHARGING_STANDARD_SUPPORT),y)
-    obj-$(CONFIG_MTK_SMART_BATTERY) += lenovo_charging.o
-endif
+obj-$(CONFIG_MTK_SMART_BATTERY) += battery_meter.o battery_common.o charge_level.o
 
 ifeq ($(CONFIG_MTK_FAN5402_SUPPORT),y)
     obj-$(CONFIG_MTK_SMART_BATTERY) += switch_charging.o
@@ -48,7 +40,7 @@ else
                                             ifeq ($(CONFIG_MTK_RT9536_SUPPORT),y)
                                                 obj-$(CONFIG_MTK_SMART_BATTERY) += switch_charging.o
                                             else
-                                                obj-$(CONFIG_MTK_SMART_BATTERY) += linear_charging.o
+                                                obj-$(CONFIG_MTK_SMART_BATTERY) += linear_charging.o # this is not built
                                             endif
                                         endif
                                     endif
