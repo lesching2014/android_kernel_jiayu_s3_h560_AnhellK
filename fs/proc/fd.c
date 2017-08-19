@@ -90,6 +90,7 @@ static int tid_fd_revalidate(struct dentry *dentry, unsigned int flags)
 		if (files) {
 			struct file *file;
 
+                        cond_resched();
 			rcu_read_lock();
 			file = fcheck_files(files, fd);
 			if (file) {
