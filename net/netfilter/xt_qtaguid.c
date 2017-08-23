@@ -1740,7 +1740,7 @@ static bool qtaguid_mt(const struct sk_buff *skb, struct xt_action_param *par)
 		goto put_sock_ret_res;
 	}
 	sock_uid = sk->sk_uid;
-	if (do_tag_stat)
+        if (!(info->match & XT_QTAGUID_UID))
 		account_for_uid(skb, sk, from_kuid(&init_user_ns, sock_uid), par);
 
 	/*
