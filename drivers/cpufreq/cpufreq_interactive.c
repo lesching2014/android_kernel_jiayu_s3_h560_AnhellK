@@ -32,7 +32,7 @@
 #include <linux/slab.h>
 
 #ifdef CONFIG_ARCH_MT6752
-#include "../misc/mediatek/base/power/mt6752/mt_cpufreq.h"
+#include "../misc/mediatek/mach/mt6752/include/mach/mt_cpufreq.h"
 #endif
 
 #ifdef CONFIG_ARCH_MT6753
