@@ -866,7 +866,7 @@ static void MC3XXX_rbm(struct i2c_client *client, int enable)
 
 	hwmsen_read_block(client, 0x04, _baDataBuf, 0x01);
 
-	/* GSE_LOG("[%s] REG(0x04): 0x%X, enable: %d\n", __FUNCTION__, _baDataBuf[0], enable); */
+	/* GSE_LOG("[%s] REG(0x04): 0x%X, enable: %d\n", __func__, _baDataBuf[0], enable); */
 
 	if (0x00 == (_baDataBuf[0] & 0x40)) {
 		_baDataBuf[0] = 0x6D;
@@ -1813,7 +1813,7 @@ static int MC3XXX_Init(struct i2c_client *client, int reset_cali)
 		/* GSE_ERR("ERR: fail to probe mCube sensor!\n"); */
 		return (MC3XXX_RETCODE_ERROR_I2C);
 	}
-	/* GSE_LOG("[%s] confirmed i2c addr: 0x%X\n", __FUNCTION__, client->addr); */
+	/* GSE_LOG("[%s] confirmed i2c addr: 0x%X\n", __func__, client->addr); */
 #endif
 
 	_baDataBuf[0] = MC3XXX_REG_MODE_FEATURE;
@@ -2234,12 +2234,12 @@ static void MC3XXX_SelfCheck(struct i2c_client *client, u8 *pUserBuf)
 #ifdef _MC3XXX_SUPPORT_PERIODIC_DOC_
 static int MC3XXX_GetOpenStatus(void)
 {
-	/* GSE_LOG("[%s] %d\n", __FUNCTION__, atomic_read(&s_t_mc3xxx_open_status)); */
+	/* GSE_LOG("[%s] %d\n", __func__, atomic_read(&s_t_mc3xxx_open_status)); */
 
 	wait_event_interruptible(wq_mc3xxx_open_status,
 				 (atomic_read(&s_t_mc3xxx_open_status) != 0));
 
-	/* GSE_LOG("[%s] pass wait_event_interruptible: %d\n", __FUNCTION__, atomic_read(&s_t_mc3xxx_open_status)); */
+	/* GSE_LOG("[%s] pass wait_event_interruptible: %d\n", __func__, atomic_read(&s_t_mc3xxx_open_status)); */
 
 	return (atomic_read(&s_t_mc3xxx_open_status));
 }
@@ -2647,7 +2647,7 @@ static ssize_t show_regiter_map(struct device_driver *ddri, char *buf)
 static ssize_t store_regiter_map(struct device_driver *ddri, const char *buf, size_t count)
 {
 	/* reserved */
-	/* GSE_LOG("[%s] buf[0]: 0x%02X\n", __FUNCTION__, buf[0]); */
+	/* GSE_LOG("[%s] buf[0]: 0x%02X\n", __func__, buf[0]); */
 
 	return count;
 }
@@ -2726,7 +2726,7 @@ static ssize_t show_selfcheck_value(struct device_driver *ptDevDriver, char *pbB
 {
 	struct i2c_client *_pt_i2c_client = mc3xxx_i2c_client;
 
-	/* GSE_LOG("[%s] 0x%02X\n", __FUNCTION__, pbBuf[0]); */
+	/* GSE_LOG("[%s] 0x%02X\n", __func__, pbBuf[0]); */
 
 	MC3XXX_MUTEX_LOCK();
 	MC3XXX_SelfCheck(_pt_i2c_client, pbBuf);
@@ -2742,7 +2742,7 @@ static ssize_t show_selfcheck_value(struct device_driver *ptDevDriver, char *pbB
 static ssize_t store_selfcheck_value(struct device_driver *ddri, const char *buf, size_t count)
 {
 	/* reserved */
-	/* GSE_LOG("[%s] buf[0]: 0x%02X\n", __FUNCTION__, buf[0]); */
+	/* GSE_LOG("[%s] buf[0]: 0x%02X\n", __func__, buf[0]); */
 
 	return count;
 }
@@ -3618,7 +3618,7 @@ _I2C_AUTO_PROBE_RECHECK_:
 	for (_nCount = 0; _nCount < _MC3XXX_I2C_PROBE_ADDR_COUNT_; _nCount++) {
 		client->addr = mc3xxx_i2c_auto_probe_addr[_nCount];
 
-		/* GSE_LOG("[%s][%d] probing addr: 0x%X\n", __FUNCTION__, _nCount, client->addr); */
+		/* GSE_LOG("[%s][%d] probing addr: 0x%X\n", __func__, _nCount, client->addr); */
 
 		_baData1Buf[0] = 0x3B;
 		if (0 > i2c_master_send(client, &(_baData1Buf[0]), 1)) {
@@ -3633,7 +3633,7 @@ _I2C_AUTO_PROBE_RECHECK_:
 
 		_naCheckCount[_nCount]++;
 
-		/* GSE_LOG("[%s][%d] addr: 0x%X ok to read REG(0x3B): 0x%X\n", __FUNCTION__, _nCount, client->addr, _baData1Buf[0]); */
+		/* GSE_LOG("[%s][%d] addr: 0x%X ok to read REG(0x3B): 0x%X\n", __func__, _nCount, client->addr, _baData1Buf[0]); */
 
 		if (0x00 == _baData1Buf[0]) {
 			if (1 == _naCheckCount[_nCount]) {
@@ -3658,7 +3658,7 @@ _I2C_AUTO_PROBE_RECHECK_:
 
 			MC3XXX_SaveDefaultOffset(client);
 
-			/* GSE_LOG("[%s] addr: 0x%X confirmed ok to use. s_bPCODE: 0x%02X, s_bHWID: 0x%02X\n", __FUNCTION__, client->addr, s_bPCODE, s_bHWID); */
+			/* GSE_LOG("[%s] addr: 0x%X confirmed ok to use. s_bPCODE: 0x%02X, s_bHWID: 0x%02X\n", __func__, client->addr, s_bPCODE, s_bHWID); */
 
 			return (MC3XXX_RETCODE_SUCCESS);
 		}

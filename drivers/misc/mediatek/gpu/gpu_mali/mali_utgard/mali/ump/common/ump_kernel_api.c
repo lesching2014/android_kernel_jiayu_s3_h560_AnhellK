@@ -370,7 +370,7 @@ void _ump_ukk_cache_operations_control(_ump_uk_cache_operations_control_s* args)
 		_ump_osk_msync( NULL, NULL, 0, 0, _UMP_UK_MSYNC_FLUSH_L1, session_data);
 		DBG_MSG(4, ("Cache ops finish end\n" ));
 	} else {
-		DBG_MSG(1, ("Illegal call to %s at line %d\n", __FUNCTION__, __LINE__));
+		DBG_MSG(1, ("Illegal call to %s at line %d\n", __func__, __LINE__));
 	}
 	_mali_osk_mutex_signal(session_data->lock);
 

@@ -1368,7 +1368,7 @@ wext_set_mode(IN struct net_device *prNetDev,
 		return -EOPNOTSUPP;
 	}
 
-	/* DBGLOG(REQ, TRACE, "%s(): Set Mode = %d\n", __FUNCTION__, *pu4Mode); */
+	/* DBGLOG(REQ, TRACE, "%s(): Set Mode = %d\n", __func__, *pu4Mode); */
 
 	rStatus = kalIoctl(prGlueInfo,
 			   wlanoidSetInfrastructureMode,

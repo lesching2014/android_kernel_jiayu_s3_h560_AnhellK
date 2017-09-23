@@ -130,7 +130,7 @@ static const struct file_operations proc_utilization_operations = {
 static void proc_mali_register(void)
 {
     mali_pentry = proc_mkdir("mali", NULL);
-    MALI_DEBUG_PRINT(1, ("[%s] pentry=%p\n", __FUNCTION__, mali_pentry));
+    MALI_DEBUG_PRINT(1, ("[%s] pentry=%p\n", __func__, mali_pentry));
 
     if (!mali_pentry)
         return;

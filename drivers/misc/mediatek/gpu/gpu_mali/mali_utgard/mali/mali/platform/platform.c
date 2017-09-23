@@ -99,7 +99,7 @@ int mali_platform_device_register(void)
 {
     int err = -1;
 
-    MALI_DEBUG_PRINT(1, ("%s\n", __FUNCTION__));
+    MALI_DEBUG_PRINT(1, ("%s\n", __func__));
     mali_gpu_data.shared_mem_size = get_max_DRAM_size();
 
     err = platform_device_register(&mali_gpu_device);
@@ -119,7 +119,7 @@ int mali_platform_device_register(void)
         return 0;
     }
 
-    MALI_DEBUG_PRINT(1, ("%s err=%d\n",__FUNCTION__, err));
+    MALI_DEBUG_PRINT(1, ("%s err=%d\n",__func__, err));
 
     platform_device_unregister(&mali_gpu_device);
 
@@ -128,7 +128,7 @@ int mali_platform_device_register(void)
 
 void mali_platform_device_unregister(void)
 {
-    MALI_DEBUG_PRINT(1, ("%s\n", __FUNCTION__));    
+    MALI_DEBUG_PRINT(1, ("%s\n", __func__));    
     
     mali_pmm_deinit();
  
@@ -137,14 +137,14 @@ void mali_platform_device_unregister(void)
 
 static void mali_platform_device_release(struct device *device)
 {
-    MALI_DEBUG_PRINT(1, ("%s\n", __FUNCTION__));
+    MALI_DEBUG_PRINT(1, ("%s\n", __func__));
 }
 
 static int mali_pm_suspend(struct device *device)
 {
     int ret = 0;
 
-    MALI_DEBUG_PRINT(1, ("Mali PM:%s\n", __FUNCTION__));
+    MALI_DEBUG_PRINT(1, ("Mali PM:%s\n", __func__));
 
     if (NULL != device->driver &&
         NULL != device->driver->pm &&
@@ -164,7 +164,7 @@ static int mali_pm_resume(struct device *device)
 {
     int ret = 0;
 
-    MALI_DEBUG_PRINT(1, ("Mali PM: %s\n", __FUNCTION__));
+    MALI_DEBUG_PRINT(1, ("Mali PM: %s\n", __func__));
 
     mali_platform_power_mode_change(MALI_POWER_MODE_ON);
 
@@ -190,7 +190,7 @@ static int mali_pm_freeze(struct device *device)
 {
     int ret = 0;
     
-    MALI_DEBUG_PRINT(1, ("Mali PM: %s\n", __FUNCTION__));
+    MALI_DEBUG_PRINT(1, ("Mali PM: %s\n", __func__));
     
     if (NULL != device->driver &&
         NULL != device->driver->pm &&
@@ -207,7 +207,7 @@ static int mali_pm_thaw(struct device *device)
 {
     int ret = 0;
 
-    MALI_DEBUG_PRINT(1, ("Mali PM: %s\n", __FUNCTION__));
+    MALI_DEBUG_PRINT(1, ("Mali PM: %s\n", __func__));
 
     if (NULL != device->driver &&
         NULL != device->driver->pm &&

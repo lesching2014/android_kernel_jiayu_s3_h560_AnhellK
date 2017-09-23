@@ -46,15 +46,15 @@
 /****************************   Modify end    *******************************************/
 
 #if DBG
-#define LOG_DBG(format, args...)    pr_debug( PFX "[%s] " format, __FUNCTION__, ##args)
-#define LOG_INF(format, args...)    pr_info( PFX "[%s] " format, __FUNCTION__, ##args)
-#define LOG_WRN(format, args...)    pr_warn( PFX "[%s] " format, __FUNCTION__, ##args)
-#define LOG_ERR(format, args...)    pr_err( PFX "[%s] " format, __FUNCTION__, ##args)
+#define LOG_DBG(format, args...)    pr_debug( PFX "[%s] " format, __func__, ##args)
+#define LOG_INF(format, args...)    pr_info( PFX "[%s] " format, __func__, ##args)
+#define LOG_WRN(format, args...)    pr_warn( PFX "[%s] " format, __func__, ##args)
+#define LOG_ERR(format, args...)    pr_err( PFX "[%s] " format, __func__, ##args)
 #else
 #define LOG_DBG(format, args...) 
 #define LOG_INF(format, args...)
-#define LOG_WRN(format, args...)    pr_warn( PFX "[%s] " format, __FUNCTION__, ##args)
-#define LOG_ERR(format, args...)    pr_err( PFX "[%s] " format, __FUNCTION__, ##args)
+#define LOG_WRN(format, args...)    pr_warn( PFX "[%s] " format, __func__, ##args)
+#define LOG_ERR(format, args...)    pr_err( PFX "[%s] " format, __func__, ##args)
 
 #endif
 static DEFINE_SPINLOCK(imgsensor_drv_lock);

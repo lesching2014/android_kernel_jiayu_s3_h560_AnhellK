@@ -37,7 +37,7 @@
 #include "hi841mipi_Sensor.h"
 
 #define PFX "HI841_camera_sensor"
-#define LOG_INF(format, args...) pr_debug(PFX "[%s] " format, __FUNCTION__, ##args)
+#define LOG_INF(format, args...) pr_debug(PFX "[%s] " format, __func__, ##args)
 
 static DEFINE_SPINLOCK(imgsensor_drv_lock);
 

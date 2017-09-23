@@ -32,9 +32,9 @@
 #include <linux/xlog.h>
 //#define CAM_CALDB printk
 //#define CAM_CALDB(fmt, args...)	printk(PFX"%s %d : "fmt, __func__, __LINE__, ##args)
-#define CAM_CALINF(fmt, arg...)    xlog_printk(ANDROID_LOG_INFO   , PFX, "[%s] " fmt, __FUNCTION__, ##arg)
-#define CAM_CALDB(fmt, arg...)     xlog_printk(ANDROID_LOG_DEBUG  , PFX, "[%s %d] " fmt, __FUNCTION__,__LINE__,  ##arg)
-#define CAM_CALERR(fmt, arg...)    xlog_printk(ANDROID_LOG_ERROR  , PFX, "[%s %d] " fmt, __FUNCTION__,__LINE__, ##arg)
+#define CAM_CALINF(fmt, arg...)    xlog_printk(ANDROID_LOG_INFO   , PFX, "[%s] " fmt, __func__, ##arg)
+#define CAM_CALDB(fmt, arg...)     xlog_printk(ANDROID_LOG_DEBUG  , PFX, "[%s %d] " fmt, __func__,__LINE__,  ##arg)
+#define CAM_CALERR(fmt, arg...)    xlog_printk(ANDROID_LOG_ERROR  , PFX, "[%s %d] " fmt, __func__,__LINE__, ##arg)
 
 #else
 #define CAM_CALDB(x,...)

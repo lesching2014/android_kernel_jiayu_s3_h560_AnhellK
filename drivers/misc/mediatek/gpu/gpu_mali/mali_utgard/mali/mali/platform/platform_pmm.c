@@ -64,7 +64,7 @@ static unsigned long gpu_get_current_utilizationL(void)
 
 void mali_pmm_init(void)
 {
-    MALI_DEBUG_PRINT(1, ("%s\n", __FUNCTION__));
+    MALI_DEBUG_PRINT(1, ("%s\n", __func__));
 
 	_need_univpll = check_need_univpll();
 	
@@ -78,7 +78,7 @@ void mali_pmm_init(void)
 
 void mali_pmm_deinit(void)
 {
-    MALI_DEBUG_PRINT(1, ("%s\n", __FUNCTION__));
+    MALI_DEBUG_PRINT(1, ("%s\n", __func__));
 
     mali_platform_power_mode_change(MALI_POWER_MODE_DEEP_SLEEP);
 }
@@ -88,7 +88,7 @@ void mali_pmm_deinit(void)
 void mali_pmm_utilization_handler(struct mali_gpu_utilization_data *data)
 {
     current_sample_utilization = data->utilization_gpu;
-    MALI_DEBUG_PRINT(4, ("%s GPU utilization=%d\n", __FUNCTION__, current_sample_utilization));
+    MALI_DEBUG_PRINT(4, ("%s GPU utilization=%d\n", __func__, current_sample_utilization));
 }
 
 

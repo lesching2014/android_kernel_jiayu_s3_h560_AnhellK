@@ -602,7 +602,7 @@ static MTK_WCN_BOOL stp_is_tx_res_available(UINT32 length)
 	}
 
 	if (roomLeft < length) {
-        STP_ERR_FUNC("%s: tx queue room shortage\n", __FUNCTION__);
+        STP_ERR_FUNC("%s: tx queue room shortage\n", __func__);
 		return MTK_WCN_BOOL_FALSE;
 	} else {
 		return MTK_WCN_BOOL_TRUE;
@@ -891,7 +891,7 @@ INT32 stp_send_data_no_ps(PUINT8 buffer, UINT32 length, UINT8 type)
 			ret = (INT32) length;
 		} else {
 			/* No winspace to send. Let caller retry */
-            STP_ERR_FUNC("%s: There is no winspace/txqueue to send !!!\n", __FUNCTION__);
+            STP_ERR_FUNC("%s: There is no winspace/txqueue to send !!!\n", __func__);
 			ret = 0;
 		}
 	}

@@ -759,7 +759,7 @@ void spm_dpidle_before_wfi(void)
         extern bool is_already_snap_shot;
 
         if (!is_already_snap_shot)
-            snapshot_golden_setting(__FUNCTION__, 0);
+            snapshot_golden_setting(__func__, 0);
 #endif
 
     //FIXME:

@@ -1539,7 +1539,7 @@ bool Set2ndI2SEnable(bool bEnable)
 
 bool CleanPreDistortion(void)
 {
-	/* printk("%s\n", __FUNCTION__); */
+	/* printk("%s\n", __func__); */
 	Afe_Set_Reg(AFE_ADDA_PREDIS_CON0, 0, MASK_ALL);
 	Afe_Set_Reg(AFE_ADDA_PREDIS_CON1, 0, MASK_ALL);
 
@@ -2007,7 +2007,7 @@ bool SetConnection(uint32 ConnectionState, uint32 Input, uint32 Output)
 
 bool SetIrqEnable(uint32 Irqmode, bool bEnable)
 {
-	/* printk("+%s(), Irqmode = %d, bEnable = %d\n", __FUNCTION__, Irqmode, bEnable); */
+	/* printk("+%s(), Irqmode = %d, bEnable = %d\n", __func__, Irqmode, bEnable); */
 	switch (Irqmode) {
 	case Soc_Aud_IRQ_MCU_MODE_IRQ1_MCU_MODE: {
 		Afe_Set_Reg(AFE_IRQ_MCU_CON, (bEnable << Irqmode), (1 << Irqmode));
@@ -2037,7 +2037,7 @@ bool SetIrqEnable(uint32 Irqmode, bool bEnable)
 		break;
 	}
 
-	/* printk("-%s(), Irqmode = %d, bEnable = %d\n", __FUNCTION__, Irqmode, bEnable); */
+	/* printk("-%s(), Irqmode = %d, bEnable = %d\n", __func__, Irqmode, bEnable); */
 	return true;
 }
 
@@ -2234,7 +2234,7 @@ bool SetMemIfFetchFormatPerSample(uint32 InterfaceType, uint32 eFetchFormat)
 	mAudioMEMIF[InterfaceType]->mFetchFormatPerSample = eFetchFormat;
 	/*
 	   pr_warn("+%s(), InterfaceType = %d, eFetchFormat = %d,
-	   mAudioMEMIF[InterfaceType].mFetchFormatPerSample = %d\n", __FUNCTION__
+	   mAudioMEMIF[InterfaceType].mFetchFormatPerSample = %d\n", __func__
 	   , InterfaceType, eFetchFormat, mAudioMEMIF[InterfaceType]->mFetchFormatPerSample); */
 	switch (InterfaceType) {
 	case Soc_Aud_Digital_Block_MEM_DL1: {
@@ -2308,7 +2308,7 @@ bool SetMemIfFetchFormatPerSample(uint32 InterfaceType, uint32 eFetchFormat)
 
 bool SetoutputConnectionFormat(uint32 ConnectionFormat, uint32 Output)
 {
-	/* pr_warn("+%s(), Data Format = %d, Output = %d\n", __FUNCTION__, ConnectionFormat, Output); */
+	/* pr_warn("+%s(), Data Format = %d, Output = %d\n", __func__, ConnectionFormat, Output); */
 	Afe_Set_Reg(AFE_CONN_24BIT, (ConnectionFormat << Output), (1 << Output));
 
 	return true;

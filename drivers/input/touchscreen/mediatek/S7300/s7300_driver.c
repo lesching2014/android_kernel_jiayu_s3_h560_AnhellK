@@ -692,7 +692,7 @@ static int RMI4_read_PDT(struct i2c_client *client)
 		
 		if(i2c_transfer(client->adapter, msg, 2) < 0)
 		{
-			printk("%s:%d: read RIM4 PDT error!\n",__FUNCTION__,__LINE__);
+			printk("%s:%d: read RIM4 PDT error!\n",__func__,__LINE__);
 			return -1;
 		}
 
@@ -712,7 +712,7 @@ static int RMI4_read_PDT(struct i2c_client *client)
 
 	if((m_PdtF01Common.m_CommandBase != fd_01.commandBase) || (m_PdtF34Flash.m_QueryBase != fd_34.queryBase))
 	{
-		printk("%s:%d: RIM4 PDT has changed!!!\n",__FUNCTION__,__LINE__);
+		printk("%s:%d: RIM4 PDT has changed!!!\n",__func__,__LINE__);
 		
 		ret = tpd_rmi4_read_pdt(ts);
 		if(ret < 0)
@@ -968,21 +968,21 @@ static int synaptics_download(struct i2c_client *client,const unsigned char *pgm
 	ret = RMI4_enable_program(client);
 	if( ret != 0)
 	{
-		printk("%s:%d:RMI enable program error,return...\n",__FUNCTION__,__LINE__);
+		printk("%s:%d:RMI enable program error,return...\n",__func__,__LINE__);
 		goto error;
 	}
 
 	ret = RMI4_check_firmware(client,pgm_data);
 	if( ret != 0)
 	{
-		printk("%s:%d:RMI check firmware error,return...\n",__FUNCTION__,__LINE__);
+		printk("%s:%d:RMI check firmware error,return...\n",__func__,__LINE__);
 		goto error;
 	}
 
 	ret = RMI4_program_firmware(client, pgm_data + 0x100);
 	if( ret != 0)
 	{
-		printk("%s:%d:RMI program firmware error,return...",__FUNCTION__,__LINE__);
+		printk("%s:%d:RMI program firmware error,return...",__func__,__LINE__);
 		goto error;
 	}
 
@@ -991,7 +991,7 @@ static int synaptics_download(struct i2c_client *client,const unsigned char *pgm
 
 error:
 	RMI4_disable_program_hw(client);
-	printk("%s:%d:error,return ....",__FUNCTION__,__LINE__);
+	printk("%s:%d:error,return ....",__func__,__LINE__);
 	return -1;
 
 }
@@ -1013,14 +1013,14 @@ static int i2c_update_firmware(struct i2c_client *client)
 	filp = filp_open(filename, O_RDONLY, S_IRUSR);
 	if (IS_ERR(filp))
 	{
-            printk("%s: file %s filp_open error\n", __FUNCTION__,filename);
+            printk("%s: file %s filp_open error\n", __func__,filename);
             set_fs(oldfs);
             return -1;
 	}
 
 	if (!filp->f_op)
 	{
-            printk("%s: File Operation Method Error\n", __FUNCTION__);
+            printk("%s: File Operation Method Error\n", __func__);
             filp_close(filp, NULL);
             set_fs(oldfs);
             return -1;
@@ -1029,7 +1029,7 @@ static int i2c_update_firmware(struct i2c_client *client)
     inode = filp->f_path.dentry->d_inode;
     if (!inode) 
     {
-        printk("%s: Get inode from filp failed\n", __FUNCTION__);
+        printk("%s: Get inode from filp failed\n", __func__);
         filp_close(filp, NULL);
         set_fs(oldfs);
         return -1;
@@ -1058,7 +1058,7 @@ static int i2c_update_firmware(struct i2c_client *client)
     /* read data */
     if (filp->f_op->read(filp, buf, length, &filp->f_pos) != length)
     {
-        printk("%s: file read error\n", __FUNCTION__);
+        printk("%s: file read error\n", __func__);
         filp_close(filp, NULL);
         set_fs(oldfs);
         vfree(buf);
@@ -1195,7 +1195,7 @@ static int tpd_local_init(void)
 #endif
     input_set_abs_params(tpd->dev, ABS_MT_TRACKING_ID, 0, 9, 0, 0);//for linux3.8
 
-	TPD_DMESG("end %s, %d\n", __FUNCTION__, __LINE__);  
+	TPD_DMESG("end %s, %d\n", __func__, __LINE__);  
 	tpd_type_cap = 1;
     return 0; 
  }

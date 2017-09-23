@@ -8,8 +8,8 @@
 #include "mach/mtk_thermal_monitor.h"
 
 static int i_enable_dbg=0;
-#define PK_DBG_FUNC(fmt, arg...)    if(i_enable_dbg==1) { printk("%s: " fmt, __FUNCTION__ ,##arg); }
-#define PK_ERR(fmt, arg...)         if(i_enable_dbg==1) { printk("%s: " fmt, __FUNCTION__ ,##arg); }
+#define PK_DBG_FUNC(fmt, arg...)    if(i_enable_dbg==1) { printk("%s: " fmt, __func__ ,##arg); }
+#define PK_ERR(fmt, arg...)         if(i_enable_dbg==1) { printk("%s: " fmt, __func__ ,##arg); }
 
 #define TMP_I2C_BUSNUM 6
 

@@ -40,7 +40,7 @@
 /****************************Modify Following Strings for Debug****************************/
 #define PFX "GC2235_camera_sensor"
 #if DEBUG
-    #define LOG_INF(format, args...)    pr_info( PFX "[%s] " format, __FUNCTION__, ##args)
+    #define LOG_INF(format, args...)    pr_info( PFX "[%s] " format, __func__, ##args)
 
     #define LOG_1 LOG_INF("GC2235 RAW,MIPI 2LANE\n")
     #define LOG_2 LOG_INF("preview 1280*960@30fps,864Mbps/lane; video 5M@30fps,864Mbps/lane; capture 5M@30fps,864Mbps/lane; HS HD0@120fps,864Mbps/lane; slim HD@30fps,864Mbps/lane\n")

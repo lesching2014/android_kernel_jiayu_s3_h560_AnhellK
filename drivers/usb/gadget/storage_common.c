@@ -771,7 +771,7 @@ static ssize_t fsg_store_file(struct device *dev, struct device_attribute *attr,
 	 * So when the lun is being a CD-ROM a.k.a. BICR. Dont clean the file path to empty.
 	 */
 	if (curlun->cdrom == 1 && count == 1){
-		printk("[usb]%s:%d is cdrom return directly\n", __FUNCTION__, __LINE__);
+		printk("[usb]%s:%d is cdrom return directly\n", __func__, __LINE__);
 		return count;
 	}
 	

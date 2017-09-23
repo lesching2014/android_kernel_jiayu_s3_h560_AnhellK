@@ -846,7 +846,7 @@ VOID glBusFreeIrq(PVOID pvData, PVOID pvCookie)
 	/* Init */
 	ASSERT(pvData);
 	if (!pvData) {
-		/* DBGLOG(INIT, INFO, ("%s null pvData\n", __FUNCTION__)); */
+		/* DBGLOG(INIT, INFO, ("%s null pvData\n", __func__)); */
 		return;
 	}
 	prNetDevice = (struct net_device *)pvData;
@@ -942,7 +942,7 @@ VOID glBusFreeIrq(PVOID pvData, PVOID pvCookie)
 	/* Init */
 	ASSERT(pvData);
 	if (!pvData) {
-		/* DBGLOG(INIT, ERROR, ("%s null pvData\n", __FUNCTION__)); */
+		/* DBGLOG(INIT, ERROR, ("%s null pvData\n", __func__)); */
 		return;
 	}
 
@@ -950,7 +950,7 @@ VOID glBusFreeIrq(PVOID pvData, PVOID pvCookie)
 	GlueInfo = (GLUE_INFO_T *) pvCookie;
 	ASSERT(GlueInfo);
 	if (!GlueInfo) {
-		/* DBGLOG(INIT, ERROR, ("%s no glue info\n", __FUNCTION__)); */
+		/* DBGLOG(INIT, ERROR, ("%s no glue info\n", __func__)); */
 		return;
 	}
 

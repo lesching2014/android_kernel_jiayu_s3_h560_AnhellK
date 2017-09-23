@@ -15,7 +15,7 @@
 #define PWRAPTAG                "[PWRAP] "
 #ifdef PMIC_WRAP_DEBUG
   #define PWRAPDEB(fmt, arg...)     printk(PWRAPTAG "cpuid=%d," fmt,raw_smp_processor_id(), ##arg)
-  #define PWRAPFUC(fmt, arg...)     printk(PWRAPTAG "cpuid=%d,%s\n", raw_smp_processor_id(), __FUNCTION__)
+  #define PWRAPFUC(fmt, arg...)     printk(PWRAPTAG "cpuid=%d,%s\n", raw_smp_processor_id(), __func__)
 #endif
 #define PWRAPLOG(fmt, arg...)   printk(PWRAPTAG fmt,##arg)
 #define PWRAPERR(fmt, arg...)   printk(KERN_ERR PWRAPTAG "ERROR,line=%d " fmt, __LINE__, ##arg)

@@ -58,7 +58,7 @@ static ssize_t lenovo_tpd_suspend_store(struct kobject *kobj, struct kobj_attrib
 	int res = sscanf(buf, "%d", &mode);
 	if (res != 1)
 	{
-		printk("%s: [wj]expect 1 numbers\n", __FUNCTION__);
+		printk("%s: [wj]expect 1 numbers\n", __func__);
 	}
 	else
 	{

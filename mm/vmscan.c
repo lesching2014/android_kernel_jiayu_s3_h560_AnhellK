@@ -4000,7 +4000,7 @@ int mtkpasr_isolate_page(struct page *page)
 	/* Lock this zone - USE trylock version! */
 	if (!spin_trylock_irqsave(&zone->lru_lock, flags)) {
 		printk(KERN_ALERT"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-		printk(KERN_ALERT"[%s][%d] Failed to lock this zone!\n",__FUNCTION__,__LINE__);
+		printk(KERN_ALERT"[%s][%d] Failed to lock this zone!\n",__func__,__LINE__);
 		printk(KERN_ALERT"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 		return -EAGAIN;
 	}
@@ -4104,7 +4104,7 @@ int mtkpasr_drop_page(struct page *page)
 		/* We don't handle dirty file pages! */
 		if (PageDirty(page)) {
 #ifdef CONFIG_MTKPASR_DEBUG 
-			printk(KERN_ALERT "\n\n\n\n\n\n [%s][%d]\n\n\n\n\n\n",__FUNCTION__,__LINE__);
+			printk(KERN_ALERT "\n\n\n\n\n\n [%s][%d]\n\n\n\n\n\n",__func__,__LINE__);
 #endif
 			goto unlock;
 		}
@@ -4170,7 +4170,7 @@ int mtkpasr_drop_page(struct page *page)
 			break;
 		default:
 #ifdef CONFIG_MTKPASR_DEBUG 
-			/*printk(KERN_ALERT "\n\n\n\n\n\n [%s][%d]\n\n\n\n\n\n",__FUNCTION__,__LINE__);*/
+			/*printk(KERN_ALERT "\n\n\n\n\n\n [%s][%d]\n\n\n\n\n\n",__func__,__LINE__);*/
 #endif
 			goto restore_unmap;
 		}
@@ -4187,7 +4187,7 @@ int mtkpasr_drop_page(struct page *page)
 				goto freeit;
 			} else {
 				/* Race! TOCHECK */
-				printk(KERN_ALERT "\n\n\n\n\n\n [%s][%d] RACE!!\n\n\n\n\n\n",__FUNCTION__,__LINE__);
+				printk(KERN_ALERT "\n\n\n\n\n\n [%s][%d] RACE!!\n\n\n\n\n\n",__func__,__LINE__);
 				goto notask;
 			}
 		}

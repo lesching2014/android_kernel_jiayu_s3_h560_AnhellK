@@ -258,7 +258,7 @@ static void stp_uart_tty_close(struct tty_struct *tty)
  */
 static void stp_uart_tty_wakeup(struct tty_struct *tty)
 {
-	/* pr_warn("%s: start !!\n", __FUNCTION__); */
+	/* pr_warn("%s: start !!\n", __func__); */
 
 	/* clear_bit(TTY_DO_WRITE_WAKEUP, &tty->flags); */
 
@@ -675,7 +675,7 @@ static int stp_uart_tty_ioctl(struct tty_struct *tty, struct file *file,
 {
 	INT32 err = 0;
 
-    UART_DBG_FUNC("%s =>\n", __FUNCTION__);
+    UART_DBG_FUNC("%s =>\n", __func__);
 
 	switch (cmd) {
 	case HCIUARTSETPROTO:
@@ -692,7 +692,7 @@ static int stp_uart_tty_ioctl(struct tty_struct *tty, struct file *file,
 		err = n_tty_ioctl_helper(tty, file, cmd, arg);
 		break;
 	};
-    UART_DBG_FUNC("%s <=\n", __FUNCTION__);
+    UART_DBG_FUNC("%s <=\n", __func__);
 
 	return err;
 }

@@ -93,7 +93,7 @@ static int vibr_level_control_init(void)
 
 	if (!vibr_level_control_kobj) {
 		pr_err("%s Interface create failed!\n",
-			__FUNCTION__);
+			__func__);
 		return -ENOMEM;
         }
 
@@ -101,7 +101,7 @@ static int vibr_level_control_init(void)
 			&vibr_level_control_attr_group);
 
 	if (sysfs_result) {
-		pr_info("%s sysfs create failed!\n", __FUNCTION__);
+		pr_info("%s sysfs create failed!\n", __func__);
 		kobject_put(vibr_level_control_kobj);
 	}
 	return sysfs_result;

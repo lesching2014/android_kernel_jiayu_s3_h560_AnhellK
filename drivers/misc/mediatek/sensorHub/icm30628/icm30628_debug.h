@@ -22,13 +22,13 @@
 #define INV_TAG "[Invensense]:"
 
 #ifdef INVENSENSE_DEBUG_FUNCTION_NAME
-#define INV_DBG_FUNC_NAME printk(INV_TAG"%s\n", __FUNCTION__);
+#define INV_DBG_FUNC_NAME printk(INV_TAG"%s\n", __func__);
 #else
 #define INV_DBG_FUNC_NAME
 #endif
 
 #ifdef CONFIG_INVENSENSE_DEBUG_DETAIL
-#define INV_DBG_FUNC_NAME_DETAIL printk(INV_TAG"%s\n", __FUNCTION__);
+#define INV_DBG_FUNC_NAME_DETAIL printk(INV_TAG"%s\n", __func__);
 #else
 #define INV_DBG_FUNC_NAME_DETAIL
 #endif
@@ -50,7 +50,7 @@
 #endif
 
 #ifdef INVENSENSE_DEBUG_ERROR
-#define INV_ERR printk(INV_TAG"error ret = %d, %s, %d\n", ret, __FUNCTION__, __LINE__);
+#define INV_ERR printk(INV_TAG"error ret = %d, %s, %d\n", ret, __func__, __LINE__);
 #define INV_PRINT_ERR(format, args...)  printk(INV_TAG"error, " format, ##args)
 #else
 #define INV_ERR

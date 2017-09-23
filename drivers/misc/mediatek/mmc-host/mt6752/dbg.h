@@ -154,20 +154,20 @@ extern unsigned int sd_debug_zone[HOST_MAX_NUM];
 do { \
 	if ((DBG_EVT_##evt) & sd_debug_zone[host->id]) { \
 		pr_err(TAG"%d -> "fmt" <- %s() : L<%d> PID<%s><0x%x>\n", \
-			host->id,  ##args , __FUNCTION__, __LINE__, current->comm, current->pid); \
+			host->id,  ##args , __func__, __LINE__, current->comm, current->pid); \
 	} \
 } while(0)
 
 #define ERR_MSG(fmt, args...) \
 do { \
 	pr_err(TAG"%d -> "fmt" <- %s() : L<%d> PID<%s><0x%x>\n", \
-		host->id,  ##args , __FUNCTION__, __LINE__, current->comm, current->pid); \
+		host->id,  ##args , __func__, __LINE__, current->comm, current->pid); \
 } while(0);
 
 #define INIT_MSG(fmt, args...) \
 do { \
 	pr_err(TAG"%d -> "fmt" <- %s() : L<%d> PID<%s><0x%x>\n", \
-		host->id,  ##args , __FUNCTION__, __LINE__, current->comm, current->pid); \
+		host->id,  ##args , __func__, __LINE__, current->comm, current->pid); \
 } while(0);
 
 #if 0
@@ -175,7 +175,7 @@ do { \
 #define IRQ_MSG(fmt, args...) \
 do { \
 	pr_err(TAG"%d -> "fmt" <- %s() : L<%d>\n", \
-		host->id,  ##args , __FUNCTION__, __LINE__); \
+		host->id,  ##args , __func__, __LINE__); \
 } while(0);
 #else
 #define IRQ_MSG(fmt, args...) \

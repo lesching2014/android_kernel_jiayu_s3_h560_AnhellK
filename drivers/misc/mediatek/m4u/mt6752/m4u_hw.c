@@ -1044,7 +1044,7 @@ static int larb_clock_on(int larb)
         break;
 
         default:
-            M4UMSG("error: unknown larb id  %d, %s\n", larb, __FUNCTION__); 
+            M4UMSG("error: unknown larb id  %d, %s\n", larb, __func__); 
         break;
     }
 
@@ -1075,7 +1075,7 @@ static int larb_clock_off(int larb)
         break;
 
         default:
-            M4UMSG("error: unknown larb id  %d, %s\n", larb, __FUNCTION__); 
+            M4UMSG("error: unknown larb id  %d, %s\n", larb, __func__); 
         break;
     }
     return 0;
@@ -1739,7 +1739,7 @@ static void larb_backup(unsigned int larb_idx)
 
     if(larb_idx != 0)
     {
-        M4UMSG("error: %s larb_idx = %d\n", __FUNCTION__, larb_idx);
+        M4UMSG("error: %s larb_idx = %d\n", __func__, larb_idx);
         return;
     }
 
@@ -1768,7 +1768,7 @@ static void larb_restore(unsigned int larb_idx)
 
     if(larb_idx != 0)
     {
-        M4UMSG("error: %s larb_idx = %d\n", __FUNCTION__, larb_idx);
+        M4UMSG("error: %s larb_idx = %d\n", __func__, larb_idx);
         return;
     }
 
@@ -1910,7 +1910,7 @@ int m4u_register_reclaim_callback(int port, m4u_reclaim_mva_callback_t *fn, void
 {
     if(port > M4U_PORT_UNKNOWN)
     {
-        M4UMSG("%s fail, port=%d\n", __FUNCTION__, port);
+        M4UMSG("%s fail, port=%d\n", __func__, port);
         return -1;
     }
     gM4uPort[port].reclaim_fn= fn;
@@ -1921,7 +1921,7 @@ int m4u_unregister_reclaim_callback(int port)
 {
     if(port > M4U_PORT_UNKNOWN)
     {
-        M4UMSG("%s fail, port=%d\n", __FUNCTION__, port);
+        M4UMSG("%s fail, port=%d\n", __func__, port);
         return -1;
     }
     gM4uPort[port].reclaim_fn= NULL;
@@ -1944,7 +1944,7 @@ int m4u_register_fault_callback(int port, m4u_fault_callback_t *fn, void* data)
 {
     if(port > M4U_PORT_UNKNOWN)
     {
-        M4UMSG("%s fail, port=%d\n", __FUNCTION__, port);
+        M4UMSG("%s fail, port=%d\n", __func__, port);
         return -1;
     }
     gM4uPort[port].fault_fn= fn;
@@ -1955,7 +1955,7 @@ int m4u_unregister_fault_callback(int port)
 {
     if(port > M4U_PORT_UNKNOWN)
     {
-        M4UMSG("%s fail, port=%d\n", __FUNCTION__, port);
+        M4UMSG("%s fail, port=%d\n", __func__, port);
         return -1;
     }
     gM4uPort[port].fault_fn= NULL;

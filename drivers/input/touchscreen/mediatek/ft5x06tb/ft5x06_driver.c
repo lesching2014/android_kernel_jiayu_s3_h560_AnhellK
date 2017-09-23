@@ -32,13 +32,13 @@
 #include "ft5x06_ex_fun.h"
 #endif
 
-#define TPD_INFO(fmt, arg...)  printk("[tpd info:5x06]" "[%s]" fmt "\r\n", __FUNCTION__ ,##arg)
+#define TPD_INFO(fmt, arg...)  printk("[tpd info:5x06]" "[%s]" fmt "\r\n", __func__ ,##arg)
 //#define TP_DEBUG
 #undef TPD_DEBUG
 #undef TPD_DMESG
 #if defined(TP_DEBUG)
-#define TPD_DEBUG(fmt, arg...)  printk("[tpd debug:5x06]" "[%s]" fmt "\r\n", __FUNCTION__ ,##arg)
-#define TPD_DMESG(fmt, arg...)  printk("[tpd dmesg:5x06]" "[%s]" fmt "\r\n", __FUNCTION__ ,##arg)
+#define TPD_DEBUG(fmt, arg...)  printk("[tpd debug:5x06]" "[%s]" fmt "\r\n", __func__ ,##arg)
+#define TPD_DMESG(fmt, arg...)  printk("[tpd dmesg:5x06]" "[%s]" fmt "\r\n", __func__ ,##arg)
 #else
 #define TPD_DEBUG(fmt, arg...)
 #define TPD_DMESG(fmt, arg...)
@@ -1420,7 +1420,7 @@ static int tpd_local_init(void)
 
 	input_set_abs_params(tpd->dev, ABS_MT_TRACKING_ID, 0, FINGER_NUM_MAX-1, 0, 0);//for linux3.8
 
-	TPD_DMESG("end %s, %d\n", __FUNCTION__, __LINE__);  
+	TPD_DMESG("end %s, %d\n", __func__, __LINE__);  
 	tpd_type_cap = 1;
 
 	return 0; 

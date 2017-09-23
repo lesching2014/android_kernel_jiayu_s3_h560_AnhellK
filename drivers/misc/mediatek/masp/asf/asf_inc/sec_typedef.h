@@ -39,7 +39,7 @@ do {    \
 #define MSG(evt, fmt, args...)  do{}while(0)
 #endif
 
-#define MSG_FUNC(mod) MSG(FUNC, "[%s] %s\n", mod, __FUNCTION__)
+#define MSG_FUNC(mod) MSG(FUNC, "[%s] %s\n", mod, __func__)
 
 /******************************************************************************
  *  EXPORT FUNCTION

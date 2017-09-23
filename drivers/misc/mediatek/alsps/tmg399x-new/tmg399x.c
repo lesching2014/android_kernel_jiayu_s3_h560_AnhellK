@@ -50,8 +50,8 @@
 
 
 #define APS_TAG                  "[ALS/PS] "
-#define APS_FUN(f)               printk(KERN_ERR APS_TAG"%s\n", __FUNCTION__)
-#define APS_ERR(fmt, args...)    printk(KERN_ERR  APS_TAG"%s %d : "fmt, __FUNCTION__, __LINE__, ##args)
+#define APS_FUN(f)               printk(KERN_ERR APS_TAG"%s\n", __func__)
+#define APS_ERR(fmt, args...)    printk(KERN_ERR  APS_TAG"%s %d : "fmt, __func__, __LINE__, ##args)
 #define APS_LOG(fmt, args...)    printk(KERN_ERR APS_TAG fmt, ##args)
 #define APS_DBG(fmt, args...)    printk(KERN_ERR APS_TAG fmt, ##args)
 extern int hwmsen_get_interrupt_data(int sensor, hwm_sensor_data *data);

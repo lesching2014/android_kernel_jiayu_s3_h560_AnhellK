@@ -84,10 +84,10 @@ typedef bool                    MBOOL;
     #define MFALSE              0
 #endif
 /* ---------------------------------------------------------------------------- */
-/* #define LOG_MSG(fmt, arg...)    printk(KERN_ERR "[ISP][%s]" fmt,__FUNCTION__, ##arg) */
+/* #define LOG_MSG(fmt, arg...)    printk(KERN_ERR "[ISP][%s]" fmt,__func__, ##arg) */
 #define MyTag "[ISP]"
 #define IRQTag "KEEPER"
-/* #define LOG_ERR(fmt, arg...)    printk(KERN_ERR   "[ISP][%s]Err(%5d):" fmt, __FUNCTION__,__LINE__, ##arg) */
+/* #define LOG_ERR(fmt, arg...)    printk(KERN_ERR   "[ISP][%s]Err(%5d):" fmt, __func__,__LINE__, ##arg) */
 
 #define	LOG_VRB(format,	args...)    pr_debug(MyTag format, ##args)
 

@@ -727,7 +727,7 @@ static void IMX178MIPI_SetDummy(const kal_uint16 iPixels, const kal_uint16 iLine
     }
 	else
 	{
-	 SENSORDB("[IMX178MIPI]%s(),sensor mode error",__FUNCTION__);
+	 SENSORDB("[IMX178MIPI]%s(),sensor mode error",__func__);
 	}
       IMX178MIPI_write_cmos_sensor(0x0104, 1);        	  
       IMX178MIPI_write_cmos_sensor(0x0340, (frame_length >>8) & 0xFF);
@@ -1266,7 +1266,7 @@ UINT32 IMX178MIPIGetSensorID(UINT32 *sensorID)
 void IMX178MIPI_SetShutter(kal_uint16 iShutter)
 {
 
-	SENSORDB("[IMX178MIPI]%s():shutter=%d\n",__FUNCTION__,iShutter);
+	SENSORDB("[IMX178MIPI]%s():shutter=%d\n",__func__,iShutter);
    
    SENSORDB("shutter&gain test by hhl: set shutter IMX178MIPI_SetShutter\n"); 
     if (iShutter < 1)
@@ -1721,7 +1721,7 @@ UINT32 IMX178MIPISetVideoMode(UINT16 u2FrameRate)
 {
          SENSORDB("[IMX178MIPISetVideoMode] frame rate = %d\n", u2FrameRate);
 		kal_uint16 IMX178MIPI_Video_Max_Expourse_Time = 0;
-		SENSORDB("[IMX178MIPI]%s():fix_frame_rate=%d\n",__FUNCTION__,u2FrameRate);
+		SENSORDB("[IMX178MIPI]%s():fix_frame_rate=%d\n",__func__,u2FrameRate);
 
 		spin_lock(&imx178_drv_lock);
 		IMX178MIPI_sensor.fix_video_fps = KAL_TRUE;
@@ -1737,7 +1737,7 @@ UINT32 IMX178MIPISetVideoMode(UINT16 u2FrameRate)
 				IMX178MIPI_sensor.video_frame_length = IMX178MIPI_Video_Max_Expourse_Time;
 				IMX178MIPI_sensor.video_dummy_lines = IMX178MIPI_sensor.video_frame_length-IMX178MIPI_VIDEO_FRAME_LENGTH_LINES;
 				spin_unlock(&imx178_drv_lock);
-				SENSORDB("[IMX178MIPI]%s():frame_length=%d,dummy_lines=%d\n",__FUNCTION__,IMX178MIPI_sensor.video_frame_length,IMX178MIPI_sensor.video_dummy_lines);
+				SENSORDB("[IMX178MIPI]%s():frame_length=%d,dummy_lines=%d\n",__func__,IMX178MIPI_sensor.video_frame_length,IMX178MIPI_sensor.video_dummy_lines);
 				IMX178MIPI_SetDummy(IMX178MIPI_sensor.video_dummy_pixels,IMX178MIPI_sensor.video_dummy_lines);
 			}
 	spin_lock(&imx178_drv_lock);    
