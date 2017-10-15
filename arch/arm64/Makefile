@@ -38,10 +38,10 @@ TEXT_OFFSET := 0x00080000
 export	TEXT_OFFSET GZFLAGS
 
 core-y		+= arch/arm64/kernel/ arch/arm64/mm/
-#hotplugs
-core-y += arch/arm64/hotplug/
 core-$(CONFIG_CRYPTO) += arch/arm64/crypto/
 
+#hotplugs
+core-y += arch/arm64/hotplug/
 
 libs-y		:= arch/arm64/lib/ $(libs-y)
 libs-y		+= $(LIBGCC)
