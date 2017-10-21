@@ -942,6 +942,7 @@ const UINT_32 mtk_cipher_suites[5] = {
 
 #if defined(CONFIG_MTK_COMBO_AOSP_TETHERING_SUPPORT)
 #define NIC_INF_NAME_IN_AP_MODE  "legacy%d"
+extern volatile int wlan_if_changed;
 #endif
 
 #if CFG_SUPPORT_SNIFFER
