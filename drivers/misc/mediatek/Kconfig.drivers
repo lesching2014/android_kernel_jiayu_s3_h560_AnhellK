@@ -57,11 +57,6 @@ config MTK_LDVT_PMIC_WRAP
 
 endif
 
-# Accdet
-config MTK_ACCDET
-	bool "MediaTek Accessory Detection Support"
-	default n
-
 config CUSTOM_KERNEL_CHARGEPUMP
 	bool "backlight driver"
 	default n
