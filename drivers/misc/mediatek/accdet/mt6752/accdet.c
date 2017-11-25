@@ -534,6 +534,10 @@ static irqreturn_t accdet_eint_func(int irq,void *data)
 		cur_eint_state = EINT_PIN_PLUG_IN;
 
 		//INIT the timer to disable micbias.
+/* Vanzo:yangzhihong on: Fri, 19 Jun 2015 15:25:57 +0800
+ */
+        del_timer(&micbias_timer);
+// End of Vanzo:yangzhihong
 					
 		init_timer(&micbias_timer);
 		micbias_timer.expires = jiffies + MICBIAS_DISABLE_TIMER;
@@ -599,7 +603,10 @@ static void accdet_eint_func(void)
 		cur_eint_state = EINT_PIN_PLUG_IN;
 
 		//INIT the timer to disable micbias.
-					
+/* Vanzo:yangzhihong on: Fri, 19 Jun 2015 15:25:57 +0800
+ */
+        Del_timer((&micbias_timer);
+// End of Vanzo:yangzhihong
 		init_timer(&micbias_timer);
 		micbias_timer.expires = jiffies + MICBIAS_DISABLE_TIMER;
 		micbias_timer.function = &disable_micbias;
@@ -677,7 +684,7 @@ static DEFINE_MUTEX(accdet_multikey_mutex);
 */
 
 #define DW_KEY_HIGH_THR	 (500) //0.50v=500000uv
-#define DW_KEY_THR		 (180) //0.22v=220000uv
+#define DW_KEY_THR		 (220) //0.22v=220000uv
 #define UP_KEY_THR       (80) //0.08v=80000uv
 #define MD_KEY_THR		 (0)
 
