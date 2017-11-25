@@ -192,6 +192,7 @@ ifeq ($(CONFIG_CUSTOM_KERNEL_FLASHLIGHT),"dummy_flashlight")
 #obj-y	+= flashlight/dummy_flashlight/
 endif
 
+obj-y	+= accdet/
 obj-$(CONFIG_MTK_KEYPAD)	+= keypad/
 obj-$(CONFIG_MTK_SYSENV)	+= sysenv/
 #lenovo-sw,lily8,2015-01-05,piezo for aio 5m
