@@ -1,5 +1,0 @@
-config ALUCARD_HOTPLUG
-        bool "Enable plugging down/up of cores as per demand"
-        default n
-        help
-            This driver hotplugs cpu cores
