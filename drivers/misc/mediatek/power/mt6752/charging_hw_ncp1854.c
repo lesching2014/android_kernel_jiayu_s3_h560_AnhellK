@@ -60,11 +60,7 @@
 #include <cust_gpio_usage.h>
 #endif
 #endif
-/*Begin, lenovo-sw mahj2 add 45-50  CV limit fuction,  20150318 */
-#ifdef LENOVO_TEMP_POS_45_TO_POS_50_CV_LiMIT_SUPPORT
-extern kal_bool lenovo_battery_is_temp_45_to_pos_50();
-#endif
-/*End, lenovo-sw mahj2 add 45-50  CV limit fuction,  20150318 */
+
  // ============================================================ //
  //define
  // ============================================================ //
@@ -252,7 +248,7 @@ static kal_uint32 mt_get_board_type(void)
 		 board_type = MT_BOARD_PHONE;
 	 }
 	 spin_unlock(&mt_board_lock);
-	 battery_xlog_printk(BAT_LOG_CRTI, "[Kernel] Board type is %s\n", (board_type == MT_BOARD_EVB) ? "EVB" : "PHONE");
+	 battery_log(BAT_LOG_CRTI, "[Kernel] Board type is %s\n", (board_type == MT_BOARD_EVB) ? "EVB" : "PHONE");
 	 return board_type;
 #else
 	 return MT_BOARD_EVB;
@@ -268,7 +264,7 @@ static kal_uint32 mt_get_board_type(void)
 	}
 	else
 	{
-		battery_xlog_printk(BAT_LOG_CRTI, "Can't find the parameter \r\n");	
+		battery_log(BAT_LOG_CRTI, "Can't find the parameter \r\n");
 		return parameter[0];
 	}
 }
@@ -278,7 +274,7 @@ static kal_uint32 mt_get_board_type(void)
 {
 	kal_uint32 i;
 
-    battery_xlog_printk(BAT_LOG_CRTI, "array_size = %d \r\n", array_size);
+	battery_log(BAT_LOG_CRTI, "array_size = %d \r\n", array_size);
     
 	for(i=0;i<array_size;i++)
 	{
@@ -288,7 +284,7 @@ static kal_uint32 mt_get_board_type(void)
 		}
 	}
 
-    battery_xlog_printk(BAT_LOG_CRTI, "NO register value match. val=%d\r\n", val);
+	battery_log(BAT_LOG_CRTI, "NO register value match. val=%d\r\n", val);
 	//TODO: ASSERT(0);	// not find the value
 	return 0;
 }
@@ -314,7 +310,7 @@ static kal_uint32 mt_get_board_type(void)
 			 }	  
 		 }
 
- 		 battery_xlog_printk(BAT_LOG_CRTI, "Can't find closest level, small value first \r\n");
+		battery_log(BAT_LOG_CRTI, "Can't find closest level, small value first \r\n");
 		 return pList[0];
 		 //return CHARGE_CURRENT_0_00_MA;
 	 }
@@ -328,7 +324,7 @@ static kal_uint32 mt_get_board_type(void)
 			 }	  
 		 }
 
-		 battery_xlog_printk(BAT_LOG_CRTI, "Can't find closest level, large value first \r\n"); 	 
+		battery_log(BAT_LOG_CRTI, "Can't find closest level, large value first \r\n");
 		 return pList[number -1];
   		 //return CHARGE_CURRENT_0_00_MA;
 	 }
@@ -344,7 +340,7 @@ static void hw_bc11_dump_register(void)
 	for(i=reg_num ; i<=CHR_CON19 ; i+=2)
 	{
 		reg_val = upmu_get_reg_value(i);
-		battery_xlog_printk(BAT_LOG_FULL, "Chr Reg[0x%x]=0x%x \r\n", i, reg_val);
+		battery_log(BAT_LOG_CRTI, "Chr Reg[0x%x]=0x%x \r\n", i, reg_val);
 	}
 }
 
@@ -375,7 +371,7 @@ static void hw_bc11_dump_register(void)
 
 	 if(Enable_BATDRV_LOG == BAT_LOG_FULL)
 	 {
-    		battery_xlog_printk(BAT_LOG_FULL, "hw_bc11_init() \r\n");
+		battery_log(BAT_LOG_CRTI, "hw_bc11_init() \r\n");
 		hw_bc11_dump_register();
 	 }	
 	 
@@ -402,7 +398,7 @@ static void hw_bc11_dump_register(void)
 	 
 	 if(Enable_BATDRV_LOG == BAT_LOG_FULL)
 	 {
-		battery_xlog_printk(BAT_LOG_FULL, "hw_bc11_DCD() \r\n");
+		battery_log(BAT_LOG_CRTI, "hw_bc11_DCD() \r\n");
 		hw_bc11_dump_register();
 	 }
 	 
@@ -437,7 +433,7 @@ static void hw_bc11_dump_register(void)
  
 	if(Enable_BATDRV_LOG == BAT_LOG_FULL)
 	{
-		battery_xlog_printk(BAT_LOG_FULL, "hw_bc11_stepA1() \r\n");
+		battery_log(BAT_LOG_CRTI, "hw_bc11_stepA1() \r\n");
 		hw_bc11_dump_register();
 	}
  
@@ -470,7 +466,7 @@ static void hw_bc11_dump_register(void)
  
 	if(Enable_BATDRV_LOG == BAT_LOG_FULL)
 	{
-		battery_xlog_printk(BAT_LOG_FULL, "hw_bc11_stepB1() \r\n");
+		battery_log(BAT_LOG_CRTI, "hw_bc11_stepB1() \r\n");
 		hw_bc11_dump_register();
 	}
  
@@ -503,7 +499,7 @@ static void hw_bc11_dump_register(void)
  
 	if(Enable_BATDRV_LOG == BAT_LOG_FULL)
 	{
-		battery_xlog_printk(BAT_LOG_FULL, "hw_bc11_stepC1() \r\n");
+		battery_log(BAT_LOG_CRTI, "hw_bc11_stepC1() \r\n");
 		hw_bc11_dump_register();
 	}
  
@@ -538,7 +534,7 @@ static void hw_bc11_dump_register(void)
  
 	if(Enable_BATDRV_LOG == BAT_LOG_FULL)
 	{
-		battery_xlog_printk(BAT_LOG_FULL, "hw_bc11_stepA2() \r\n");
+		battery_log(BAT_LOG_CRTI, "hw_bc11_stepA2() \r\n");
 		hw_bc11_dump_register();
 	}
  
@@ -571,7 +567,7 @@ static void hw_bc11_dump_register(void)
  
 	if(Enable_BATDRV_LOG == BAT_LOG_FULL)
 	{
-		battery_xlog_printk(BAT_LOG_FULL, "hw_bc11_stepB2() \r\n");
+		battery_log(BAT_LOG_CRTI, "hw_bc11_stepB2() \r\n");
 		hw_bc11_dump_register();
 	}
  
@@ -605,57 +601,12 @@ static void hw_bc11_dump_register(void)
 
 	if(Enable_BATDRV_LOG == BAT_LOG_FULL)
 	{
-		battery_xlog_printk(BAT_LOG_FULL, "hw_bc11_done() \r\n");
+		battery_log(BAT_LOG_CRTI, "hw_bc11_done() \r\n");
 		hw_bc11_dump_register();
 	}
     
  }
 #endif
-
-/*lenovo-sw weiweij added for charging terminate as 0.1c*/
-#ifdef LENOVO_CHARGING_TERM
-
-int lenovo_charging_stage = 1;
-int lenovo_charging_charger_type;
-
-static kal_uint32 charging_hw_init(void *data);
-
-void lenovo_charging_term_set_stage(int stage)
-{
-	lenovo_charging_stage = stage;
-}
-
-void lenovo_charging_term_set_stage_2(void)
-{
-	if(lenovo_charging_stage==1)
-	{
-		printk("[LENOVO_CHARGING_TERM] charging full in stage 1. Set as 128\n");
-		lenovo_charging_term_set_stage( 2);
-		ncp1854_set_ieoc(LENOVO_CHARGING_TERM_CUR_STAGE_2);
-	}
-}
- 
-void lenovo_charging_term_reset_to_stage_2(void)
-{
-	int en = KAL_TRUE;
-
-	lenovo_charging_term_set_stage_2();
-	
-	ncp1854_set_chg_en(0x0); 
-	msleep(10);
-	charging_hw_init(&en);
-	ncp1854_set_chg_en(0x1); 
-}
-
-void lenovo_charging_term_set_iterm(void)
-{
-	if(lenovo_charging_stage==1)
-		ncp1854_set_ieoc(LENOVO_CHARGING_TERM_CUR_STAGE_1);//lenovo_charging_set_iterm(CHARGE_CURRENT_200_00_MA);
-	else
-		ncp1854_set_ieoc(LENOVO_CHARGING_TERM_CUR_STAGE_2);//lenovo_charging_set_iterm(CHARGE_CURRENT_150_00_MA);
-}
-#endif
-/*lenovo-sw weiweij added for charging terminate as 0.1c end*/
 
  static kal_uint32 is_chr_det(void)
  {
@@ -663,7 +614,7 @@ void lenovo_charging_term_set_iterm(void)
    
 	 val = mt6325_upmu_get_rgs_chrdet();
  
-	 battery_xlog_printk(BAT_LOG_CRTI,"[is_chr_det] %d\n", val);
+	 battery_log(BAT_LOG_CRTI, "[is_chr_det] %d\n", val);
 	 
 	 return val;
  }
@@ -676,7 +627,7 @@ void lenovo_charging_term_set_iterm(void)
  	kal_uint32 status = STATUS_OK;
 
     if (Enable_BATDRV_LOG == 1) {
-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[BATTERY:ncp1854] ChargerHwInit_ncp1854\n" );
+		battery_log(BAT_LOG_CRTI, "Power/Battery" "[BATTERY:ncp1854] ChargerHwInit_ncp1854\n");
     }
 
     ncp1854_status = ncp1854_get_chip_status();
@@ -697,13 +648,6 @@ void lenovo_charging_term_set_iterm(void)
    ncp1854_set_chgto_dis(0x1); //disable charge timer
     if((ncp1854_status == 0x8) || (ncp1854_status == 0x9) || (ncp1854_status == 0xA)) //WEAK WAIT, WEAK SAFE, WEAK CHARGE
         ncp1854_set_ctrl_vbat(0x1C); //VCHG = 4.0V
-
-/*Begin, lenovo-sw mahj2 add 45-50  CV limit fuction,  20150318 */
-#ifdef LENOVO_TEMP_POS_45_TO_POS_50_CV_LiMIT_SUPPORT
-      if(lenovo_battery_is_temp_45_to_pos_50()) 
-           ncp1854_set_ctrl_vbat(0x20);  //4.1v
-#endif
- /*End, lenovo-sw mahj2 add 45-50  CV limit fuction,  20150318 */
 
    	//if(run_hw_init_once_flag)
 	//{
@@ -731,12 +675,6 @@ void lenovo_charging_term_set_iterm(void)
     mt_set_gpio_dir(vin_sel_gpio_number,0); // 0: input, 1: output
 #endif
 
-/*lenovo-sw weiweij added for charging terminate as 0.1c*/
-#ifdef LENOVO_CHARGING_TERM
-	lenovo_charging_term_set_iterm();
-#endif
-/*lenovo-sw weiweij added for charging terminate as 0.1c end*/ 
-
 	return status;
 }
 
@@ -744,7 +682,7 @@ void lenovo_charging_term_set_iterm(void)
  {
  	kal_uint32 status = STATUS_OK;
 
-    battery_xlog_printk(BAT_LOG_CRTI, "charging_dump_register\r\n");
+	battery_log(BAT_LOG_CRTI, "charging_dump_register\r\n");
 
     ncp1854_dump_register();
    	
@@ -804,7 +742,7 @@ void lenovo_charging_term_set_iterm(void)
     if(mt6325_upmu_get_swcid() == PMIC6325_E1_CID_CODE)
     {
         ncp1854_set_ctrl_vbat(0x14); //3.8v
-        battery_xlog_printk(BAT_LOG_CRTI,"[charging_set_cv_voltage] set low CV by 6325 E1\n");
+		battery_log(BAT_LOG_CRTI, "[charging_set_cv_voltage] set low CV by 6325 E1\n");
     }
     else
     {
@@ -813,7 +751,7 @@ void lenovo_charging_term_set_iterm(void)
             if(mt6311_get_chip_id()==PMIC6311_E1_CID_CODE)
             {
                 ncp1854_set_ctrl_vbat(0x14); //3.8v
-                battery_xlog_printk(BAT_LOG_CRTI,"[charging_set_cv_voltage] set low CV by 6311 E1\n");
+				battery_log(BAT_LOG_CRTI, "[charging_set_cv_voltage] set low CV by 6311 E1\n");
             }
             else
             {
@@ -905,10 +843,6 @@ void lenovo_charging_term_set_iterm(void)
 	    array_size = GETARRAYNUM(INPUT_CS_VTH_TA);
 	    set_chr_current = bmt_find_closest_level(INPUT_CS_VTH_TA, array_size, current_value);
 	    register_value = charging_parameter_to_value(INPUT_CS_VTH_TA, array_size ,set_chr_current);	
-	    //lenovo-sw mahj2 modify for register begin from 0x0001 at 20150106 Begin
-	    ncp1854_set_iinlim(0x0);
-	    register_value += 1;
-	    //lenovo-sw mahj2 modify for register begin from 0x0001 at 20150106 End
 	    ncp1854_set_iinlim_ta(register_value);
 	}
         
@@ -955,7 +889,7 @@ void kick_charger_wdt(void)
  {
 	 kal_uint32 status = STATUS_OK;
  
-     battery_xlog_printk(BAT_LOG_CRTI, "charging_reset_watch_dog_timer\r\n");
+	battery_log(BAT_LOG_CRTI, "charging_reset_watch_dog_timer\r\n");
  
 	 kick_charger_wdt();
 	 return status;
@@ -986,7 +920,7 @@ void kick_charger_wdt(void)
 	  
 #if defined(CONFIG_POWER_EXT) || defined(CONFIG_MTK_FPGA)
 		  *(kal_bool*)(data) = 0;
-		  battery_xlog_printk(BAT_LOG_CRTI,"[charging_get_hv_status] charger ok for bring up.\n");
+		  battery_log(BAT_LOG_CRTI, "[charging_get_hv_status] charger ok for bring up.\n");
 #else
 		  *(kal_bool*)(data) = mt6325_upmu_get_rgs_vcdt_hv_det();
 #endif
@@ -1002,10 +936,10 @@ void kick_charger_wdt(void)
 	 	 kal_uint32 val = 0;
 #if defined(CONFIG_POWER_EXT) || defined(CONFIG_MTK_FPGA)
 		 *(kal_bool*)(data) = 0; // battery exist
-		 battery_xlog_printk(BAT_LOG_CRTI,"[charging_get_battery_status] battery exist for bring up.\n");
+		 battery_log(BAT_LOG_CRTI, "[charging_get_battery_status] battery exist for bring up.\n");
 #else
 	pmic_read_interface( MT6325_CHR_CON7, &val, MT6325_PMIC_BATON_TDET_EN_MASK, MT6325_PMIC_BATON_TDET_EN_SHIFT);
-	battery_xlog_printk(BAT_LOG_FULL,"[charging_get_battery_status] BATON_TDET_EN = %d\n", val);
+	battery_log(BAT_LOG_CRTI, "[charging_get_battery_status] BATON_TDET_EN = %d\n", val);
 	if (val) {
 		 mt6325_upmu_set_baton_tdet_en(1);
 		 mt6325_upmu_set_rg_baton_en(1);
@@ -1027,7 +961,7 @@ void kick_charger_wdt(void)
 	 
 #if defined(CONFIG_POWER_EXT) || defined(CONFIG_MTK_FPGA)
 		 val = 1;
-		 battery_xlog_printk(BAT_LOG_CRTI,"[charging_get_charger_det_status] charger exist for bring up.\n"); 
+		 battery_log(BAT_LOG_CRTI, "[charging_get_charger_det_status] charger exist for bring up.\n");
 #else    
 		 #if !defined(CONFIG_MTK_DUAL_INPUT_CHARGER_SUPPORT)
 		 val = mt6325_upmu_get_rgs_chrdet();
@@ -1070,19 +1004,19 @@ kal_bool charging_type_detection_done(void)
 			if(wireless_state == WIRELESS_CHARGER_EXIST_STATE)
 			{
 				*(CHARGER_TYPE*)(data) = WIRELESS_CHARGER;
-				battery_xlog_printk(BAT_LOG_CRTI, "WIRELESS_CHARGER!\n");
+				battery_log(BAT_LOG_CRTI, "WIRELESS_CHARGER!\n");
 				return status;
 			}
 		}
 		else
 		{
-			battery_xlog_printk(BAT_LOG_CRTI, "wireless_charger_gpio_number=%d\n", wireless_charger_gpio_number);
+			battery_log(BAT_LOG_CRTI, "wireless_charger_gpio_number=%d\n", wireless_charger_gpio_number);
 		}
 		
 		if(g_charger_type!=CHARGER_UNKNOWN && g_charger_type!=WIRELESS_CHARGER)
 		{
 			*(CHARGER_TYPE*)(data) = g_charger_type;
-			battery_xlog_printk(BAT_LOG_CRTI, "return %d!\n", g_charger_type);
+			battery_log(BAT_LOG_CRTI, "return %d!\n", g_charger_type);
 			return status;
 		}
     #endif
@@ -1091,7 +1025,7 @@ kal_bool charging_type_detection_done(void)
 		{
 			g_charger_type = CHARGER_UNKNOWN; 
 			*(CHARGER_TYPE*)(data) = CHARGER_UNKNOWN;
-			battery_xlog_printk(BAT_LOG_CRTI, "[charging_get_charger_type] return CHARGER_UNKNOWN\n");
+			battery_log(BAT_LOG_CRTI, "[charging_get_charger_type] return CHARGER_UNKNOWN\n");
 			return status;
 		}
 		
@@ -1123,7 +1057,7 @@ static kal_uint32 charging_get_is_pcm_timer_trigger(void *data)
     else
         *(kal_bool*)(data) = KAL_FALSE;
 
-    battery_xlog_printk(BAT_LOG_CRTI, "slp_get_wake_reason=%d\n", slp_get_wake_reason());
+	battery_log(BAT_LOG_CRTI, "slp_get_wake_reason=%d\n", slp_get_wake_reason());
 #endif    
        
     return status;
@@ -1135,7 +1069,7 @@ static kal_uint32 charging_set_platform_reset(void *data)
 
 #if defined(CONFIG_POWER_EXT) || defined(CONFIG_MTK_FPGA)    
 #else 
-    battery_xlog_printk(BAT_LOG_CRTI, "charging_set_platform_reset\n");
+	battery_log(BAT_LOG_CRTI, "charging_set_platform_reset\n");
  
     arch_reset(0,NULL);
 #endif
@@ -1151,7 +1085,7 @@ static kal_uint32 charging_get_platfrom_boot_mode(void *data)
 #else   
     *(kal_uint32*)(data) = get_boot_mode();
 
-    battery_xlog_printk(BAT_LOG_CRTI, "get_boot_mode=%d\n", get_boot_mode());
+	battery_log(BAT_LOG_CRTI, "get_boot_mode=%d\n", get_boot_mode());
 #endif
          
     return status;
@@ -1163,7 +1097,7 @@ static kal_uint32 charging_set_power_off(void *data)
   
 #if defined(CONFIG_POWER_EXT) || defined(CONFIG_MTK_FPGA)
 #else
-    battery_xlog_printk(BAT_LOG_CRTI, "charging_set_power_off\n");
+	battery_log(BAT_LOG_CRTI, "charging_set_power_off\n");
     mt_power_off();
 #endif
          
@@ -1206,54 +1140,54 @@ static kal_uint32 charging_set_power_off(void *data)
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x1); /* 500mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_increase() on 1");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_increase() on 1");
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x0); /* 100mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_increase() off 1");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_increase() off 1");
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x1); /* 500mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_increase() on 2");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_increase() on 2");
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x0); /* 100mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_increase() off 2");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_increase() off 2");
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x1); /* 500mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_increase() on 3");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_increase() on 3");
 		 msleep(281);
 		 
 		 ncp1854_set_iinlim(0x0); /* 100mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_increase() off 3");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_increase() off 3");
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x1); /* 500mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_increase() on 4");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_increase() on 4");
 		 msleep(281);
 		 
 		 ncp1854_set_iinlim(0x0); /* 100mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_increase() off 4");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_increase() off 4");
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x1); /* 500mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_increase() on 5");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_increase() on 5");
 		 msleep(281);
 		 
 		 ncp1854_set_iinlim(0x0); /* 100mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_increase() off 5");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_increase() off 5");
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x1); /* 500mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_increase() on 6");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_increase() on 6");
 		 msleep(485);
 		 
 		 ncp1854_set_iinlim(0x0); /* 100mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_increase() off 6");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_increase() off 6");
 		 msleep(50);
 		 
-		 battery_xlog_printk(BAT_LOG_CRTI, "mtk_ta_increase() end \n");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_increase() end\n");
 		 
 		 ncp1854_set_iinlim(0x1); /* 500mA */
 		 msleep(200);
@@ -1264,54 +1198,54 @@ static kal_uint32 charging_set_power_off(void *data)
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x1); /* 500mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_decrease() on 1");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_decrease() on 1");
 		 msleep(281);
 		 
 		 ncp1854_set_iinlim(0x0); /* 100mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_decrease() off 1");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_decrease() off 1");
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x1); /* 500mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_decrease() on 2");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_decrease() on 2");
 		 msleep(281);
 		 
 		 ncp1854_set_iinlim(0x0); /* 100mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_decrease() off 2");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_decrease() off 2");
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x1); /* 500mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_decrease() on 3");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_decrease() on 3");
 		 msleep(281);
 		 
 		 ncp1854_set_iinlim(0x0); /* 100mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_decrease() off 3");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_decrease() off 3");
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x1); /* 500mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_decrease() on 4");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_decrease() on 4");
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x0); /* 100mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_decrease() off 4");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_decrease() off 4");
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x1); /* 500mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_decrease() on 5");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_decrease() on 5");
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x0); /* 100mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_decrease() off 5");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_decrease() off 5");
 		 msleep(85);
 		 
 		 ncp1854_set_iinlim(0x1); /* 500mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_decrease() on 6");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_decrease() on 6");
 		 msleep(485);
 		 
 		 ncp1854_set_iinlim(0x0); /* 100mA */
-		 battery_xlog_printk(BAT_LOG_FULL, "mtk_ta_decrease() off 6");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_decrease() off 6");
 		 msleep(50);
 		 
-		 battery_xlog_printk(BAT_LOG_CRTI, "mtk_ta_decrease() end \n");
+		 battery_log(BAT_LOG_CRTI, "mtk_ta_decrease() end\n");
 		 
 		 ncp1854_set_iinlim(0x1); /* 500mA */
 	 }
@@ -1335,7 +1269,7 @@ void set_vusb_auxadc_irq(bool enable, bool flag)
 
 	hrtimer_start(&diso_kthread_timer, ktime_set(0, MSEC_TO_NSEC(SW_POLLING_PERIOD)), HRTIMER_MODE_REL);
 
-	battery_xlog_printk(BAT_LOG_FULL, " [%s] enable: %d, flag: %d!\n", __func__, enable, flag);
+	battery_log(BAT_LOG_CRTI, " [%s] enable: %d, flag: %d!\n", __func__, enable, flag);
 }
 
 void set_vdc_auxadc_irq(bool enable, bool flag)
@@ -1348,7 +1282,7 @@ void set_vdc_auxadc_irq(bool enable, bool flag)
 
 	hrtimer_start(&diso_kthread_timer, ktime_set(0, MSEC_TO_NSEC(SW_POLLING_PERIOD)), HRTIMER_MODE_REL);
 
-	battery_xlog_printk(BAT_LOG_FULL, " [%s] enable: %d, flag: %d!\n", __func__, enable, flag);
+	battery_log(BAT_LOG_CRTI, " [%s] enable: %d, flag: %d!\n", __func__, enable, flag);
 }
 
 static void diso_polling_handler(struct work_struct *work)
@@ -1361,12 +1295,12 @@ static void diso_polling_handler(struct work_struct *work)
 	else if(DISO_Polling.vusb_polling_measure.notify_irq_en)
 		trigger_channel = AP_AUXADC_DISO_VUSB_CHANNEL;
 
-	battery_xlog_printk(BAT_LOG_CRTI, "[DISO]auxadc handler triggered\n" );
+	battery_log(BAT_LOG_CRTI, "[DISO]auxadc handler triggered\n");
 	switch(trigger_channel)
 	{
 		case AP_AUXADC_DISO_VDC_CHANNEL:
 			trigger_flag = DISO_Polling.vdc_polling_measure.notify_irq;
-			battery_xlog_printk(BAT_LOG_CRTI, "[DISO]VDC IRQ triggered, channel ==%d, flag ==%d\n", trigger_channel, trigger_flag );
+			battery_log(BAT_LOG_CRTI, "[DISO]VDC IRQ triggered, channel ==%d, flag ==%d\n", trigger_channel, trigger_flag);
 			#ifdef MTK_DISCRETE_SWITCH /*for DSC DC plugin handle */
 			set_vdc_auxadc_irq(DISO_IRQ_DISABLE, 0);
 			set_vusb_auxadc_irq(DISO_IRQ_DISABLE, 0);
@@ -1378,7 +1312,7 @@ static void diso_polling_handler(struct work_struct *work)
 				DISO_data.diso_state.cur_vusb_state  = DISO_ONLINE;
 				DISO_data.diso_state.cur_vdc_state  = DISO_ONLINE;
 				DISO_data.diso_state.cur_otg_state  = DISO_OFFLINE;
-				battery_xlog_printk(BAT_LOG_CRTI, " cur diso_state is %s!\n",DISO_state_s[2]);
+				battery_log(BAT_LOG_CRTI, " cur diso_state is %s!\n", DISO_state_s[2]);
 			}
 			#else //for load switch OTG leakage handle
 			set_vdc_auxadc_irq(DISO_IRQ_ENABLE, (~trigger_flag) & 0x1);
@@ -1389,7 +1323,7 @@ static void diso_polling_handler(struct work_struct *work)
 				DISO_data.diso_state.cur_vusb_state  = DISO_OFFLINE;
 				DISO_data.diso_state.cur_vdc_state  = DISO_ONLINE;
 				DISO_data.diso_state.cur_otg_state  = DISO_ONLINE;
-				battery_xlog_printk(BAT_LOG_CRTI, " cur diso_state is %s!\n",DISO_state_s[5]);
+				battery_log(BAT_LOG_CRTI, " cur diso_state is %s!\n", DISO_state_s[5]);
 			} else if (trigger_flag == DISO_IRQ_FALLING) {
 				DISO_data.diso_state.pre_vusb_state  = DISO_OFFLINE;
 				DISO_data.diso_state.pre_vdc_state  = DISO_ONLINE;
@@ -1397,15 +1331,15 @@ static void diso_polling_handler(struct work_struct *work)
 				DISO_data.diso_state.cur_vusb_state  = DISO_OFFLINE;
 				DISO_data.diso_state.cur_vdc_state  = DISO_OFFLINE;
 				DISO_data.diso_state.cur_otg_state  = DISO_ONLINE;
-				battery_xlog_printk(BAT_LOG_CRTI, " cur diso_state is %s!\n",DISO_state_s[1]);
+				battery_log(BAT_LOG_CRTI, " cur diso_state is %s!\n", DISO_state_s[1]);
 			}
 			else
-				battery_xlog_printk(BAT_LOG_CRTI, "[%s] wrong trigger flag!\n",__func__);
+				battery_log(BAT_LOG_CRTI, "[%s] wrong trigger flag!\n", __func__);
 			#endif
 			break;
 		case AP_AUXADC_DISO_VUSB_CHANNEL:
 			trigger_flag = DISO_Polling.vusb_polling_measure.notify_irq;
-			battery_xlog_printk(BAT_LOG_CRTI, "[DISO]VUSB IRQ triggered, channel ==%d, flag ==%d\n", trigger_channel, trigger_flag);
+			battery_log(BAT_LOG_CRTI, "[DISO]VUSB IRQ triggered, channel ==%d, flag ==%d\n", trigger_channel, trigger_flag);
 			set_vdc_auxadc_irq(DISO_IRQ_DISABLE, 0);
 			set_vusb_auxadc_irq(DISO_IRQ_DISABLE, 0);
 			if(trigger_flag == DISO_IRQ_FALLING) {
@@ -1415,7 +1349,7 @@ static void diso_polling_handler(struct work_struct *work)
 				DISO_data.diso_state.cur_vusb_state  = DISO_OFFLINE;
 				DISO_data.diso_state.cur_vdc_state  = DISO_ONLINE;
 				DISO_data.diso_state.cur_otg_state  = DISO_OFFLINE;
-				battery_xlog_printk(BAT_LOG_CRTI, " cur diso_state is %s!\n",DISO_state_s[4]);
+				battery_log(BAT_LOG_CRTI, " cur diso_state is %s!\n", DISO_state_s[4]);
 			} else if (trigger_flag == DISO_IRQ_RISING) {
 				DISO_data.diso_state.pre_vusb_state  = DISO_OFFLINE;
 				DISO_data.diso_state.pre_vdc_state  = DISO_ONLINE;
@@ -1423,21 +1357,21 @@ static void diso_polling_handler(struct work_struct *work)
 				DISO_data.diso_state.cur_vusb_state  = DISO_ONLINE;
 				DISO_data.diso_state.cur_vdc_state  = DISO_ONLINE;
 				DISO_data.diso_state.cur_otg_state  = DISO_OFFLINE;
-				battery_xlog_printk(BAT_LOG_CRTI, " cur diso_state is %s!\n",DISO_state_s[6]);
+				battery_log(BAT_LOG_CRTI, " cur diso_state is %s!\n", DISO_state_s[6]);
 			}
 			else
-				battery_xlog_printk(BAT_LOG_CRTI, "[%s] wrong trigger flag!\n",__func__);
+				battery_log(BAT_LOG_CRTI, "[%s] wrong trigger flag!\n", __func__);
 			set_vusb_auxadc_irq(DISO_IRQ_ENABLE, (~trigger_flag)&0x1);
 			break;
 		default:
 			set_vdc_auxadc_irq(DISO_IRQ_DISABLE, 0);
 			set_vusb_auxadc_irq(DISO_IRQ_DISABLE, 0);
-			battery_xlog_printk(BAT_LOG_CRTI, "[DISO]VUSB auxadc IRQ triggered ERROR OR TEST, channel=%d\n", trigger_channel);
+			battery_log(BAT_LOG_CRTI, "[DISO]VUSB auxadc IRQ triggered ERROR OR TEST, channel=%d\n", trigger_channel);
 			return; /* in error or unexecpt state just return */
 	}
 
 	g_diso_state = *(int*)&DISO_data.diso_state;
-	battery_xlog_printk(BAT_LOG_CRTI, "[DISO]g_diso_state: 0x%x\n", g_diso_state);
+	battery_log(BAT_LOG_CRTI, "[DISO]g_diso_state: 0x%x\n", g_diso_state);
 	DISO_data.irq_callback_func(0, NULL);
 
 	return ;
@@ -1446,7 +1380,7 @@ static void diso_polling_handler(struct work_struct *work)
 #if defined(MTK_DISCRETE_SWITCH) && defined(MTK_DSC_USE_EINT)
 void vdc_eint_handler()
 {
-	battery_xlog_printk(BAT_LOG_CRTI, "[diso_eint] vdc eint irq triger\n");
+	battery_log(BAT_LOG_CRTI, "[diso_eint] vdc eint irq triger\n");
 	DISO_data.diso_state.cur_vdc_state  = DISO_ONLINE;
 	mt_eint_mask(CUST_EINT_VDC_NUM); 
 	do_chrdet_int_task();
@@ -1458,7 +1392,7 @@ static kal_uint32 diso_get_current_voltage(int Channel)
 	int ret = 0, data[4], i, ret_value = 0, ret_temp = 0, times = 5;
 
 	if( IMM_IsAdcInitReady() == 0 ) {
-		battery_xlog_printk(BAT_LOG_CRTI, "[DISO] AUXADC is not ready");
+		battery_log(BAT_LOG_CRTI, "[DISO] AUXADC is not ready");
 		return 0;
 	}
 
@@ -1470,7 +1404,7 @@ static kal_uint32 diso_get_current_voltage(int Channel)
 			ret += ret_temp;
 		} else {
 			times = times > 1 ? times - 1 : 1;
-			battery_xlog_printk(BAT_LOG_CRTI, "[diso_get_current_voltage] ret_value=%d, times=%d\n",
+			battery_log(BAT_LOG_CRTI, "[diso_get_current_voltage] ret_value=%d, times=%d\n",
 				ret_value, times);
 		}
 	}
@@ -1494,7 +1428,7 @@ static void _get_diso_interrupt_state(void)
 
 	vol = diso_get_current_voltage(AP_AUXADC_DISO_VDC_CHANNEL);
 	vol =(R_DISO_DC_PULL_UP + R_DISO_DC_PULL_DOWN)*100*vol/(R_DISO_DC_PULL_DOWN)/100;
-	battery_xlog_printk(BAT_LOG_CRTI, "[DISO]  Current DC voltage mV = %d\n", vol);
+	battery_log(BAT_LOG_CRTI, "[DISO]  Current DC voltage mV = %d\n", vol);
 
 	#ifdef VIN_SEL_FLAG
 	/* set gpio mode for kpoc issue as DWS has no default setting */
@@ -1514,7 +1448,7 @@ static void _get_diso_interrupt_state(void)
 			if(!vin_state)
 				mdelay(5);
 		} while ((!vin_state) && check_times);
-		battery_xlog_printk(BAT_LOG_CRTI, "[DISO] i==%d  gpio_state= %d\n",
+		battery_log(BAT_LOG_CRTI, "[DISO] i==%d  gpio_state= %d\n",
 			check_times, mt_get_gpio_in(vin_sel_gpio_number));
 
 		if (0 == check_times)
@@ -1535,7 +1469,7 @@ static void _get_diso_interrupt_state(void)
 
 	vol = diso_get_current_voltage(AP_AUXADC_DISO_VUSB_CHANNEL);
 	vol =(R_DISO_VBUS_PULL_UP + R_DISO_VBUS_PULL_DOWN)*100*vol/(R_DISO_VBUS_PULL_DOWN)/100;
-	battery_xlog_printk(BAT_LOG_CRTI, "[DISO]  Current VBUS voltage  mV = %d\n",vol);
+	battery_log(BAT_LOG_CRTI, "[DISO]  Current VBUS voltage  mV = %d\n", vol);
 
 	if (vol > VBUS_MIN_VOLTAGE/1000 && vol < VBUS_MAX_VOLTAGE/1000) {
 		if(!mt_usb_is_device())	{
@@ -1549,7 +1483,7 @@ static void _get_diso_interrupt_state(void)
 	} else {
 		diso_state &= 0x4; //SET OTG and VBUS bit as 0
 	}
-	battery_xlog_printk(BAT_LOG_CRTI, "[DISO] DISO_STATE==0x%x \n",diso_state);
+	battery_log(BAT_LOG_CRTI, "[DISO] DISO_STATE==0x%x\n", diso_state);
 	g_diso_state = diso_state;
 	return;
 }
@@ -1613,12 +1547,12 @@ static void _get_polling_state(void)
 	if(VDC_Polling->notify_irq_en && 
 		(vdc_vol_dir == VDC_Polling->notify_irq)) {
 		schedule_delayed_work(&diso_polling_work, 10*HZ/1000); //10ms
-		battery_xlog_printk(BAT_LOG_CRTI, "[%s] ready to trig VDC irq, irq: %d\n",
+		battery_log(BAT_LOG_CRTI, "[%s] ready to trig VDC irq, irq: %d\n",
 			__func__,VDC_Polling->notify_irq);
 	} else if(VUSB_Polling->notify_irq_en && 
 		(vusb_vol_dir == VUSB_Polling->notify_irq)) {
 		schedule_delayed_work(&diso_polling_work, 10*HZ/1000);
-		battery_xlog_printk(BAT_LOG_CRTI, "[%s] ready to trig VUSB irq, irq: %d\n",
+		battery_log(BAT_LOG_CRTI, "[%s] ready to trig VUSB irq, irq: %d\n",
 			__func__, VUSB_Polling->notify_irq);
 	} else if((vdc_vol == 0) && (vusb_vol == 0)) {
 		VDC_Polling->notify_irq_en = 0;
@@ -1685,10 +1619,10 @@ static kal_uint32 charging_diso_init(void *data)
 	INIT_DELAYED_WORK(&diso_polling_work, diso_polling_handler);
 
 	kthread_run(diso_thread_kthread, NULL, "diso_thread_kthread");
-	battery_xlog_printk(BAT_LOG_CRTI, "[%s] done\n", __func__);
+	battery_log(BAT_LOG_CRTI, "[%s] done\n", __func__);
 
 	#if defined(MTK_DISCRETE_SWITCH) && defined(MTK_DSC_USE_EINT)
-	battery_xlog_printk(BAT_LOG_CRTI, "[diso_eint]vdc eint irq registitation\n");
+	battery_log(BAT_LOG_CRTI, "[diso_eint]vdc eint irq registitation\n");
 	mt_eint_set_hw_debounce(CUST_EINT_VDC_NUM, CUST_EINT_VDC_DEBOUNCE_CN);
 	mt_eint_registration(CUST_EINT_VDC_NUM, CUST_EINTF_TRIGGER_LOW, vdc_eint_handler, 0);
 	mt_eint_mask(CUST_EINT_VDC_NUM); 
@@ -1708,7 +1642,7 @@ static kal_uint32 charging_get_diso_state(void *data)
 
 	_get_diso_interrupt_state();
 	diso_state = g_diso_state;
-	battery_xlog_printk(BAT_LOG_CRTI, "[do_chrdet_int_task] current diso state is %s!\n", DISO_state_s[diso_state]);
+	battery_log(BAT_LOG_CRTI, "[do_chrdet_int_task] current diso state is %s!\n", DISO_state_s[diso_state]);
 	if(((diso_state >> 1) & 0x3) != 0x0)
 	{
 		switch (diso_state){
@@ -1753,7 +1687,7 @@ static kal_uint32 charging_get_diso_state(void *data)
 				pDISO_data->diso_state.cur_vusb_state  = DISO_OFFLINE;
 				pDISO_data->diso_state.cur_vdc_state	= DISO_OFFLINE;
 				pDISO_data->diso_state.cur_otg_state	= DISO_ONLINE;
-				battery_xlog_printk(BAT_LOG_CRTI, " switch load vcdt irq triggerd by OTG Boost!\n");
+				battery_log(BAT_LOG_CRTI, " switch load vcdt irq triggerd by OTG Boost!\n");
 				break; // OTG plugin no need battery sync action
 		}
 	}
