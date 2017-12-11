@@ -26,11 +26,7 @@
 /* #define MAX_CHARGING_TIME                   12*60*60  // 12hr */
 /*[Lavender][bozhi_lin] check batery waringing message and set charging state to discharging when over charing time 20150430 begin*/
 //<2014/12/10-tedwu, change charging time
-#if 1
-
-#else
 #define MAX_CHARGING_TIME                   24*60*60	/* 24hr */
-#endif
 //>2014/12/10-tedwu
 /*[Lavender][bozhi_lin] 20150430 end*/
 
