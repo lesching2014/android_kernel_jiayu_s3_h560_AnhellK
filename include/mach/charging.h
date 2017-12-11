@@ -87,11 +87,13 @@ typedef enum {
 	CHARGING_CMD_GET_CSDAC_FALL_FLAG,
 	CHARGING_CMD_SET_TA_CURRENT_PATTERN,
 	CHARGING_CMD_SET_ERROR_STATE,
-/*lenovo sw chailu1 add macro*/	
 #if defined(CONFIG_MTK_DUAL_INPUT_CHARGER_SUPPORT)
 	CHARGING_CMD_DISO_INIT,
 	CHARGING_CMD_GET_DISO_STATE,
 #endif 
+/*[Lavender][bozhi_lin] enable charging maintenance 20150522 begin*/
+	CHARGING_CMD_SET_TE,
+/*[Lavender][bozhi_lin] 20150522 end*/
 	CHARGING_CMD_NUMBER
 } CHARGING_CTRL_CMD;
 

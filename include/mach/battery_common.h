@@ -5,17 +5,18 @@
 #include <mach/mt_typedefs.h>
 #include "charging.h"
 
-
 /*****************************************************************************
  *  BATTERY VOLTAGE
  ****************************************************************************/
 #define PRE_CHARGE_VOLTAGE                  3200
-#define SYSTEM_OFF_VOLTAGE                  3400
 #define CONSTANT_CURRENT_CHARGE_VOLTAGE     4100
 #define CONSTANT_VOLTAGE_CHARGE_VOLTAGE     4200
 #define CV_DROPDOWN_VOLTAGE                 4000
 #define CHARGER_THRESH_HOLD                 4300
 #define BATTERY_UVLO_VOLTAGE                2700
+#ifndef SHUTDOWN_SYSTEM_VOLTAGE
+#define SHUTDOWN_SYSTEM_VOLTAGE		3400
+#endif
 
 /*****************************************************************************
  *  BATTERY TIMER
@@ -23,7 +24,15 @@
 /* #define MAX_CHARGING_TIME             1*60*60         // 1hr */
 /* #define MAX_CHARGING_TIME                   8*60*60   // 8hr */
 /* #define MAX_CHARGING_TIME                   12*60*60  // 12hr */
+/*[Lavender][bozhi_lin] check batery waringing message and set charging state to discharging when over charing time 20150430 begin*/
+//<2014/12/10-tedwu, change charging time
+#if 1
+
+#else
 #define MAX_CHARGING_TIME                   24*60*60	/* 24hr */
+#endif
+//>2014/12/10-tedwu
+/*[Lavender][bozhi_lin] 20150430 end*/
 
 #define MAX_POSTFULL_SAFETY_TIME		1*30*60	/* 30mins */
 #define MAX_PreCC_CHARGING_TIME		1*30*60	/* 0.5hr */
@@ -55,6 +64,9 @@
 #define  CHR_BATFULL                    0x1004
 #define  CHR_ERROR                      0x1005
 #define  CHR_HOLD						0x1006
+/*[Lavender][bozhi_lin] set AC timer to 5 hours and USB to 100 hours 20150415 begin*/
+#define  CHR_TIMEOUT					0x1007
+/*[Lavender][bozhi_lin] 20150415 end*/
 
 /*****************************************************************************
  *  CallState
@@ -108,14 +120,92 @@ typedef enum {
     <-10      no charging current,              X                    X                    >-10(Up)
 ****************************************************************************/
 typedef enum {
+//<2015/01/18-tedwu, For battery over temperature protection.
+#if 1
+        TEMP_BELOW_NEG_10 = 0,  //Ted: now is < 5
+        TEMP_NEG_10_TO_POS_45,  //Ted: now is 5 to 45
+        TEMP_POS_45_TO_POS_55,
+        TEMP_POS_55_TO_POS_57,
+        TEMP_POS_57_TO_POS_60,
+        TEMP_ABOVE_POS_60
+#else
 	TEMP_BELOW_NEG_10 = 0,
 	TEMP_NEG_10_TO_POS_0,
 	TEMP_POS_0_TO_POS_10,
 	TEMP_POS_10_TO_POS_45,
 	TEMP_POS_45_TO_POS_60,
 	TEMP_ABOVE_POS_60
+#endif
+//>2015/01/18-tedwu
 } temp_state_enum;
 
+//<2015/01/18-tedwu, For battery over temperature protection.
+#if 1
+
+/*[Lavender][bozhi_lin] for battery temperature safety set different current and voltage 20150415 begin*/
+//<2015/03/26-tedwu, change battery notify temperature value.
+#if defined(COSMOS)
+#define TEMP_POS_TOLERENRCE	               2
+#define TEMP_POS_60_THRESHOLD             60
+#define TEMP_POS_60_THRES_MINUS_TOLERENRCE  (TEMP_POS_60_THRESHOLD-TEMP_POS_TOLERENRCE)
+#define TEMP_POS_60_THRES_PLUS_TOLERENRCE   (TEMP_POS_60_THRESHOLD+TEMP_POS_TOLERENRCE)
+
+#define TEMP_POS_45_THRESHOLD             45
+#define TEMP_POS_45_THRES_MINUS_TOLERENRCE  (TEMP_POS_45_THRESHOLD-TEMP_POS_TOLERENRCE)
+#define TEMP_POS_45_THRES_PLUS_TOLERENRCE   (TEMP_POS_45_THRESHOLD+TEMP_POS_TOLERENRCE)
+
+#define TEMP_POS_10_THRESHOLD             10
+#define TEMP_POS_10_THRES_MINUS_TOLERENRCE  (TEMP_POS_10_THRESHOLD-TEMP_POS_TOLERENRCE)
+#define TEMP_POS_10_THRES_PLUS_TOLERENRCE   (TEMP_POS_10_THRESHOLD+TEMP_POS_TOLERENRCE)
+
+#define TEMP_POS_0_THRESHOLD               0
+#define TEMP_POS_0_THRES_MINUS_TOLERENRCE   (TEMP_POS_0_THRESHOLD-TEMP_POS_TOLERENRCE)
+#define TEMP_POS_0_THRES_PLUS_TOLERENRCE    (TEMP_POS_0_THRESHOLD+TEMP_POS_TOLERENRCE)
+
+#define TEMP_POS_CRITICAL_THRESHOLD       (70-1)
+#define TEMP_POS_60_THRES_MINUS_X_DEGREE  55
+#define TEMP_POS_60_THRES_NEAR_X_DEGREE   (67-1)
+#elif defined(LAVENDER)
+#define TEMP_POS_TOLERENRCE	               2
+#define TEMP_POS_60_THRESHOLD             60
+#define TEMP_POS_60_THRES_MINUS_TOLERENRCE  (TEMP_POS_60_THRESHOLD-TEMP_POS_TOLERENRCE)
+#define TEMP_POS_60_THRES_PLUS_TOLERENRCE   (TEMP_POS_60_THRESHOLD+TEMP_POS_TOLERENRCE)
+
+#define TEMP_POS_45_THRESHOLD             45
+#define TEMP_POS_45_THRES_MINUS_TOLERENRCE  (TEMP_POS_45_THRESHOLD-TEMP_POS_TOLERENRCE)
+#define TEMP_POS_45_THRES_PLUS_TOLERENRCE   (TEMP_POS_45_THRESHOLD+TEMP_POS_TOLERENRCE)
+
+#define TEMP_POS_10_THRESHOLD             10
+#define TEMP_POS_10_THRES_MINUS_TOLERENRCE  (TEMP_POS_10_THRESHOLD-TEMP_POS_TOLERENRCE)
+#define TEMP_POS_10_THRES_PLUS_TOLERENRCE   (TEMP_POS_10_THRESHOLD+TEMP_POS_TOLERENRCE)
+
+#define TEMP_POS_0_THRESHOLD               0
+#define TEMP_POS_0_THRES_MINUS_TOLERENRCE   (TEMP_POS_0_THRESHOLD-TEMP_POS_TOLERENRCE)
+#define TEMP_POS_0_THRES_PLUS_TOLERENRCE    (TEMP_POS_0_THRESHOLD+TEMP_POS_TOLERENRCE)
+
+/*[Lavender][bozhi_lin] check batery waringing message and set charging state to discharging when over charing time 20150430 begin*/
+#define TEMP_POS_CRITICAL_THRESHOLD       65
+#define TEMP_POS_60_THRES_NEAR_X_DEGREE   62
+/*[Lavender][bozhi_lin] 20150430 end*/
+#else
+#define TEMP_POS_60_THRESHOLD             60
+#define TEMP_POS_60_THRES_MINUS_X_DEGREE  55
+#define TEMP_POS_60_THRES_NEAR_X_DEGREE   57
+
+#define TEMP_POS_45_THRESHOLD             45
+#define TEMP_POS_45_THRES_MINUS_X_DEGREE  39
+#define TEMP_POS_45_THRES_NEAR_X_DEGREE   42
+
+#define TEMP_POS_10_THRESHOLD             10
+#define TEMP_POS_10_THRES_PLUS_X_DEGREE   15
+
+#define TEMP_POS_0_THRESHOLD              0
+#define TEMP_POS_0_THRES_PLUS_X_DEGREE    6
+#endif
+//>2015/03/26-tedwu
+/*[Lavender][bozhi_lin] 20150415 end*/
+
+#else
 
 #define TEMP_POS_60_THRESHOLD  50
 #define TEMP_POS_60_THRES_MINUS_X_DEGREE 47
@@ -129,9 +219,19 @@ typedef enum {
 #define TEMP_POS_0_THRESHOLD  0
 #define TEMP_POS_0_THRES_PLUS_X_DEGREE 6
 
+#endif
+//>2015/01/18-tedwu
+
 #ifdef CONFIG_MTK_FAN5405_SUPPORT
-#define TEMP_NEG_10_THRESHOLD  0
-#define TEMP_NEG_10_THRES_PLUS_X_DEGREE  0
+//<2015/01/18-tedwu, For battery over temperature protection.
+  #if 1
+    #define TEMP_NEG_10_THRESHOLD             5 //(-10)
+    #define TEMP_NEG_10_THRES_PLUS_X_DEGREE   8 //(-5)
+  #else
+    #define TEMP_NEG_10_THRESHOLD  0
+    #define TEMP_NEG_10_THRES_PLUS_X_DEGREE  0
+  #endif
+//>2015/01/18-tedwu
 #elif defined(CONFIG_MTK_BQ24158_SUPPORT)
 #define TEMP_NEG_10_THRESHOLD  0
 #define TEMP_NEG_10_THRES_PLUS_X_DEGREE  0
@@ -143,11 +243,28 @@ typedef enum {
 /*****************************************************************************
  *  Normal battery temperature state
  ****************************************************************************/
+/*[Lavender][bozhi_lin] for battery temperature safety set different current and voltage 20150415 begin*/
+//<2016/06/07-stevenchen, Fix OSS build error
+#if defined(COSMOS) || defined(LAVENDER)
+//>2016/06/07-stevenchen
+typedef enum {
+	TEMP_POS_COLD = 0,
+	TEMP_POS_COOL,
+	TEMP_POS_NORMAL,
+	TEMP_POS_WARM,
+	TEMP_POS_HOT
+} batt_temp_state_enum;
+#else
 typedef enum {
 	TEMP_POS_LOW = 0,
 	TEMP_POS_NORMAL,
+//<2016/06/07-stevenchen, Fix OSS build error
+	TEMP_POS_DEC_CHARGE,
+//>2016/06/07-stevenchen
 	TEMP_POS_HIGH
 } batt_temp_state_enum;
+#endif
+/*[Lavender][bozhi_lin] 20150415 end*/
 
 /*****************************************************************************
  *  structure
@@ -167,6 +284,9 @@ typedef struct {
 	INT32 temperature;
 	INT32 temperatureR;
 	INT32 temperatureV;
+//<2015/01/18-tedwu, For battery over temperature protection.
+	INT32 old_temperature;
+//>2015/01/18-tedwu
 	UINT32 total_charging_time;
 	UINT32 PRE_charging_time;
 	UINT32 CC_charging_time;
@@ -179,6 +299,19 @@ typedef struct {
 	UINT32 nPercent_ZCV;
 	UINT32 nPrecent_UI_SOC_check_point;
 	UINT32 ZCV;
+/*[Lavender][bozhi_lin] set AC timer to 5 hours and USB to 100 hours 20150415 begin*/
+	UINT32 charging_timer;
+/*[Lavender][bozhi_lin] 20150415 end*/
+/*[Lavender][bozhi_lin] enable charging maintenance 20150522 begin*/
+#if defined(CHARGING_MAINTAIN)
+	UINT32 MAINTAIN_charging_time;
+#endif
+    /*[Lavender][bozhi_lin] 20150522 end*/
+        // <<< 2016/04/01-youchihwang. Battery. FP022589. Battery Swelling Mitigation for retail demo.
+        INT32 enable_llk;
+        INT32 llk_socmax;
+        INT32 llk_socmin;
+        // >>> 2016/04/01-youchihwang. Battery. FP022589. Battery Swelling Mitigation for retail demo.
 } PMU_ChargerStruct;
 
 struct battery_custom_data {
@@ -295,6 +428,9 @@ extern kal_bool is_ta_connect;
 extern struct wake_lock TA_charger_suspend_lock;
 #endif
 extern U32 sleep_total_time;
+//<2015/01/18-tedwu, For battery over temperature protection.
+extern unsigned int g_BatTempLevel;
+//>2015/01/18-tedwu
 
 /*****************************************************************************
  *  Extern Function
@@ -311,9 +447,6 @@ extern void set_usb_current_unlimited(bool enable);
 extern bool get_usb_current_unlimited(void);
 extern CHARGER_TYPE mt_get_charger_type(void);
 
-#if defined(CONFIG_MTK_HAFG_20)
-extern struct timespec mt_battery_get_duration_time_act(BATTERY_TIME_ENUM duration_type);
-#endif
 extern kal_uint32 mt_battery_get_duration_time(BATTERY_TIME_ENUM duration_type);
 extern void mt_battery_update_time(struct timespec *pre_time, BATTERY_TIME_ENUM duration_type);
 

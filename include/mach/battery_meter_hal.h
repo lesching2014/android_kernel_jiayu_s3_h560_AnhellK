@@ -32,12 +32,7 @@ typedef enum {
 	BATTERY_METER_CMD_GET_HW_FG_CAR_ACT,	/* fgauge_read_columb */
 
 	BATTERY_METER_CMD_HW_RESET,	/* FGADC_Reset_SW_Parameter */
-        /*Begin,Lenovo-sw zhangrc2 modify to support max17058 */	
-	#if defined(SOC_BY_3RD_FG)
-        BATTERY_METER_CMD_GET_FG_SOC,                 //3rd fuel gague used only
-        BATTERY_METER_CMD_SET_FG_TEMP,                 //3rd fuel gague used only    
-	#endif    
-        /*End,Lenovo-sw chailu1 modify  to support support max17058*/  
+
 	BATTERY_METER_CMD_GET_ADC_V_BAT_SENSE,
 	BATTERY_METER_CMD_GET_ADC_V_I_SENSE,
 	BATTERY_METER_CMD_GET_ADC_V_BAT_TEMP,
