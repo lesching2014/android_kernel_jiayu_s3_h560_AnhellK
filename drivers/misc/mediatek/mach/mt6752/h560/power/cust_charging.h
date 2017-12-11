@@ -66,7 +66,7 @@
 //<2015/03/29-tedwu, change ac charger current.
 #if defined(COSMOS)
 //For battery pack Sony Energy Devices 1282-1203.
-#define AC_CHARGER_CURRENT					CHARGE_CURRENT_1750_00_MA
+#define AC_CHARGER_CURRENT					CHARGE_CURRENT_1300_00_MA
 #elif defined(LAVENDER)
 #define AC_CHARGER_CURRENT					CHARGE_CURRENT_1375_00_MA
 #else
