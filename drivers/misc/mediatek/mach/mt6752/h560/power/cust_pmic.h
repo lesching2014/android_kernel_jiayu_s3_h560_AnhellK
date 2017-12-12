@@ -3,7 +3,7 @@
 
 //#define PMIC_VDVFS_CUST_ENABLE
 
-#define LOW_POWER_LIMIT_LEVEL_1 15
+#define LOW_POWER_LIMIT_LEVEL_1 5
 
 //Define for disable low battery protect feature, default no define for enable low battery protect.
 //#define DISABLE_LOW_BATTERY_PROTECT    
