@@ -115,12 +115,6 @@ static int mtk_pcm_dl2_stop(struct snd_pcm_substream *substream)
 		      Soc_Aud_InterConnectionOutput_O03);
 	SetConnection(Soc_Aud_InterCon_DisConnect, Soc_Aud_InterConnectionInput_I08,
 		      Soc_Aud_InterConnectionOutput_O04);
-//lenovo-sw.lily8.20160120 add fast playback from mtk oliverchen 20151216,begin
-	SetConnection(Soc_Aud_InterCon_DisConnect, Soc_Aud_InterConnectionInput_I07,
-		      Soc_Aud_InterConnectionOutput_O00);
-	SetConnection(Soc_Aud_InterCon_DisConnect, Soc_Aud_InterConnectionInput_I08,
-		      Soc_Aud_InterConnectionOutput_O01);
-//lenovo-sw.lily8.20160120 add fast playback from mtk oliverchen 20151216,end
 
 	ClearMemBlock(Soc_Aud_Digital_Block_MEM_DL2);
 	return 0;
@@ -287,14 +281,6 @@ static int mtk_soc_pcm_dl2_close(struct snd_pcm_substream *substream)
 		if (GetI2SDacEnable() == false)
 			SetI2SDacEnable(false);
 
-		//lenovo-sw.lily8.20160120 add fast playback from mtk oliverchen 20151216,begin
-		SetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_OUT_2, false);
-		if (GetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_OUT_2) == false)
-		{
-	       printk(" clear AFE_I2S_CON3\n");
-           Afe_Set_Reg(AFE_I2S_CON3, 0x0, 0x1);
-		}
-	   //lenovo-sw.lily8.20160120 add fast playback from mtk oliverchen 20151216,end
 		RemoveMemifSubStream(Soc_Aud_Digital_Block_MEM_DL2, substream);
 
 		EnableAfe(false);
@@ -315,7 +301,6 @@ static int mtk_soc_pcm_dl2_close(struct snd_pcm_substream *substream)
 static int mtk_pcm_dl2_prepare(struct snd_pcm_substream *substream)
 {
 	bool mI2SWLen = Soc_Aud_I2S_WLEN_WLEN_16BITS;
-	uint32 u32AudioI2S = 0;////lenovo-sw.lily8.20160120 add fast playback from mtk oliverchen 20151216
 	struct snd_pcm_runtime *runtime = substream->runtime;
 
 	if (mPrepareDone == false) {
@@ -349,24 +334,6 @@ static int mtk_pcm_dl2_prepare(struct snd_pcm_substream *substream)
 
 		SetSampleRate(Soc_Aud_Digital_Block_MEM_I2S, runtime->rate);
 
-	//lenovo-sw.lily8.20160120 add fast playback from mtk oliverchen 20151216,begin
-		// I2S out Setting
-        	u32AudioI2S = SampleRateTransform(runtime->rate) << 8;
-        	u32AudioI2S |= Soc_Aud_I2S_FORMAT_I2S << 3; // us3 I2s format
-        	u32AudioI2S |= Soc_Aud_I2S_WLEN_WLEN_32BITS << 1; //32bit
-	
-		if (GetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_OUT_2) == false)
-        {
-		    printk("SetMemoryPathEnable\n");
-            SetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_OUT_2, true);
-            Afe_Set_Reg(AFE_I2S_CON3, u32AudioI2S | 1, AFE_MASK_ALL);
-        }
-        else
-        {
-		    printk("SetMemoryPathEnable 2\n");
-            SetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_OUT_2, true);
-        }
-	//lenovo-sw.lily8.20160120 add fast playback from mtk oliverchen 20151216,end
 		/* start I2S DAC out */
 		if (GetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_OUT_DAC) == false) {
 			SetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_OUT_DAC, true);
@@ -397,12 +364,6 @@ static int mtk_pcm_dl2_start(struct snd_pcm_substream *substream)
 		      Soc_Aud_InterConnectionOutput_O03);
 	SetConnection(Soc_Aud_InterCon_Connection, Soc_Aud_InterConnectionInput_I08,
 		      Soc_Aud_InterConnectionOutput_O04);
-//lenovo-sw.lily8.20160120 add fast playback from mtk oliverchen 20151216,begin
-	SetConnection(Soc_Aud_InterCon_Connection, Soc_Aud_InterConnectionInput_I07,
-		      Soc_Aud_InterConnectionOutput_O00);
-	SetConnection(Soc_Aud_InterCon_Connection, Soc_Aud_InterConnectionInput_I08,
-		      Soc_Aud_InterConnectionOutput_O01);
-//lenovo-sw.lily8.20160120 add fast playback from mtk oliverchen 20151216,end
 
 #ifdef CONFIG_MTK_FPGA
 	/* set loopback test interconnection */

@@ -421,8 +421,7 @@ void AudDrv_ADC3_Clk_Off(void)
 
 void AudDrv_APLL22M_Clk_On(void)
 {
-    PRINTK_AUD_CLK("+%s %d \n", __func__, Aud_APLL22M_Clk_cntr);
-    mutex_lock(&auddrv_pmic_mutex);
+	PRINTK_AUD_CLK("+%s %d\n", __func__, Aud_APLL22M_Clk_cntr);
 
     if (Aud_APLL22M_Clk_cntr == 0)
     {
@@ -442,12 +441,10 @@ void AudDrv_APLL22M_Clk_On(void)
 #endif
     }
     Aud_APLL22M_Clk_cntr++;
-    mutex_unlock(&auddrv_pmic_mutex);
 }
 
 void AudDrv_APLL22M_Clk_Off(void)
 {
-    mutex_lock(&auddrv_pmic_mutex);
     Aud_APLL22M_Clk_cntr--;
     if (Aud_APLL22M_Clk_cntr == 0)
     {
@@ -467,10 +464,9 @@ void AudDrv_APLL22M_Clk_Off(void)
     }
     if (Aud_APLL22M_Clk_cntr < 0)
     {
-        PRINTK_AUDDRV("%s  <0 (%d) \n", __func__, Aud_APLL22M_Clk_cntr);
+		PRINTK_AUDDRV("%s < 0 (%d)\n", __func__, Aud_APLL22M_Clk_cntr);
         Aud_APLL22M_Clk_cntr = 0;
     }
-    mutex_unlock(&auddrv_pmic_mutex);
 }
 
 
@@ -485,8 +481,7 @@ void AudDrv_APLL22M_Clk_Off(void)
 
 void AudDrv_APLL24M_Clk_On(void)
 {
-    PRINTK_AUD_CLK("+%s %d \n", __func__, Aud_APLL24M_Clk_cntr);
-    mutex_lock(&auddrv_pmic_mutex);
+	PRINTK_AUD_CLK("+%s %d\n", __func__, Aud_APLL24M_Clk_cntr);
     if (Aud_APLL24M_Clk_cntr == 0)
     {
         PRINTK_AUDDRV("+%s  enable_clock ADC clk(%x)\n", __func__, Aud_APLL24M_Clk_cntr);
@@ -504,12 +499,10 @@ void AudDrv_APLL24M_Clk_On(void)
 #endif
     }
     Aud_APLL24M_Clk_cntr++;
-    mutex_unlock(&auddrv_pmic_mutex);
 }
 
 void AudDrv_APLL24M_Clk_Off(void)
 {
-    mutex_lock(&auddrv_pmic_mutex);
     Aud_APLL24M_Clk_cntr--;
     if (Aud_APLL24M_Clk_cntr == 0)
     {
@@ -530,10 +523,9 @@ void AudDrv_APLL24M_Clk_Off(void)
     }
     if (Aud_APLL24M_Clk_cntr < 0)
     {
-        PRINTK_AUDDRV("%s  <0 (%d) \n", __func__, Aud_APLL24M_Clk_cntr);
+		PRINTK_AUDDRV("%s < 0 (%d)\n", __func__, Aud_APLL24M_Clk_cntr);
         Aud_APLL24M_Clk_cntr = 0;
     }
-    mutex_unlock(&auddrv_pmic_mutex);
 }
 
 

@@ -83,8 +83,16 @@ int PMIC_IMM_GetOneChannelValue(int dwChannel, int deCount, int trimd);
 #include "mt_soc_pcm_common.h"
 
 #define AW8736_MODE_CTRL // AW8736 PA output power mode control
-
+/* --- [LewisChen] Add project define for separating two project  20150119 begin --------*/
+#if defined(COSMOS)
+//oliverchen  add define GPIO_EXT_SPKAMP_EN_PINS
+#define GPIO_EXT_SPKAMP_EN_PIN GPIO118
+//oliverchen  add define Ext_Headset_Switch_EN_PIN  20141216
+#define Ext_Headset_Switch_EN_PIN GPIO81
 // static function declaration
+#elif defined(LAVENDER)
+#endif
+/* --- [LewisChen] 20150119 end --------*/
 static bool AudioPreAmp1_Sel(int Mul_Sel);
 static bool GetAdcStatus(void);
 static void Apply_Speaker_Gain(void);
@@ -126,6 +134,12 @@ static int Speaker_mode = AUDIO_SPEAKER_MODE_AB;
 static unsigned int Speaker_pga_gain = 1 ; // default 0Db.
 static bool mSpeaker_Ocflag = false;
 #endif
+/* --- [LewisChen] Add project define for separating two project  20150119 begin --------*/
+#if defined(COSMOS)
+static int m_ext_headset_gpio_setting = 0;//add by oliverchen 20141217
+#elif defined(LAVENDER)
+#endif
+/* --- [LewisChen] 20150119 end --------*/
 static int mAdc_Power_Mode = 0;
 static unsigned int dAuxAdcChannel = 16;
 static const int mDcOffsetTrimChannel = 9;
@@ -140,12 +154,6 @@ static int reg_AFE_VOW_CFG3 = 0x8767;   //alhpa and beta K value setting (beta_r
 static int reg_AFE_VOW_CFG4 = 0x006E;   //gamma K value setting (gamma), bit4:8 should not modify
 static int reg_AFE_VOW_CFG5 = 0x0001;   //N mini value setting (Nmin)
 static bool mIsVOWOn = false;
-
-/*lenovo-sw,lily8,2015-01-20,for piezo speaker,begin*/
-#ifdef CONFIG_LENOVO_PIEZO
-bool piezo_working_flag = false;
-#endif
-/*lenovo-sw,lily8,2015-01-20,for piezo speaker,end*/
 
 //VOW using
 typedef enum
@@ -1402,21 +1410,6 @@ static void Audio_Amp_Change(int channels , bool enable)
 
             // apply volume setting
             HeadsetVoloumeSet();
-            /*lenovo-sw,lily8,2015-04-09,for headset pop sound ,begin*/
-	#ifdef CONFIG_LENOVO_PIEZO
-            int state = mt_get_gpio_in(GPIO_LENOVO_AUDSWITCH_PIN);//value =1,switch is disconnected.
-            if(state == 1)
-            {
-            	if(piezo_working_flag == false){
-			mt_set_gpio_mode(GPIO_LENOVO_AUDSWITCH_PIN, GPIO_MODE_00); //GPIO69: mode 0
-        		mt_set_gpio_pull_enable(GPIO_LENOVO_AUDSWITCH_PIN, GPIO_PULL_ENABLE);
-        		mt_set_gpio_dir(GPIO_LENOVO_AUDSWITCH_PIN, GPIO_DIR_OUT); // output
-			mt_set_gpio_out(GPIO_LENOVO_AUDSWITCH_PIN, GPIO_OUT_ZERO); // low disable,connected
-            	}
-		printk("Audio_Switch disable(connected)\n");
-            }
-	#endif
-            /*lenovo-sw,lily8,2015-04-09,for headset pop sound ,end*/
         }
         else if (channels == AUDIO_ANALOG_CHANNELS_LEFT1)
         {
@@ -1427,21 +1420,6 @@ static void Audio_Amp_Change(int channels , bool enable)
     }
     else
     {
-	/*lenovo-sw,lily8,2015-04-09,for headset pop sound ,begin*/
-	#ifdef CONFIG_LENOVO_PIEZO
-	int state = mt_get_gpio_in(GPIO_LENOVO_AUDSWITCH_PIN);//value =0,switch is connected.
-	if(state == 0)
-	{
-            	if(piezo_working_flag == false){
-			mt_set_gpio_mode(GPIO_LENOVO_AUDSWITCH_PIN, GPIO_MODE_00); //GPIO69: mode 0
-        		mt_set_gpio_pull_enable(GPIO_LENOVO_AUDSWITCH_PIN, GPIO_PULL_ENABLE);
-        		mt_set_gpio_dir(GPIO_LENOVO_AUDSWITCH_PIN, GPIO_DIR_OUT); // output
-			mt_set_gpio_out(GPIO_LENOVO_AUDSWITCH_PIN, GPIO_OUT_ONE); // high enable,disconnected
-            	}
-		printk("Audio_Switch enable(disconnected)\n");
-	}
-	#endif
-        /*lenovo-sw,lily8,2015-04-09,for headset pop sound ,end*/
         if (mCodec_data->mAudio_Ana_DevicePower[AUDIO_ANALOG_DEVICE_OUT_HEADSETL] == false &&
             mCodec_data->mAudio_Ana_DevicePower[AUDIO_ANALOG_DEVICE_OUT_HEADSETR] == false)
         {
@@ -1615,6 +1593,92 @@ static int Voice_Amp_Set(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_valu
     return 0;
 }
 
+
+/* --- [LewisChen] Add project define for separating two project  20150119 begin --------*/
+#if defined(COSMOS)
+//oliverchen add start 20140925
+static void Ext_Speaker_Amp_Change_Arima(bool enable)
+{
+    #define SPK_WARM_UP_TIME        (25) //unit is ms
+
+    if (enable)
+    {
+        printk("Ext_Speaker_Amp_Change ON+ \n");
+
+      //  printk("Ext_Speaker_Amp_Change ON set GPIO \n");
+        mt_set_gpio_mode(GPIO_EXT_SPKAMP_EN_PIN, GPIO_MODE_00); //GPIO118:  mode 0
+        mt_set_gpio_pull_enable(GPIO_EXT_SPKAMP_EN_PIN, GPIO_PULL_ENABLE);
+        mt_set_gpio_dir(GPIO_EXT_SPKAMP_EN_PIN, GPIO_DIR_OUT); // output
+        mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN, GPIO_OUT_ZERO); // low disable
+        udelay(1000);
+        mt_set_gpio_dir(GPIO_EXT_SPKAMP_EN_PIN, GPIO_DIR_OUT); // output
+
+
+
+        mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN, GPIO_OUT_ONE); // high enable
+
+
+        msleep(SPK_WARM_UP_TIME);
+
+        printk("Ext_Speaker_Amp_Change ON- \n");
+    }
+    else
+    {
+        printk("Ext_Speaker_Amp_Change OFF+ \n");
+
+        mt_set_gpio_mode(GPIO_EXT_SPKAMP_EN_PIN, GPIO_MODE_00); //GPIO117: DPI_D3, mode 0
+        mt_set_gpio_dir(GPIO_EXT_SPKAMP_EN_PIN, GPIO_DIR_OUT); // output
+        mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN, GPIO_OUT_ZERO); // low disbale
+        udelay(500);
+
+        printk("Ext_Speaker_Amp_Change OFF- \n");
+    }
+}
+//oliverchen add end 20140925
+#elif defined(LAVENDER)
+#endif
+/* --- [LewisChen] 20150119 end --------*/
+/* --- [LewisChen] Add project define for separating two project  20150119 begin --------*/
+#if defined(COSMOS)
+static void Ext_Headset_Switch_Change(bool enable)
+{
+    #define SPK_WARM_UP_TIME        (25) //unit is ms
+
+    if (enable)
+    {
+        printk("Ext_Headset_Switch_Change ON+ \n");
+
+      //  printk("Ext_Speaker_Amp_Change ON set GPIO \n");
+        mt_set_gpio_mode(Ext_Headset_Switch_EN_PIN, GPIO_MODE_00); //GPIO118:  mode 0
+        mt_set_gpio_pull_enable(Ext_Headset_Switch_EN_PIN, GPIO_PULL_ENABLE);
+        mt_set_gpio_dir(Ext_Headset_Switch_EN_PIN, GPIO_DIR_OUT); // output
+        mt_set_gpio_out(Ext_Headset_Switch_EN_PIN, GPIO_OUT_ZERO); // low disable
+        udelay(1000);
+        mt_set_gpio_dir(Ext_Headset_Switch_EN_PIN, GPIO_DIR_OUT); // output
+
+
+
+        mt_set_gpio_out(Ext_Headset_Switch_EN_PIN, GPIO_OUT_ONE); // high enable
+
+
+        msleep(SPK_WARM_UP_TIME);
+        printk("Ext_Headset_Switch_Change ON- \n");
+    }
+    else
+    {
+        printk("Ext_Headset_Switch_Change OFF+ \n");
+
+        mt_set_gpio_mode(Ext_Headset_Switch_EN_PIN, GPIO_MODE_00); //GPIO117: DPI_D3, mode 0
+        mt_set_gpio_dir(Ext_Headset_Switch_EN_PIN, GPIO_DIR_OUT); // output
+        mt_set_gpio_out(Ext_Headset_Switch_EN_PIN, GPIO_OUT_ZERO); // low disbale
+        udelay(500);
+        printk("Ext_Headset_Switch_Change OFF- \n");
+    }
+}
+#elif defined(LAVENDER)
+#endif
+/* --- [LewisChen] 20150119 end --------*/
+
 static void Speaker_Amp_Change(bool enable)
 {
     if (enable)
@@ -1695,6 +1759,12 @@ static void Speaker_Amp_Change(bool enable)
             TurnOffDacPower();
         }
     }
+/* --- [LewisChen] Add project define for separating two project  20150119 begin --------*/
+#if defined(COSMOS)
+Ext_Speaker_Amp_Change_Arima(enable);//add oliver 20140925
+#elif defined(LAVENDER)
+#endif
+/* --- [LewisChen] 20150119 end --------*/
 }
 
 static int Speaker_Amp_Get(struct snd_kcontrol *kcontrol,
@@ -1741,63 +1811,15 @@ static unsigned int pin_mode_extspkamp, pin_mode_extspkamp_2, pin_mode_vowclk, p
 #define NULL_PIN_DEFINITION    (-1)
 static void Ext_Speaker_Amp_Change(bool enable)
 {
-/*lenovo-sw,lily8,2014-11-27,for piezo speaker,begin*/
-#ifdef CONFIG_LENOVO_PIEZO
-#define SPK_WARM_UP_TIME        (25) //unit is ms
-if (enable)
-{
-        //printk("[lily8]Ext_Speaker_Amp_Change ON+ \n");
-        printk("[lily8]Ext_Speaker_Amp_Change ON set GPIO \n");
-
-	mt_set_gpio_mode(GPIO_LENOVO_AUDSWITCH_PIN, GPIO_MODE_00); //GPIO69: mode 0
-        mt_set_gpio_pull_enable(GPIO_LENOVO_AUDSWITCH_PIN, GPIO_PULL_ENABLE);
-        mt_set_gpio_dir(GPIO_LENOVO_AUDSWITCH_PIN, GPIO_DIR_OUT); // output
-	mt_set_gpio_out(GPIO_LENOVO_AUDSWITCH_PIN, GPIO_OUT_ONE); // high enable
-
-	mt_set_gpio_mode(GPIO_LENOVO_PIEZO_AUDPWR_ON_ENABLE_PIN, GPIO_MODE_00); //GPIO70: DPI_D3, mode 0
-        mt_set_gpio_pull_enable(GPIO_LENOVO_PIEZO_AUDPWR_ON_ENABLE_PIN, GPIO_PULL_ENABLE);
-        mt_set_gpio_dir(GPIO_LENOVO_PIEZO_AUDPWR_ON_ENABLE_PIN, GPIO_DIR_OUT); // output
-	mt_set_gpio_out(GPIO_LENOVO_PIEZO_AUDPWR_ON_ENABLE_PIN, GPIO_OUT_ONE); // high enable
-
-	mt_set_gpio_mode(GPIO_LENOVO_PIEZO_ENABLE_PIN, GPIO_MODE_00); //GPIO132: DPI_D3, mode 0
-        mt_set_gpio_pull_enable(GPIO_LENOVO_PIEZO_ENABLE_PIN, GPIO_PULL_ENABLE);
-        mt_set_gpio_dir(GPIO_LENOVO_PIEZO_ENABLE_PIN, GPIO_DIR_OUT); // output
-	mt_set_gpio_out(GPIO_LENOVO_PIEZO_ENABLE_PIN, GPIO_OUT_ONE); // high enable
-
-	piezo_working_flag = true;
-
-
-        msleep(SPK_WARM_UP_TIME);
-        printk("Ext_Speaker_Amp_Change ON- \n");
-    }
-else
-{
-	printk("Ext_Speaker_Amp_Change OFF+ \n");
-
-	//mt_set_gpio_mode(GPIO_EXT_SPKAMP_EN_PIN, GPIO_MODE_00); //GPIO70: DPI_D3, mode 0
-	mt_set_gpio_dir(GPIO_LENOVO_PIEZO_AUDPWR_ON_ENABLE_PIN, GPIO_DIR_OUT); // output
-	mt_set_gpio_out(GPIO_LENOVO_PIEZO_AUDPWR_ON_ENABLE_PIN, GPIO_OUT_ZERO); // low disbale
-
-	udelay(2*1000);
-
-	//mt_set_gpio_mode(GPIO_EXT_SPKAMP_EN_PIN, GPIO_MODE_00); //GPIO132: DPI_D3, mode 0
-	mt_set_gpio_dir(GPIO_LENOVO_PIEZO_ENABLE_PIN, GPIO_DIR_OUT); // output
-	mt_set_gpio_out(GPIO_LENOVO_PIEZO_ENABLE_PIN, GPIO_OUT_ZERO); // low disbale
-
-	//mt_set_gpio_mode(GPIO_LENOVO_AUDSWITCH_PIN, GPIO_MODE_00); //GPIO69: mode 0
-	mt_set_gpio_dir(GPIO_LENOVO_AUDSWITCH_PIN, GPIO_DIR_OUT); // output
-	mt_set_gpio_out(GPIO_LENOVO_AUDSWITCH_PIN, GPIO_OUT_ZERO); // low disbale
-
-	piezo_working_flag = false;
-
-	udelay(500);
-}
-
-#else
-
 #define SPK_WARM_UP_TIME        (25) //unit is ms
 
     int ret;
+/* --- [LewisChen] Add project define for separating two project  20150119 begin --------*/
+#if defined(COSMOS)
+    Ext_Speaker_Amp_Change_Arima(enable);//add oliver chen 20141210
+#elif defined(LAVENDER)
+#endif
+/* --- [LewisChen] 20150119 end --------*/
     ret = GetGPIO_Info(5, &pin_extspkamp, &pin_mode_extspkamp);
     if (ret < 0)
     {
@@ -1856,9 +1878,6 @@ else
 #endif
         printk("Ext_Speaker_Amp_Change OFF- \n");
     }
-#endif
-/*lenovo-sw,lily8,2014-11-27,for piezo speaker,end*/
-
 }
 
 #else
@@ -1943,7 +1962,6 @@ static void Ext_Speaker_Amp_Change(bool enable)
 }
 #endif
 
-
 static int Ext_Speaker_Amp_Get(struct snd_kcontrol *kcontrol,
                                struct snd_ctl_elem_value *ucontrol)
 {
@@ -1951,34 +1969,6 @@ static int Ext_Speaker_Amp_Get(struct snd_kcontrol *kcontrol,
     ucontrol->value.integer.value[0] = mCodec_data->mAudio_Ana_DevicePower[AUDIO_ANALOG_DEVICE_OUT_EXTSPKAMP] ;
     return 0;
 }
-
-#ifdef CONFIG_AIO_ROW_HEADPHONES_SWITCH
-static int headphonesState = 0;
-static int Ext_Headphones_Switch_Set(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
-{
-    printk("%s() on = %ld \n ", __func__, ucontrol->value.integer.value[0]);
-    headphonesState = ucontrol->value.integer.value[0];
-
-    mt_set_gpio_mode(GPIO69, GPIO_MODE_00);
-    mt_set_gpio_pull_enable(GPIO69, GPIO_PULL_ENABLE);
-    mt_set_gpio_dir(GPIO69, GPIO_DIR_OUT);
-    if(headphonesState){
-        mt_set_gpio_out(GPIO69, GPIO_OUT_ZERO);
-    }
-    else{
-        mt_set_gpio_out(GPIO69, GPIO_OUT_ONE);
-    }
-
-    return 0;
-}
-
-static int Ext_Headphones_Switch_Get(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
-{
-    printk("%s()\n", __func__);
-    ucontrol->value.integer.value[0] = headphonesState;
-    return 0;
-}
-#endif
 
 static int Ext_Speaker_Amp_Set(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
 {
@@ -2106,6 +2096,12 @@ static void Headset_Speaker_Amp_Change(bool enable)
         }
         EnableDcCompensation(false);
     }
+/* --- [LewisChen] Add project define for separating two project  20150119 begin --------*/
+#if defined(COSMOS)
+	Ext_Speaker_Amp_Change_Arima(enable);// DMS06064263 fix by oliverchen 20141114
+#elif defined(LAVENDER)
+#endif
+/* --- [LewisChen] 20150119 end --------*/
 }
 
 
@@ -2303,6 +2299,12 @@ static const char *DAC_DL_PGA_Handset_GAIN[] = {"8Db", "7Db", "6Db", "5Db", "4Db
 static const char *DAC_DL_PGA_Speaker_GAIN[] = {"8Db", "7Db", "6Db", "5Db", "4Db", "3Db", "2Db", "1Db", "0Db", "-1Db", "-2Db", "-3Db",
                                                 "-4Db", "-5Db", "-6Db", "-7Db", "-8Db", "-9Db", "-10Db" , "-40Db"
                                                };
+/* --- [LewisChen] Add project define for separating two project  20150119 begin --------*/
+#if defined(COSMOS)
+static const char * Earphone_info_function[] = {"Off", "On"};//oliverchen 20141216
+#elif defined(LAVENDER)
+#endif
+/* --- [LewisChen] 20150119 end --------*/
 
 //static const char *Voice_Mux_function[] = {"Voice", "Speaker"};
 
@@ -2493,6 +2495,37 @@ static int Aud_Clk_Buf_Set(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_va
     }
     return 0;
 }
+/* --- [LewisChen] Add project define for separating  two project  20150119 begin --------*/
+#if defined(COSMOS)
+//oliverchen add start 2014/12/16
+static int Ext_Earphone_Switch_Get(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+     printk("%s()\n", __func__);
+    ucontrol->value.integer.value[0] = m_ext_headset_gpio_setting ;
+return 0;
+}
+static int Ext_Earphone_Switch_Set(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+    printk("%s(), value = %d\n", __func__, ucontrol->value.enumerated.item[0]);
+	
+    if (ucontrol->value.integer.value[0])
+    {
+        printk("Headset Switch High\n");
+	Ext_Headset_Switch_Change(true);
+	m_ext_headset_gpio_setting=1;
+    }
+    else
+    {
+        printk("Headset Switch Low\n");
+	Ext_Headset_Switch_Change(false);
+	m_ext_headset_gpio_setting=0;
+    }
+    return 0;
+}
+//oliverchen add end2014/12/16
+#elif defined(LAVENDER)
+#endif
+/* --- [LewisChen] 20150119 end --------*/
 
 
 static const struct soc_enum Audio_DL_Enum[] =
@@ -2510,6 +2543,13 @@ static const struct soc_enum Audio_DL_Enum[] =
     SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(DAC_DL_PGA_Speaker_GAIN), DAC_DL_PGA_Speaker_GAIN),
     SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(aud_clk_buf_function), aud_clk_buf_function),
     SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(amp_function), amp_function),
+/* --- [LewisChen] Add project define for separating two project  20150119 begin --------*/
+#if defined(COSMOS)
+    SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(Earphone_info_function), Earphone_info_function),
+#elif defined(LAVENDER)
+#endif
+/* --- [LewisChen] 20150119 end --------*/
+
 };
 
 static const struct snd_kcontrol_new mt6331_snd_controls[] =
@@ -2526,9 +2566,12 @@ static const struct snd_kcontrol_new mt6331_snd_controls[] =
     SOC_ENUM_EXT("Lineout_PGAL_GAIN", Audio_DL_Enum[9], Lineout_PGAL_Get, Lineout_PGAL_Set),
     SOC_ENUM_EXT("AUD_CLK_BUF_Switch", Audio_DL_Enum[10], Aud_Clk_Buf_Get, Aud_Clk_Buf_Set),
     SOC_ENUM_EXT("Ext_Speaker_Amp_Switch", Audio_DL_Enum[11], Ext_Speaker_Amp_Get, Ext_Speaker_Amp_Set),
-#ifdef CONFIG_AIO_ROW_HEADPHONES_SWITCH
-    SOC_ENUM_EXT("Ext_Headphones_Switch", Audio_DL_Enum[11], Ext_Headphones_Switch_Get, Ext_Headphones_Switch_Set),
+/* --- [LewisChen] Add project define for separating two project  20150119 begin --------*/
+#if defined(COSMOS)
+    SOC_ENUM_EXT("Ext_Earphone_Switch", Audio_DL_Enum[12], Ext_Earphone_Switch_Get, Ext_Earphone_Switch_Set),//oliverchen add 20141216
+#elif defined(LAVENDER)
 #endif
+/* --- [LewisChen] 20150119 end --------*/
     SOC_SINGLE_EXT("Audio HP Impedance", SND_SOC_NOPM, 0, 512, 0, Audio_Hp_Impedance_Get, Audio_Hp_Impedance_Set),
 };
 
@@ -2627,12 +2670,13 @@ static bool TurnOnADcPowerACC(int ADCType, bool enable)
             {
                 SetDCcoupleNP(AUDIO_MIC_BIAS0, mAudio_Analog_Mic1_mode); //micbias0 DCCopuleNP
                 //Ana_Set_Reg(AUDENC_ANA_CON9, 0x0201, 0xff09); //Enable MICBIAS0, MISBIAS0 = 1P9V
-                Ana_Set_Reg(AUDENC_ANA_CON9, 0x0211, 0xff19); //Enable MICBIAS0, MISBIAS0 = 1P9V, also enable MICBIAS1 at the same time to avoid noise
+				printk("ADC1 2.5");
+                Ana_Set_Reg(AUDENC_ANA_CON9, 0x0711, 0xff19); //Enable MICBIAS0, MISBIAS0 = 1P9V, also enable MICBIAS1 at the same time to avoid noise
             }
             else if (mCodec_data->mAudio_Ana_Mux[AUDIO_MICSOURCE_MUX_IN_1] == 1) //"ADC2", headset mic
             {
                 SetDCcoupleNP(AUDIO_MIC_BIAS1, mAudio_Analog_Mic1_mode);   //micbias1 DCCopuleNP
-                Ana_Set_Reg(AUDENC_ANA_CON9, 0x0710, 0xff90); //Enable MICBIAS1, MISBIAS1 = 2P5V
+                Ana_Set_Reg(AUDENC_ANA_CON9, /*0x0710*/0x0790, 0xff90); //Enable MICBIAS1, MISBIAS1 = 2P5V////oliver
             }
             Ana_Set_Reg(AUDENC_ANA_CON15, 0x0003, 0x000f); //Audio L PGA 18 dB gain(SMT)
         }
@@ -2647,7 +2691,8 @@ static bool TurnOnADcPowerACC(int ADCType, bool enable)
             }
             else
             {
-                Ana_Set_Reg(AUDENC_ANA_CON9, 0x0211, 0xff19); //Enable MICBIAS0, MISBIAS0 = 1P9V, also enable MICBIAS1 at the same time to avoid noise
+				printk("ADC2 2.5");
+                Ana_Set_Reg(AUDENC_ANA_CON9, 0x0711, 0xff19); //Enable MICBIAS0, MISBIAS0 = 1P9V, also enable MICBIAS1 at the same time to avoid noise
             }
 
             if (refmic_using_ADC_L == false)
@@ -2720,12 +2765,13 @@ static bool TurnOnADcPowerACC(int ADCType, bool enable)
     }
     else
     {
-        if(GetMicbias == 0)
+    	  if(GetMicbias == 0)//fix DMS07723404 by oliverchen 20160504
         {
             MicbiasRef = Ana_Get_Reg(AUDENC_ANA_CON9) & 0x0700; // save current micbias ref set by accdet
             printk("MicbiasRef=0x%x \n", MicbiasRef);
             GetMicbias = 1;
         }
+        
         if (GetAdcStatus() == false)
         {
             Ana_Set_Reg(AFE_UL_SRC0_CON0_L, 0x0000, 0xffff);   //UL turn off
@@ -2955,7 +3001,7 @@ static bool TurnOnADcPowerDCC(int ADCType, bool enable)
             else if (mCodec_data->mAudio_Ana_Mux[AUDIO_MICSOURCE_MUX_IN_1] == 1) //"ADC2", headset mic
             {
                 SetDCcoupleNP(AUDIO_MIC_BIAS1, mAudio_Analog_Mic1_mode); //micbias1 DCCopuleNP
-                Ana_Set_Reg(AUDENC_ANA_CON9, 0x0710, 0xff90); //Enable MICBIAS1, MISBIAS1 = 2P5V
+                Ana_Set_Reg(AUDENC_ANA_CON9, /*0x0710*/0x0790, 0xff90); //Enable MICBIAS1, MISBIAS1 = 2P5V//oliver
                 //Ana_Set_Reg(AUDENC_ANA_CON9, 0x0770, 0xfff0); //MICBIAS1 DCC SwithP/N on //DCC
                 Ana_Set_Reg(AUDENC_ANA_CON0, 0x0004, 0xffff); //Audio L preamplifier DCC precharge
                 Ana_Set_Reg(AUDENC_ANA_CON0, 0x0085, 0xffff); //Audio L preamplifier input sel : AIN1. Enable audio L PGA
