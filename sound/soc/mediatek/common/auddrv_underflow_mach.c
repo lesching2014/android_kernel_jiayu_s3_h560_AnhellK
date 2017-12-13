@@ -80,13 +80,13 @@ void SetUnderFlowThreshold(unsigned int Threshold)
 // base on devtree name to pares dev tree.
 void Auddrv_Aee_Dump(void)
 {
-	pr_warn("+%s\n", __func__);
+	/*pr_warn("+%s\n", __func__);*/
     if(bEnableDump == true)
     {
         aee_kernel_exception_api(__FILE__, __LINE__, DB_OPT_FTRACE, "Audio is blocked", "audio blocked dump ftrace");
     }
     Auddrv_Reset_Dump_State();
-	pr_warn("-%s\n", __func__);
+	/*pr_warn("-%s\n", __func__);*/
 }
 
 
@@ -117,7 +117,7 @@ void Auddrv_Set_UnderFlow(void)
     UnderflowCounter%= UnderflowrecordNumber;
     if(UnderflowCounter > UnderflowThreshold)
     {
-        DumpUnderFlowTime();
+	/*DumpUnderFlowTime();*/
         Auddrv_Aee_Dump();
     }
 }
@@ -192,7 +192,7 @@ void Auddrv_CheckInterruptTiming(void)
 
 static void ClearInterruptTiming(void)
 {
-	pr_warn("%s\n", __func__);
+	/*pr_warn("%s\n", __func__);*/
     Irq_time_t1 = 0;
     Irq_time_t2 = 0;
 }
