@@ -20,6 +20,9 @@
 #include <linux/string.h>
 #include <linux/time.h>		/* gettimeofday */
 #include <asm-generic/bug.h>
+#ifdef CONFIG_MTK_LM_MODE
+#include <mach/memory.h>
+#endif
 
 #include "hal_btif_pub.h"
 #include "hal_btif_dma_pub.h"
@@ -90,6 +93,7 @@ these operation is not allowed in tasklet, may cause schedule_bug*/
 #define BTIF_TX_CTX BTIF_TX_USER_CTX	/* BTIF_TX_SINGLE_CTX */
 
 #define ENABLE_BTIF_RX_THREAD_RT_SCHED 0
+#define MAX_BTIF_RXD_TIME_REC 3
 
 /*Structure Defination*/
 
