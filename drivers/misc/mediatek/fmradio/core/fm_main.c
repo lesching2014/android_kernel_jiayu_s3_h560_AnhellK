@@ -24,7 +24,15 @@
 #include <asm/uaccess.h>
 #include <linux/slab.h>
 #include <mach/mtk_wcn_cmb_stub.h>
-
+//<2014/11/21-JessicaTseng, Config GPIO120 for FM antenna
+#include <mach/mt_irq.h>
+#include <mach/mtk_rtc.h>
+#include <mach/mt_gpio.h>
+#include <mach/mtk_wcn_cmb_stub.h>
+#include <mach/mt_pm_ldo.h>
+#include <fm_main.h>
+#include <fm_config.h>
+//>2014/11/21-JessicaTseng
 #include "fm_main.h"
 #include "fm_config.h"
 #include "fm_err.h"
@@ -424,6 +432,17 @@ fm_s32 fm_powerup(struct fm *fm, struct fm_tune_parm *parm)
 
 	if (FM_LOCK(fm_ops_lock))
 		return -FM_ELOCK;
+/* --- [LewisChen] Add project define for separating two project  20150119 begin --------*/
+#if defined (COSMOS)
+	//<2014/11/21-JessicaTseng, Config GPIO120 for FM antenna
+	hwPowerOn(MT6325_POWER_LDO_VTCXO1, VOL_2800, "FM_MAIN");
+	mt_set_gpio_mode(GPIO_ANT_SW_PIN, GPIO_MODE_00);
+	mt_set_gpio_dir(GPIO_ANT_SW_PIN, GPIO_DIR_OUT);
+	mt_set_gpio_out(GPIO_ANT_SW_PIN, GPIO_OUT_ZERO);
+	//>2014/11/21-JessicaTseng
+#elif defined (LAVENDER)
+#endif
+/* --- [LewisChen] 20150119 end --------*/
 
 	/* for normal case */
 	if (fm_low_ops.bi.pwron == NULL) {
@@ -475,7 +494,16 @@ fm_s32 fm_powerup(struct fm *fm, struct fm_tune_parm *parm)
 	WCN_DBG(FM_DBG | MAIN, "vol=%d!!!\n", tmp_vol);
 
 	/* fm_low_ops.bi.volset(0); */
+/* --- [LewisChen] Tune initial FM volume  20150311 begin --------*/
+#if defined(LAVENDER)
+	fm->vol = 13;
+/* --- [LewisChen] Fix FM app was hanged when plug-in headset again  20150318 begin --------*/
+	fm_low_ops.bi.volset(fm->vol);
+/* --- [LewisChen] 20150318 end --------*/
+#else
 	fm->vol = 15;
+#endif
+/* --- [LewisChen] 20150311 end --------*/
 	if (fm_low_ops.ri.rds_bci_get) {
 		fm_timer_sys->init(fm_timer_sys, fm_timer_func, (unsigned long)g_fm_struct,
 				   fm_low_ops.ri.rds_bci_get(), 0);
@@ -485,7 +513,17 @@ fm_s32 fm_powerup(struct fm *fm, struct fm_tune_parm *parm)
 		WCN_DBG(FM_NTC | MAIN, "start timer fail!!!\n");
 	}
 
-out:
+ out:
+   //Modify FM volumn init 20150310 oliverchen  start
+   #if defined (COSMOS)
+      tmp_vol = 13; 
+      fm_low_ops.bi.volset(tmp_vol); 
+      fm_low_ops.bi.volget(&tmp_vol); 
+     WCN_DBG(FM_NTC | MAIN, "vol111=%d!!!\n", tmp_vol); 
+    //add end MTK
+    #elif defined (LAVENDER)
+    #endif
+   //Modify FM volumn init 20150310 oliverchen  end
 	FM_UNLOCK(fm_ops_lock);
 	return ret;
 }
@@ -603,6 +641,14 @@ fm_s32 fm_powerdown(struct fm *fm, int type)
 		fm_low_ops.bi.pwroff(0);
 		fm->chipon = fm_false;
 	}
+/* --- [LewisChen] Add project define for separating two project  20150119 begin --------*/
+#if defined (COSMOS)
+	//<2014/11/21-JessicaTseng, Config GPIO120 for FM antenna
+	hwPowerDown(MT6325_POWER_LDO_VTCXO1, "FM_MAIN");
+	//>2014/11/21-JessicaTseng
+#elif defined (LAVENDER)
+#endif
+/* --- [LewisChen] 20150119 end --------*/
 
 	return ret;
 }

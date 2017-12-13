@@ -7,6 +7,10 @@ subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/mach/$(MTK_PLATFORM)/incl
 
 #define build_speical_fm_driver
 
+# //<2014/11/21-JessicaTseng, Config GPIO120 for FM antenna
+include $(srctree)/drivers/misc/mediatek/Makefile.custom
+# //<2014/11/21-JessicaTseng
+
 # MT6628 FM driver
 #ifeq ($(CONFIG_MTK_FM_CHIP), MT6628_FM)
 
