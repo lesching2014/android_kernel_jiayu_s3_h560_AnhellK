@@ -15,13 +15,19 @@
 #define SW_WORK_AROUND_ACCDET_REMOTE_BUTTON_ISSUE
 #define DEBUG_THREAD 1
 //#define GET_ADC_DIRECTLY
-
+//add by oliverchen 20150430 start for SAMBA
+#define PCBA_ID0		GPIO82
+#define PCBA_ID1		GPIO78
+#define PCBA_ID2		GPIO76
+#define PCBA_ID3		GPIO75
+//add by oliverchen 20150430 end for SAMBA
 /*----------------------------------------------------------------------
 static variable defination
 ----------------------------------------------------------------------*/
 
 #define REGISTER_VALUE(x)   (x - 1)
 
+#define KEY_APP  259 //add for arima 2014.9.29
 
 static int button_press_debounce = 0x400;
 
@@ -641,7 +647,7 @@ static inline int accdet_setup_eint(void)
 		accdet_irq = irq_of_parse_and_map(node,0);
 		ret = request_irq(accdet_irq,accdet_eint_func,IRQF_TRIGGER_NONE,"ACCDET-eint",NULL);
 		if(ret>0){
-            ACCDET_DEBUG("[Accdet]EINT IRQ LINE£NNOT AVAILABLE\n");
+            ACCDET_DEBUG("[Accdet]EINT IRQ LINEï¿½NNOT AVAILABLE\n");
 		}
 	}
 	else {
@@ -669,7 +675,7 @@ extern int PMIC_IMM_GetOneChannelValue(int dwChannel, int deCount, int trimd);
 #define UP_KEY			 (0x01)
 #define MD_KEY		  	 (0x02)
 #define DW_KEY			 (0x04)
-#define AS_KEY			 (0x08)
+#define APP_KEY			 (0x08) //add for arima 2014.9.29
 
 static DEFINE_MUTEX(accdet_multikey_mutex);
 
@@ -684,7 +690,8 @@ static DEFINE_MUTEX(accdet_multikey_mutex);
 */
 
 #define DW_KEY_HIGH_THR	 (500) //0.50v=500000uv
-#define DW_KEY_THR		 (220) //0.22v=220000uv
+#define APP_KEY_THR 	 (400) //ADD FOR ARIMA 2014.9.29
+#define DW_KEY_THR		 (200) // modify for arima 2014.9.29 (220) //0.22v=220000uv
 #define UP_KEY_THR       (80) //0.08v=80000uv
 #define MD_KEY_THR		 (0)
 
@@ -692,13 +699,26 @@ static int key_check(int b)
 {
 	//ACCDET_DEBUG("adc_data: %d v\n",b);
 	
+#if 1	// modify for arima 2014.9.29
+	if((b<DW_KEY_HIGH_THR)&&(b >= APP_KEY_THR)) 
+	{
+		//ACCDET_DEBUG("adc_data: %d mv\n",b);
+		return APP_KEY;
+	}
+	else if((b<APP_KEY_THR) && (b>=DW_KEY_THR))
+	{
+		//ACCDET_DEBUG("adc_data: %d mv\n",b);
+		return DW_KEY;
+	}
+#else
 	/* 0.24V ~ */
 	ACCDET_DEBUG("[accdet] come in key_check!!\n");
 	if((b<DW_KEY_HIGH_THR)&&(b >= DW_KEY_THR)) 
 	{
 		ACCDET_DEBUG("[accdet]adc_data: %d mv\n",b);
 		return DW_KEY;
-	} 
+	}
+#endif
 	else if ((b < DW_KEY_THR)&& (b >= UP_KEY_THR))
 	{
 		ACCDET_DEBUG("[accdet]adc_data: %d mv\n",b);
@@ -778,6 +798,13 @@ static void send_key_event(int keycode,int flag)
 		input_sync(kpd_accdet_dev);
 		ACCDET_DEBUG("[accdet]KEY_PLAYPAUSE %d\n",flag);
 		break;
+		//oliver add appkey start 20150122
+	 case APP_KEY:
+	 	input_report_key(kpd_accdet_dev, KEY_APP, flag);
+		input_sync(kpd_accdet_dev);
+		ACCDET_DEBUG("[accdet]KEY_APP %d\n",flag);
+		break;
+		//oliver add appkey end 20150122
 #ifdef FOUR_KEY_HEADSET
 	case AS_KEY:
 		input_report_key(kpd_accdet_dev, KEY_VOICECOMMAND, flag);
@@ -956,8 +983,12 @@ static inline void check_cable_type(void)
 					{
 						mutex_lock(&accdet_eint_irq_sync_mutex);
 						if(1 == eint_accdet_sync_flag) {
-						cable_type = HEADSET_NO_MIC;
-						accdet_status = HOOK_SWITCH;
+//<2014/11/26-ricehuang, [FP19378] Unsupported wired accessory								
+						//cable_type = HEADSET_NO_MIC;
+						//accdet_status = HOOK_SWITCH;
+						cable_type = HEADSET_ILEGAL;
+						accdet_status = DEVICE_UNSUPPORT;		
+//>2014/11/26-ricehuang							
 						cable_pin_recognition = 1;
 						ACCDET_DEBUG("[Accdet] cable_pin_recognition = %d\n", cable_pin_recognition);
 						}else {
@@ -1249,6 +1280,19 @@ static inline void check_cable_type(void)
 		ACCDET_DEBUG("[Accdet]cable type:[%s], status switch:[%s]->[%s]\n",
         accdet_report_string[cable_type], accdet_status_string[pre_status], 
         accdet_status_string[accdet_status]);
+		//add by oliverchen 20150430 start for SAMBA
+	if((true == mt_get_gpio_in(PCBA_ID0)) && (false == mt_get_gpio_in(PCBA_ID1)) && (false == mt_get_gpio_in(PCBA_ID2)) && (true == mt_get_gpio_in(PCBA_ID3)))
+	{       
+	if((cable_type==1)||(cable_type==2)){
+		if(((pre_status==1)||(pre_status==2)) && (accdet_status==0) )
+		{
+			//disable_accdet();			   
+			headset_plug_out();
+			ACCDET_DEBUG("[Accdet]DTV_headset_plug_out!\n");
+		}
+		}
+	}
+	  //add by oliverchen 20150430 end for SAMBA
 } 
 static void accdet_work_callback(struct work_struct *work)
 {
@@ -1291,7 +1335,7 @@ static inline void accdet_init(void)
     // init the debounce time
    #ifdef ACCDET_PIN_RECOGNIZATION
     pmic_pwrap_write(ACCDET_DEBOUNCE0, cust_headset_settings->debounce0);
-    pmic_pwrap_write(ACCDET_DEBOUNCE1, 0xFFFF);
+    pmic_pwrap_write(ACCDET_DEBOUNCE1, 0x7FFF/*0xFFFF*/);//2s->1s fix DMS06229494/DMS06429206 by oliverchen 20150908 
     pmic_pwrap_write(ACCDET_DEBOUNCE3, cust_headset_settings->debounce3);	
 	pmic_pwrap_write(ACCDET_DEBOUNCE4, ACCDET_DE4);	
    #else
@@ -1314,6 +1358,11 @@ static inline void accdet_init(void)
    	//pmic_pwrap_write(ACCDET_ADC_REG, pmic_pwrap_read(ACCDET_ADC_REG)|(ACCDET_MIC_VOL<<8));
     mt6325_upmu_set_rg_audmicbiasvref(ACCDET_MIC_VOL);
    mt6325_upmu_set_rg_audmicbiaslowpen(1);
+   /* --- [LewisChen] Modifying Inner MicBias voltage from 2.5V to 2.7V 20150515 begin --------*/
+   #ifdef INNER_MICBIAS_VOL
+   	mt6325_upmu_set_rg_audmicbias1bypassen(1);
+   #endif
+   /* --- [LewisChen] 20150515 end --------*/
    #else
    	pmic_pwrap_write(ACCDET_ADC_REG, 0x068F);//for wqhd project
    #endif
@@ -1633,7 +1682,9 @@ int mt_accdet_probe(void)
 	__set_bit(KEY_PLAYPAUSE, kpd_accdet_dev->keybit);
 	__set_bit(KEY_STOPCD, kpd_accdet_dev->keybit);
 	__set_bit(KEY_VOLUMEDOWN, kpd_accdet_dev->keybit);
-	__set_bit(KEY_VOLUMEUP, kpd_accdet_dev->keybit);
+    __set_bit(KEY_VOLUMEUP, kpd_accdet_dev->keybit);
+     __set_bit(KEY_APP, kpd_accdet_dev->keybit); //add by oliverchen 20141020
+	
 #ifdef FOUR_KEY_HEADSET
 	__set_bit(KEY_VOICECOMMAND, kpd_accdet_dev->keybit);
 #endif	

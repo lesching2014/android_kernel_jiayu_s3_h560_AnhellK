@@ -66,7 +66,9 @@ enum accdet_report_state
     NO_DEVICE =0,
     HEADSET_MIC = 1,
     HEADSET_NO_MIC = 2,
-    //HEADSET_ILEGAL = 3,
+//<2014/11/26-ricehuang, [FP19378] Unsupported wired accessory	
+    HEADSET_ILEGAL = 3,    
+//>2014/11/26-ricehuang	
     //DOUBLE_CHECK_TV = 4
 };
 
@@ -78,6 +80,9 @@ enum accdet_status
     HOOK_SWITCH = 2,
     //MIC_BIAS_ILLEGAL =3,
     //TV_OUT = 5,
+//<2014/11/26-ricehuang, [FP19378] Unsupported wired accessory	    
+    DEVICE_UNSUPPORT = 3,
+//>2014/11/26-ricehuang	     
     STAND_BY =4
 };
 
@@ -88,6 +93,9 @@ char *accdet_status_string[5]=
     //"Double_check",
     "Hook_switch",
     //"Tvout_plug_in",
+//<2014/11/26-ricehuang, [FP19378] Unsupported wired accessory	       
+    "DEVICE_UNSUPPORT",
+//>2014/11/26-ricehuang	      
     "Stand_by"
 };
 
@@ -96,7 +104,9 @@ char *accdet_report_string[4]=
     "No_device",
     "Headset_mic",
     "Headset_no_mic",
-    //"HEADSET_illegal",
+//<2014/11/26-ricehuang, [FP19378] Unsupported wired accessory	 
+    "HEADSET_illegal",
+ //>2014/11/26-ricehuang	       
    // "Double_check"
 };
 
