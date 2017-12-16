@@ -32,13 +32,9 @@
  *   Chipeng Chang (mtk02308)
  *
  *------------------------------------------------------------------------------
- * $Revision: #1 $
- * $Modtime:$
- * $Log:$
  *
  *
  *******************************************************************************/
-
 #include <linux/aee.h>
 
 void SetUnderFlowThreshold(unsigned int Threshold);
@@ -51,4 +47,3 @@ void RefineInterrruptInterval(void);
 bool Auddrv_Set_DlSamplerate(unsigned int Samplerate);
 bool Auddrv_Set_InterruptSample(unsigned int count);
 bool Auddrv_Enable_dump(bool bEnable);
-

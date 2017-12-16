@@ -32,9 +32,6 @@
  *   Chipeng Chang
  *
  *------------------------------------------------------------------------------
- * $Revision: #1 $
- * $Modtime:$
- * $Log:$
  *
  *
  *******************************************************************************/
@@ -100,42 +97,38 @@
 #define AUDDRV_AUD_DATOGPIO       "audmopi-gpio"
 
 
-enum Auddrv_I2S_NUMBER
-{
-    Auddrv_I2S0_Setting=0,
-    Auddrv_I2S1_Setting,
-    Auddrv_I2S2_Setting,
-    Auddrv_I2S3_Setting,
-    Auddrv_I2S_Num,
+enum Auddrv_I2S_NUMBER {
+	Auddrv_I2S0_Setting = 0,
+	Auddrv_I2S1_Setting,
+	Auddrv_I2S2_Setting,
+	Auddrv_I2S3_Setting,
+	Auddrv_I2S_Num,
 };
 
 
-enum Auddrv_I2S_Setting
-{
-    Auddrv_I2S_Setting_ws =0,
-    Auddrv_I2S_Setting_bck,
-    Auddrv_I2S_Setting_D00,
-    Auddrv_I2S_Setting_D01,
-    Auddrv_I2S_Setting_I00,
-    Auddrv_I2S_Setting_I01,
-    Auddrv_I2S_Setting_Mclk,
-    Auddrv_I2S_Attribute_Num
+enum Auddrv_I2S_Setting {
+	Auddrv_I2S_Setting_ws = 0,
+	Auddrv_I2S_Setting_bck,
+	Auddrv_I2S_Setting_D00,
+	Auddrv_I2S_Setting_D01,
+	Auddrv_I2S_Setting_I00,
+	Auddrv_I2S_Setting_I01,
+	Auddrv_I2S_Setting_Mclk,
+	Auddrv_I2S_Attribute_Num
 };
 
 
-enum Auddrv_CLK_Setting
-{
-    Auddrv_CLK_Mosi  = 0 ,
-    Auddrv_DataIn1_Mosi  ,
-    Auddrv_DataOut1_Mosi ,
-    Auddrv_Attribute_num ,
+enum Auddrv_CLK_Setting {
+	Auddrv_CLK_Mosi = 0,
+	Auddrv_DataIn1_Mosi,
+	Auddrv_DataOut1_Mosi,
+	Auddrv_Attribute_num,
 };
 
 
-typedef struct
-{
-    unsigned int  Gpio_Number;
-    unsigned int  Gpio_Mode;
+typedef struct {
+	unsigned int Gpio_Number;
+	unsigned int Gpio_Mode;
 } AUDDRV_I2S_ATTRIBUTE;
 
 void Auddrv_Devtree_Init(void);
@@ -144,5 +137,3 @@ void Auddrv_Devtree_Dump(void);
 AUDDRV_I2S_ATTRIBUTE *GetI2SSetting(uint32_t I2S_Number, uint32_t I2S_Setting);
 
 #endif
-
-
