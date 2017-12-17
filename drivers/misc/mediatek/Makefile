@@ -46,6 +46,7 @@ obj-$(CONFIG_MTK_ETM)   += etm/
 obj-y	+= mach/
 obj-$(CONFIG_MTK_MEM)	+= mem/
 obj-y	+= kernel/
+obj-y	+= aee/
 obj-$(CONFIG_MTK_EMI_MPU)	+= emi_mpu/
 obj-$(CONFIG_MTK_EMI_BWL)	+= emi_bwl/
 
