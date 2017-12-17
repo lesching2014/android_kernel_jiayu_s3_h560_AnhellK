@@ -789,20 +789,7 @@ static kal_int32 read_adc_v_bat_temp(void *data)
     return STATUS_OK;
 }
 
-/*lenovo-sw jixj 2014.10.16 add begin for get battery temperature*/
-extern int BattVoltToTempForMeta(int dwVolt);
-int get_battery_temp(void)
-{
-    int bat_temperature_volt=2;
-    int bat_temperature_val=0;
-    int ret = 0;
-    ret = read_adc_v_bat_temp(&bat_temperature_volt);
-    bat_temperature_val = BattVoltToTempForMeta(bat_temperature_volt);
-    return bat_temperature_val;
-}
 
-EXPORT_SYMBOL(get_battery_temp);
-/*lenovo-sw jixj 2014.10.16 add end*/
 
 static kal_int32 read_adc_v_charger(void *data)
 {
