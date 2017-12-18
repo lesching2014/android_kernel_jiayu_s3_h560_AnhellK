@@ -70,8 +70,8 @@
 #include <linux/cpumask.h>
 #include <linux/kernel_stat.h>
 #include <linux/tick.h>
+#include <linux/blkdev.h>
 
-#define FEATURE_STORAGE_PERF_INDEX
 
 
 MODULE_ALIAS("mmc:block");
