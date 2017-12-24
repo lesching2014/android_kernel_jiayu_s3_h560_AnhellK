@@ -22,6 +22,13 @@ KBUILD_DEFCONFIG := defconfig
 KBUILD_CFLAGS	+= -mgeneral-regs-only
 KBUILD_CFLAGS	+= -fno-pic
 KBUILD_CPPFLAGS	+= -mlittle-endian
+KBUILD_CFLAGS	+= -Wno-error=format-overflow
+KBUILD_CFLAGS	+= -Wno-error=array-bounds
+KBUILD_CFLAGS	+= -Wno-error=format-truncation
+KBUILD_CFLAGS	+= -Wno-error=logical-not-parentheses
+KBUILD_CFLAGS	+= -Wno-error=discarded-array-qualifiers
+KBUILD_CFLAGS	+= -Wno-error=bool-compare
+KBUILD_CFLAGS	+= -Wno-error=misleading-indentation
 AS		+= -EL
 LD		+= -EL
 
