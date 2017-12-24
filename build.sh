@@ -2,7 +2,7 @@
 CURRENT_DIR=$PWD
 export ARCH=arm64
 export SUBARCH=arm
-export CROSS_COMPILE=/home/sandstranger/Android/utility/gcc-linaro-5.5.0-2017.10-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-
+export CROSS_COMPILE=/home/sandstranger/Android/utility/gcc-linaro-7.2.1-2017.11-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-
 make clean
 make mrproper
 make h560_defconfig
