@@ -29,6 +29,7 @@ KBUILD_CFLAGS	+= -Wno-error=logical-not-parentheses
 KBUILD_CFLAGS	+= -Wno-error=discarded-array-qualifiers
 KBUILD_CFLAGS	+= -Wno-error=bool-compare
 KBUILD_CFLAGS	+= -Wno-error=misleading-indentation
+KBUILD_CFLAGS	+= -Wno-error=implicit-function-declaration
 AS		+= -EL
 LD		+= -EL
 
