@@ -2225,10 +2225,10 @@ static struct wireless_dev *wlanNetCreate(PVOID pvData)
 #if defined(CONFIG_MTK_COMBO_AOSP_TETHERING_SUPPORT)
 	if (wlan_if_changed) {
 		prGlueInfo->prDevHandler =
-		    alloc_netdev_mq(sizeof(NETDEV_PRIVATE_GLUE_INFO), NIC_INF_NAME_IN_AP_MODE, ether_setup, CFG_MAX_TXQ_NUM);
+		    alloc_netdev_mq(sizeof(P_GLUE_INFO_T), NIC_INF_NAME_IN_AP_MODE, ether_setup, CFG_MAX_TXQ_NUM);
 	} else {
 		prGlueInfo->prDevHandler =
-		    alloc_netdev_mq(sizeof(NETDEV_PRIVATE_GLUE_INFO), NIC_INF_NAME, ether_setup, CFG_MAX_TXQ_NUM);
+		    alloc_netdev_mq(sizeof(P_GLUE_INFO_T), NIC_INF_NAME, ether_setup, CFG_MAX_TXQ_NUM);
 	}
 #else
 	prGlueInfo->prDevHandler =
