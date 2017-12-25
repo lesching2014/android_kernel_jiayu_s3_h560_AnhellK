@@ -30,6 +30,7 @@ KBUILD_CFLAGS	+= -Wno-error=discarded-array-qualifiers
 KBUILD_CFLAGS	+= -Wno-error=bool-compare
 KBUILD_CFLAGS	+= -Wno-error=misleading-indentation
 KBUILD_CFLAGS	+= -Wno-error=implicit-function-declaration
+KBUILD_CFLAGS	+= -Wno-error=int-to-pointer-cast
 AS		+= -EL
 LD		+= -EL
 
