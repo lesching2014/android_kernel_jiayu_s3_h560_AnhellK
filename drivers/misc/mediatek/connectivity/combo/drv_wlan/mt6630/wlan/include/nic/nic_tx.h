@@ -505,7 +505,7 @@
 #define NIC_TX_DESC_DRIVER_PID_MIN              1
 #define NIC_TX_DESC_DRIVER_PID_MAX              127
 
-#define NIC_TX_DATA_DEFAULT_RETRY_COUNT_LIMIT   30
+#define NIC_TX_DATA_DEFAULT_RETRY_COUNT_LIMIT   7
 #define NIC_TX_MGMT_DEFAULT_RETRY_COUNT_LIMIT   30
 
 #define NIC_TX_AC_BE_REMAINING_TX_TIME          TX_DESC_TX_TIME_NO_LIMIT	/* in unit of ms */
@@ -653,9 +653,6 @@
 #if CFG_ENABLE_PKT_LIFETIME_PROFILE
 #define NIC_TX_TIME_THRESHOLD                       100	/* in unit of ms */
 #endif
-
-#define HAL_MAC_TX_DESC_SET_FIX_RATE(_BssInfo) \
-	(((_BssInfo->u2HwDefaultFixedRateCode << 2) & TX_DESC_FIXDE_RATE_MASK) << 16)
 
 /*******************************************************************************
 *                             D A T A   T Y P E S
@@ -1012,12 +1009,6 @@ struct _MSDU_INFO_T {
 	/* Compose TxDesc in tx_thread and place here */
 	UINT_8 aucTxDescBuffer[NIC_TX_DESC_AND_PADDING_LENGTH];
 #endif
-#if CFG_DBG_MGT_BUF
-	BOOLEAN                     fgIsUsed;
-	OS_SYSTIME                  rLastAllocTime;
-	OS_SYSTIME                  rLastFreeTime;
-#endif
-
 };
 
 /*!A data structure which is identical with HW MAC TX DMA Descriptor */

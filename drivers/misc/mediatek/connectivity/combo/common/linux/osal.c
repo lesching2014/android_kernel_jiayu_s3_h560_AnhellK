@@ -88,7 +88,7 @@ static UINT16 const crc16_table[256] = {
 };
 
 
-INT32 ftrace_flag = 0;
+
 
 /*******************************************************************************
 *                  F U N C T I O N   D E C L A R A T I O N S
@@ -462,26 +462,28 @@ osal_signal_deinit (
 
 INT32 osal_event_init(P_OSAL_EVENT pEvent)
 {
-	if (pEvent) {
-		init_waitqueue_head(&pEvent->waitQueue);
-		return 0;
-	}
-	return -1;
+	if(pEvent)
+	{
+    	init_waitqueue_head(&pEvent->waitQueue);    
+    	return 0;
+	}else
+		return -1;
 }
 
 INT32 osal_wait_for_event(P_OSAL_EVENT pEvent, INT32(*condition) (PVOID), PVOID cond_pa)
 {
-	if (pEvent)
-		return  wait_event_interruptible(pEvent->waitQueue, condition(cond_pa));
-	return -1;
+	if(pEvent)
+    	return  wait_event_interruptible(pEvent->waitQueue, condition(cond_pa)); 
+	else
+		return -1;
 }
 
 INT32 osal_wait_for_event_timeout(P_OSAL_EVENT pEvent, INT32(*condition) (PVOID), PVOID cond_pa)
 {
-	if (pEvent)
-		return wait_event_interruptible_timeout(pEvent->waitQueue,
-			condition(cond_pa), msecs_to_jiffies(pEvent->timeoutValue));
-	return -1;
+	if(pEvent)
+    	return wait_event_interruptible_timeout(pEvent->waitQueue, condition(cond_pa), msecs_to_jiffies(pEvent->timeoutValue));
+	else
+		return -1;
 }
 
 INT32 osal_trigger_event(P_OSAL_EVENT pEvent)
@@ -1218,32 +1220,4 @@ VOID osal_op_raise_signal(P_OSAL_OP pOp, INT32 result)
 		pOp->result = result;
 		osal_raise_signal(&pOp->signal);
 	}
-}
-
-INT32 osal_ftrace_print(const PINT8 str, ...)
-{
-#ifdef CONFIG_TRACING
-	va_list args;
-	INT8 tempString[DBG_LOG_STR_SIZE];
-
-	if (ftrace_flag) {
-		va_start(args, str);
-		vsnprintf(tempString, DBG_LOG_STR_SIZE, str, args);
-		va_end(args);
-
-		trace_printk("%s\n", tempString);
-	}
-#endif
-	return 0;
-}
-
-INT32 osal_ftrace_print_ctrl(INT32 flag)
-{
-#ifdef CONFIG_TRACING
-	if (flag)
-		ftrace_flag = 1;
-	else
-		ftrace_flag = 0;
-#endif
-	return 0;
 }

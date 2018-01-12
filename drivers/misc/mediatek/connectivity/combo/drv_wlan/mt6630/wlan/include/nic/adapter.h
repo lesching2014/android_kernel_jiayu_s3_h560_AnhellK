@@ -1327,7 +1327,6 @@ typedef struct _WIFI_VAR_T {
 	UINT_8 ucStaHtBfee;
 	UINT_8 ucStaVhtBfee;
 	UINT_8 ucStaBfer;
-	UINT_8 ucStaVhtMuBfee;
 
 	UINT_8 ucApWpsMode;
 	UINT_8 ucApChannel;
@@ -1338,8 +1337,7 @@ typedef struct _WIFI_VAR_T {
 	UINT_8 ucStaBandwidth;
 	UINT_8 ucSta5gBandwidth;
 	UINT_8 ucSta2gBandwidth;
-	UINT_8 ucAp5gBandwidth;
-	UINT_8 ucAp2gBandwidth;
+	UINT_8 ucApBandwidth;
 	UINT_8 ucP2p5gBandwidth;
 	UINT_8 ucP2p2gBandwidth;
 
@@ -1387,7 +1385,7 @@ typedef struct _WIFI_VAR_T {
 	UINT_32 u4StatsLogDuration;
 	UINT_8 ucDhcpTxDone;
 	UINT_8 ucArpTxDone;
-	UINT_8 ucIcmpTxDone;
+
 } WIFI_VAR_T, *P_WIFI_VAR_T;	/* end of _WIFI_VAR_T */
 
 /* cnm_timer module */

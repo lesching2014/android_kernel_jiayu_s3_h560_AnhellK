@@ -1309,7 +1309,6 @@ VOID aisFsmInit(IN P_ADAPTER_T prAdapter)
 #endif /* CFG_SUPPORT_ROAMING */
 	prAisFsmInfo->fgIsChannelRequested = FALSE;
 	prAisFsmInfo->fgIsChannelGranted = FALSE;
-	prAisFsmInfo->u4PostponeIndStartTime = 0;
 
 	/* 4 <1.1> Initiate FSM - Timer INIT */
 	cnmTimerInitTimer(prAdapter,
@@ -1319,6 +1318,10 @@ VOID aisFsmInit(IN P_ADAPTER_T prAdapter)
 	cnmTimerInitTimer(prAdapter,
 			  &prAisFsmInfo->rIbssAloneTimer,
 			  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventIbssAloneTimeOut, (ULONG) NULL);
+
+	cnmTimerInitTimer(prAdapter,
+			  &prAisFsmInfo->rIndicationOfDisconnectTimer,
+			  (PFN_MGMT_TIMEOUT_FUNC) aisPostponedEventOfDisconnTimeout, (ULONG) NULL);
 
 	cnmTimerInitTimer(prAdapter,
 			  &prAisFsmInfo->rScanDoneTimer,
@@ -1412,9 +1415,9 @@ VOID aisFsmUninit(IN P_ADAPTER_T prAdapter)
 	/* 4 <1> Stop all timers */
 	cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rBGScanTimer);
 	cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rIbssAloneTimer);
+	cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rIndicationOfDisconnectTimer);
 	cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rJoinTimeoutTimer);
 	cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rScanDoneTimer);
-	cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rDeauthDoneTimer);
 
 	/* 4 <2> flush pending request */
 	aisFsmFlushRequest(prAdapter);
@@ -1911,8 +1914,6 @@ VOID aisFsmSteps(IN P_ADAPTER_T prAdapter, ENUM_AIS_STATE_T eNextState)
 
 		fgIsTransition = (BOOLEAN) FALSE;
 
-		aisCheckPostponedDisconnTimeout(prAdapter, prAisFsmInfo);
-
 		/* Do tasks of the State that we just entered */
 		switch (prAisFsmInfo->eCurrentState) {
 			/* NOTE(Kevin): we don't have to rearrange the sequence of following
@@ -1929,12 +1930,12 @@ VOID aisFsmSteps(IN P_ADAPTER_T prAdapter, ENUM_AIS_STATE_T eNextState)
 				    prConnSettings->fgIsDisconnectedByNonRequest == FALSE) {
 
 					prAisFsmInfo->fgTryScan = TRUE;
-					if (!IS_NET_ACTIVE(prAdapter, prAdapter->prAisBssInfo->ucBssIndex)) {
-						SET_NET_ACTIVE(prAdapter, prAdapter->prAisBssInfo->ucBssIndex);
-						/* sync with firmware */
-						nicActivateNetwork(prAdapter, prAdapter->prAisBssInfo->ucBssIndex);
-					}
+
+					SET_NET_ACTIVE(prAdapter, prAdapter->prAisBssInfo->ucBssIndex);
 					SET_NET_PWR_STATE_ACTIVE(prAdapter, prAdapter->prAisBssInfo->ucBssIndex);
+
+					/* sync with firmware */
+					nicActivateNetwork(prAdapter, prAdapter->prAisBssInfo->ucBssIndex);
 					prAisBssInfo->fgIsNetRequestInActive = FALSE;
 
 					/* reset trial count */
@@ -2655,7 +2656,7 @@ VOID aisFsmRunEventAbort(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
 	}
 
 	/* to support user space triggered roaming */
-	if (ucReasonOfDisconnect == DISCONNECT_REASON_CODE_ROAMING &&
+	if (ucReasonOfDisconnect == DISCONNECT_REASON_CODE_REASSOCIATION &&
 	    prAisFsmInfo->eCurrentState != AIS_STATE_DISCONNECTING) {
 
 		if (prAisFsmInfo->eCurrentState == AIS_STATE_NORMAL_TR &&
@@ -3328,7 +3329,7 @@ aisIndicationOfMediaStateToHost(IN P_ADAPTER_T prAdapter,
 
 	if (!fgDelayIndication) {
 		/* 4 <0> Cancel Delay Timer */
-		prAisFsmInfo->u4PostponeIndStartTime = 0;
+		cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rIndicationOfDisconnectTimer);
 
 		/* 4 <1> Fill EVENT_CONNECTION_STATUS */
 		rEventConnStatus.ucMediaStatus = (UINT_8) eConnectionState;
@@ -3390,7 +3391,9 @@ aisIndicationOfMediaStateToHost(IN P_ADAPTER_T prAdapter,
 		DBGLOG(AIS, INFO, "Postpone the indication of Disconnect for %d seconds\n",
 				   prConnSettings->ucDelayTimeOfDisconnectEvent);
 
-		prAisFsmInfo->u4PostponeIndStartTime = kalGetTimeTick();
+		cnmTimerStartTimer(prAdapter,
+				   &prAisFsmInfo->rIndicationOfDisconnectTimer,
+				   SEC_TO_MSEC(prConnSettings->ucDelayTimeOfDisconnectEvent));
 	}
 
 	return;
@@ -3405,29 +3408,13 @@ aisIndicationOfMediaStateToHost(IN P_ADAPTER_T prAdapter,
 * @return (none)
 */
 /*----------------------------------------------------------------------------*/
-VOID aisCheckPostponedDisconnTimeout(IN P_ADAPTER_T prAdapter, P_AIS_FSM_INFO_T prAisFsmInfo)
+VOID aisPostponedEventOfDisconnTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParamPtr)
 {
 	P_BSS_INFO_T prAisBssInfo;
 	P_CONNECTION_SETTINGS_T prConnSettings;
-	BOOLEAN fgFound = TRUE;
-
-	/* firstly, check if we have started postpone indication.
-		otherwise, give a chance to do join before indicate to host */
-	if (prAisFsmInfo->u4PostponeIndStartTime == 0)
-		return;
-
-	/* if we're in	req channel/join/search state, don't report disconnect. */
-	if (prAisFsmInfo->eCurrentState == AIS_STATE_JOIN ||
-		prAisFsmInfo->eCurrentState == AIS_STATE_SEARCH ||
-		prAisFsmInfo->eCurrentState == AIS_STATE_REQ_CHANNEL_JOIN)
-		return;
 
 	prAisBssInfo = prAdapter->prAisBssInfo;
 	prConnSettings = &(prAdapter->rWifiVar.rConnSettings);
-
-	if (!CHECK_FOR_TIMEOUT(kalGetTimeTick(), prAisFsmInfo->u4PostponeIndStartTime,
-			SEC_TO_MSEC(prConnSettings->ucDelayTimeOfDisconnectEvent)))
-		return;
 
 	/* 4 <1> Deactivate previous AP's STA_RECORD_T in Driver if have. */
 	if (prAisBssInfo->prStaRecOfAP) {
@@ -3435,12 +3422,8 @@ VOID aisCheckPostponedDisconnTimeout(IN P_ADAPTER_T prAdapter, P_AIS_FSM_INFO_T 
 
 		prAisBssInfo->prStaRecOfAP = (P_STA_RECORD_T) NULL;
 	}
-	/* 4 <2> Remove all pending connection request */
-	while (fgFound)
-		fgFound = aisFsmIsRequestPending(prAdapter, AIS_REQUEST_RECONNECT, TRUE);
-
-	if (prAisFsmInfo->eCurrentState == AIS_STATE_LOOKING_FOR)
-		prAisFsmInfo->eCurrentState = AIS_STATE_IDLE;
+	/* 4 <2> Remove pending connection request */
+	aisFsmIsRequestPending(prAdapter, AIS_REQUEST_RECONNECT, TRUE);
 	prConnSettings->fgIsDisconnectedByNonRequest = TRUE;
 	prAisBssInfo->u2DeauthReason = REASON_CODE_BEACON_TIMEOUT;
 	/* 4 <3> Indicate Disconnected Event to Host immediately. */
@@ -4588,15 +4571,14 @@ VOID aisFsmRunEventRoamingDiscovery(IN P_ADAPTER_T prAdapter, UINT_32 u4ReqScan)
 	prConnSettings->eConnectionPolicy = CONNECT_BY_SSID_BEST_RSSI;
 
 	/* TODO: Stop roaming event in FW */
-#if CFG_SUPPORT_WFD
+#if (CFG_SUPPORT_WFD && 0)
 #if CFG_ENABLE_WIFI_DIRECT
 	{
 		/* Check WFD is running */
 		P_WFD_CFG_SETTINGS_T prWfdCfgSettings = (P_WFD_CFG_SETTINGS_T) NULL;
 		prWfdCfgSettings = &(prAdapter->rWifiVar.rWfdConfigureSettings);
 		if ((prWfdCfgSettings->ucWfdEnable != 0)) {
-			DBGLOG(ROAMING, INFO, "WFD is running. Stop roaming. [WfdEnable:%u]\n",
-					prWfdCfgSettings->ucWfdEnable);
+			DBGLOG(ROAMING, INFO, "WFD is running. Stop roaming.\n");
 			roamingFsmRunEventRoam(prAdapter);
 			roamingFsmRunEventFail(prAdapter, ROAMING_FAIL_REASON_NOCANDIDATE);
 			return;

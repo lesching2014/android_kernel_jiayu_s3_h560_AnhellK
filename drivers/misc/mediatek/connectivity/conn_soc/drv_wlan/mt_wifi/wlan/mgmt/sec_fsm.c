@@ -179,7 +179,8 @@
 *                           P R I V A T E   D A T A
 ********************************************************************************
 */
-#if DBG
+/*lenovo-sw lumy1, wifi log enhance*/
+#if 1
 /*lint -save -e64 Type mismatch */
 static PUINT_8 apucDebugSecState[SEC_STATE_NUM] = {
 	(PUINT_8) DISP_STRING("SEC_STATE_INIT"),
@@ -504,14 +505,19 @@ VOID secFsmSteps(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta, IN ENUM_SEC_
 		/* Do entering Next State */
 		prSecInfo->ePreviousState = prSecInfo->eCurrentState;
 
-		/* Do entering Next State */
-#if DBG
-		DBGLOG(RSN, STATE, "\n %pM TRANSITION: [%s] -> [%s]\n\n",
-				    prSta->aucMacAddr,
-				    apucDebugSecState[prSecInfo->eCurrentState], apucDebugSecState[eNextState]);
+        /* Do entering Next State */
+/*lenovo-sw lumy1, wifi log enhance*/
+#if 1
+        DBGLOG(RSN, STATE, MACSTR" TRANSITION: [%s] -> [%s]\n\n",
+                            MAC2STR(prSta->aucMacAddr),
+                            apucDebugSecState[prSecInfo->eCurrentState],
+                            apucDebugSecState[eNextState]);
 #else
-		DBGLOG(RSN, STATE, "\n %pM [%d] TRANSITION: [%d] -> [%d]\n\n",
-				    prSta->aucMacAddr, DBG_RSN_IDX, prSecInfo->eCurrentState, eNextState);
+        DBGLOG(RSN, STATE, "\n"MACSTR" [%d] TRANSITION: [%d] -> [%d]\n\n",
+                            MAC2STR(prSta->aucMacAddr),
+                            DBG_RSN_IDX,
+                            prSecInfo->eCurrentState,
+                            eNextState);
 #endif
 		prSecInfo->eCurrentState = eNextState;
 

@@ -481,11 +481,11 @@ EXPORT_SYMBOL(mtk_wcn_wmt_wlan_unreg);
 MTK_WCN_BOOL mtk_wcn_set_connsys_power_off_flag(MTK_WCN_BOOL value)
 {
 	g_pwr_off_flag = value;
-	if (g_pwr_off_flag)
+	if (g_pwr_off_flag) {
 		WMT_INFO_FUNC("enable connsys power off flag\n");
-	else
+	} else {
 		WMT_INFO_FUNC("disable connsys power off, maybe need trigger coredump!\n");
-
+	}
 	return MTK_WCN_BOOL_FALSE;
 }
 EXPORT_SYMBOL(mtk_wcn_set_connsys_power_off_flag);
@@ -519,8 +519,3 @@ VOID mtk_wcn_wmt_exp_deinit()
 }
 #endif
 
-VOID mtk_wcn_wmt_set_wifi_ver(UINT32 Value)
-{
-	wmt_lib_soc_set_wifiver(Value);
-}
-EXPORT_SYMBOL(mtk_wcn_wmt_set_wifi_ver);

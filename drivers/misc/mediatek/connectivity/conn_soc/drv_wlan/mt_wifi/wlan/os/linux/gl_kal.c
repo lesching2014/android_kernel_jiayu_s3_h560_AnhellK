@@ -1674,9 +1674,6 @@ kalIndicateStatusAndComplete(IN P_GLUE_INFO_T prGlueInfo, IN WLAN_STATUS eStatus
 		} while (0);
 
 		if (prGlueInfo->fgIsRegistered == TRUE) {
-			struct cfg80211_bss *bss_others = NULL;
-			UINT_8 ucLoopCnt = 15; /* only loop 15 times to avoid dead loop */
-
 			/* retrieve channel */
 			ucChannelNum = wlanGetChannelNumberByNetwork(prGlueInfo->prAdapter, NETWORK_TYPE_AIS_INDEX);
 			if (ucChannelNum <= 14) {
@@ -1710,18 +1707,6 @@ kalIndicateStatusAndComplete(IN P_GLUE_INFO_T prGlueInfo, IN WLAN_STATUS eStatus
 								RCPI_TO_dBm(prBssDesc->ucRCPI) * 100,	/* MBM */
 								GFP_KERNEL);
 				}
-			}
-			/* remove all bsses that before and only channel different with the current connected one
-				if without this patch, UI will show channel A is connected even if AP has change channel
-				from A to B */
-			while (ucLoopCnt--) {
-				bss_others = cfg80211_get_bss(priv_to_wiphy(prGlueInfo), NULL, arBssid,
-						ssid.aucSsid, ssid.u4SsidLen, WLAN_CAPABILITY_ESS, WLAN_CAPABILITY_ESS);
-				if (bss && bss_others && bss_others != bss) {
-					DBGLOG(SCN, INFO, "remove BSSes that only channel different\n");
-					cfg80211_unlink_bss(priv_to_wiphy(prGlueInfo), bss_others);
-				} else
-					break;
 			}
 
 			/* CFG80211 Indication */
@@ -3660,8 +3645,7 @@ kalGetChannelList(IN P_GLUE_INFO_T prGlueInfo,
 		  IN ENUM_BAND_T eSpecificBand,
 		  IN UINT_8 ucMaxChannelNum, IN PUINT_8 pucNumOfChannel, IN P_RF_CHANNEL_INFO_T paucChannelList)
 {
-	rlmDomainGetChnlList(prGlueInfo->prAdapter, eSpecificBand, FALSE, ucMaxChannelNum,
-			     pucNumOfChannel, paucChannelList);
+	rlmDomainGetChnlList(prGlueInfo->prAdapter, eSpecificBand, ucMaxChannelNum, pucNumOfChannel, paucChannelList);
 }
 
 /*----------------------------------------------------------------------------*/

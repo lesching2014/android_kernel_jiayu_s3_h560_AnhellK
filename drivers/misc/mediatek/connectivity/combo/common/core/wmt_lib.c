@@ -555,7 +555,7 @@ MTK_WCN_BOOL wmt_lib_handle_idc_msg(ipc_ilm_t *idc_infor)
 #if	CFG_WMT_LTE_ENABLE_MSGID_MAPPING
 	MTK_WCN_BOOL unknow_msgid = MTK_WCN_BOOL_FALSE;
 #endif
-	WMT_DBG_FUNC("idc_infor from conn_md is 0x%p\n", idc_infor);
+	WMT_INFO_FUNC("idc_infor from conn_md is 0x%p\n", idc_infor);
 
 	ret = wmt_lib_idc_lock_aquire();
 	if (ret) {
@@ -1928,9 +1928,4 @@ UINT32 wmt_lib_get_drv_status(UINT32 type)
 INT32 wmt_lib_trigger_reset(VOID)
 {
 	return wmt_btm_trigger_reset();
-}
-
-VOID wmt_lib_read_fw_cpupcr(VOID)
-{
-	mtk_wcn_stp_read_fw_cpupcr();
 }

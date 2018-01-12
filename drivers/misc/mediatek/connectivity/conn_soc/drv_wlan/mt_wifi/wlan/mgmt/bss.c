@@ -1309,9 +1309,6 @@ WLAN_STATUS bssUpdateBeaconContent(IN P_ADAPTER_T prAdapter, IN ENUM_NETWORK_TYP
 	if (prMsduInfo == NULL)
 		return WLAN_STATUS_SUCCESS;
 	/* 4 <2> Compose header */
-//<2016/06/30-louisliu, WIFI. Modify AP DTIM.
-	prBssInfo->u2BeaconInterval = 200;
-//>2016/06/30-louisliu
 	bssComposeBeaconProbeRespFrameHeaderAndFF((PUINT_8) ((ULONG) (prMsduInfo->prPacket) + MAC_TX_RESERVED_FIELD),
 						  NULL,
 						  prBssInfo->aucOwnMacAddr,

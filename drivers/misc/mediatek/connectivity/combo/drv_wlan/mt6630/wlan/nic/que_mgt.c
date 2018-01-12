@@ -683,10 +683,7 @@ const UINT_8 aucWmmAC2TcResourceSet2[WMM_AC_INDEX_NUM] = {
 *                           P R I V A T E   D A T A
 ********************************************************************************
 */
-#if ARP_MONITER_ENABLE
-static UINT_16 arpMoniter;
-static UINT_8 apIp[4];
-#endif
+
 /*******************************************************************************
 *                                 M A C R O S
 ********************************************************************************
@@ -1535,7 +1532,6 @@ P_MSDU_INFO_T qmEnqueueTxPackets(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMs
 	P_MSDU_INFO_T prCurrentMsduInfo;
 	P_MSDU_INFO_T prNextMsduInfo;
 
-	P_STA_RECORD_T  prStaRec;
 	P_QUE_T prTxQue;
 	QUE_T rNotEnqueuedQue;
 
@@ -1606,17 +1602,6 @@ P_MSDU_INFO_T qmEnqueueTxPackets(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMs
 
 			default:
 				prTxQue = qmDetermineStaTxQueue(prAdapter, prCurrentMsduInfo, &ucTC);
-				if (!prTxQue) {
-					DBGLOG(QM, INFO, "Drop the Packet for TxQue is NULL\n");
-					prTxQue = &rNotEnqueuedQue;
-					TX_INC_CNT(&prAdapter->rTxCtrl, TX_INACTIVE_STA_DROP);
-					QM_DBG_CNT_INC(prQM, QM_DBG_CNT_24);
-				}
-#if ARP_MONITER_ENABLE
-				prStaRec = QM_GET_STA_REC_PTR_FROM_INDEX(prAdapter, prCurrentMsduInfo->ucStaRecIndex);
-				if (prStaRec && IS_STA_IN_AIS(prStaRec) && prCurrentMsduInfo->eSrc == TX_PACKET_OS)
-					qmDetectArpNoResponse(prAdapter, prCurrentMsduInfo);
-#endif
 				break;	/*default */
 			}	/* switch (prCurrentMsduInfo->ucStaRecIndex) */
 
@@ -1624,7 +1609,7 @@ P_MSDU_INFO_T qmEnqueueTxPackets(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMs
 				DBGLOG(QM, TRACE, "Forward Pkt to STA[%u] BSS[%u]\n",
 						   prCurrentMsduInfo->ucStaRecIndex, prCurrentMsduInfo->ucBssIndex);
 
-				if (prTxQue && (prTxQue->u4NumElem >= prQM->u4MaxForwardBufferCount)) {
+				if (prTxQue->u4NumElem >= prQM->u4MaxForwardBufferCount) {
 					DBGLOG(QM, INFO,
 					       "Drop the Packet for full Tx queue (forwarding) Bss %u\n",
 						prCurrentMsduInfo->ucBssIndex);
@@ -1666,6 +1651,7 @@ P_MSDU_INFO_T qmEnqueueTxPackets(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMs
 		}
 #endif
 
+		DBGLOG(QM, LOUD, "Current queue length = %u\n", prTxQue->u4NumElem);
 	} while (prNextMsduInfo);
 
 	if (QUEUE_IS_NOT_EMPTY(&rNotEnqueuedQue)) {
@@ -2251,6 +2237,8 @@ qmAdjustTcQuotasMthread(IN P_ADAPTER_T prAdapter, OUT P_TX_TCQ_ADJUST_T prTcqAdj
 			prTcqAdjust->acVariation[i] = 0;
 
 		KAL_ACQUIRE_SPIN_LOCK(prAdapter, SPIN_LOCK_TX_RESOURCE);
+		KAL_ACQUIRE_SPIN_LOCK(prAdapter, SPIN_LOCK_TC_RESOURCE);
+
 		/* Obtain the free-to-distribute resource */
 		for (i = 0; i < QM_ACTIVE_TC_NUM; i++) {
 			ai4ExtraQuota[i] =
@@ -2266,6 +2254,8 @@ qmAdjustTcQuotasMthread(IN P_ADAPTER_T prAdapter, OUT P_TX_TCQ_ADJUST_T prTcqAdj
 				prTcqAdjust->acVariation[i] = (INT_8) (-ai4ExtraQuota[i]);
 			}
 		}
+
+		KAL_RELEASE_SPIN_LOCK(prAdapter, SPIN_LOCK_TC_RESOURCE);
 
 		/* Distribute quotas to TCs which need extra resource according to prQM->au4CurrentTcResource */
 		for (i = 0; i < QM_ACTIVE_TC_NUM; i++) {
@@ -3015,20 +3005,13 @@ P_SW_RFB_T qmHandleRxPackets(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_T prSwRfbList
 			fgIsHTran = TRUE;
 			pucEthDestAddr = prCurrSwRfb->pvHeader;
 
-			if (prCurrSwRfb->prRxStatusGroup4 == NULL) {
-				prCurrSwRfb->eDst = RX_PKT_DESTINATION_NULL;
-				QUEUE_INSERT_TAIL(prReturnedQue, (P_QUE_ENTRY_T) prCurrSwRfb);
-				DBGLOG(RX, WARN, "rxStatusGroup4 for data packet is NULL, drop this packet\n");
-				DBGLOG_MEM8(RX, WARN, (PUINT_8) prRxStatus,
-						prRxStatus->u2RxByteCount > 12 ? prRxStatus->u2RxByteCount:12);
-#if CFG_CHIP_RESET_SUPPORT
-				glResetTrigger(prAdapter);
-#endif
-				continue;
-			}
-
 			if (prCurrSwRfb->prStaRec == NULL) {
 				/* Workaround WTBL Issue */
+				if (prCurrSwRfb->prRxStatusGroup4 == NULL) {
+					DBGLOG_MEM8(SW4, TRACE, (PUINT_8) prCurrSwRfb->prRxStatus,
+						    prCurrSwRfb->prRxStatus->u2RxByteCount);
+					ASSERT(0);
+				}
 				HAL_RX_STATUS_GET_TA(prCurrSwRfb->prRxStatusGroup4, aucTaAddr);
 				prCurrSwRfb->ucStaRecIdx = secLookupStaRecIndexFromTA(prAdapter, aucTaAddr);
 				if (prCurrSwRfb->ucStaRecIdx < CFG_NUM_OF_STA_RECORD) {
@@ -3105,8 +3088,7 @@ P_SW_RFB_T qmHandleRxPackets(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_T prSwRfbList
 			/* for wapi integrity test. WPI_1x packet should be always in non-encrypted mode.
 				if we received any WPI(0x88b4) packet that is encrypted, drop here. */
 			if (u2Etype == ETH_WPI_1X &&
-				HAL_RX_STATUS_GET_SEC_MODE(prRxStatus) != 0 &&
-				HAL_RX_STATUS_IS_CIPHER_MISMATCH(prRxStatus) == 0) {
+				HAL_RX_STATUS_GET_SEC_MODE(prRxStatus) != 0) {
 				DBGLOG(QM, INFO, "drop wpi packet with sec mode\n");
 				prCurrSwRfb->eDst = RX_PKT_DESTINATION_NULL;
 				QUEUE_INSERT_TAIL(prReturnedQue, (P_QUE_ENTRY_T) prCurrSwRfb);
@@ -4255,12 +4237,12 @@ VOID mqmProcessAssocReq(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_T prSwRfb, IN PUIN
 
 	/* Determine whether QoS is enabled with the association */
 	else {
-		prStaRec->u4Flags = 0;
 		IE_FOR_EACH(pucIE, u2IELength, u2Offset) {
 			switch (IE_ID(pucIE)) {
 			case ELEM_ID_VENDOR:
 				mqmParseAssocReqWmmIe(prAdapter, pucIE, prStaRec);
 
+				prStaRec->u4Flags = 0;
 #if CFG_SUPPORT_MTK_SYNERGY
 				if (rlmParseCheckMTKOuiIE(prAdapter, pucIE, &u4Flags))
 					prStaRec->u4Flags = u4Flags;
@@ -4353,13 +4335,13 @@ VOID mqmProcessAssocRsp(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_T prSwRfb, IN PUIN
 
 	/* Determine whether QoS is enabled with the association */
 	else {
-		prStaRec->u4Flags = 0;
 		IE_FOR_EACH(pucIE, u2IELength, u2Offset) {
 			switch (IE_ID(pucIE)) {
 			case ELEM_ID_VENDOR:
 				/* Process WMM related IE */
 				mqmParseAssocRspWmmIe(pucIE, prStaRec);
 
+				prStaRec->u4Flags = 0;
 #if CFG_SUPPORT_MTK_SYNERGY
 				if (rlmParseCheckMTKOuiIE(prAdapter, pucIE, &u4Flags))
 					prStaRec->u4Flags = u4Flags;
@@ -4378,12 +4360,8 @@ VOID mqmProcessAssocRsp(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_T prSwRfb, IN PUIN
 		}
 
 		/* Parse AC parameters and write to HW CRs */
-		if ((prStaRec->fgIsQoS) && (prStaRec->eStaType == STA_TYPE_LEGACY_AP)) {
+		if ((prStaRec->fgIsQoS) && (prStaRec->eStaType == STA_TYPE_LEGACY_AP))
 			mqmParseEdcaParameters(prAdapter, prSwRfb, pucIEStart, u2IELength, TRUE);
-#if ARP_MONITER_ENABLE
-			qmResetArpDetect();
-#endif
-		}
 
 		DBGLOG(QM, TRACE, "MQM: Assoc_Rsp Parsing (QoS Enabled=%d)\n", prStaRec->fgIsQoS);
 		if (prStaRec->fgIsWmmSupported)
@@ -5123,21 +5101,7 @@ qmGetFrameAction(IN P_ADAPTER_T prAdapter, IN UINT_8 ucBssIndex,
 			eFrameAction = FRAME_ACTION_DROP_PKT;
 			break;
 		}
-		/* 4 <3> Queue, if BSS is absent, drop probe response */
-		if (prBssInfo && prBssInfo->fgIsNetAbsent) {
-			if (prMsduInfo && isProbeResponse(prMsduInfo)) {
-				DBGLOG(TX, INFO, "Drop probe response (BSS[%u] Absent)\n",
-					prBssInfo->ucBssIndex);
-
-				eFrameAction = FRAME_ACTION_DROP_PKT;
-			} else {
-				DBGLOG(TX, INFO, "Queue packets (BSS[%u] Absent)\n",
-					prBssInfo->ucBssIndex);
-				eFrameAction = FRAME_ACTION_QUEUE_PKT;
-			}
-			break;
-		}
-		/* 4 <4> Check based on StaRec */
+		/* 4 <3> Check based on StaRec */
 		if (prStaRec) {
 			/* 4 <3.1> Drop, if StaRec is not in use */
 			if (!prStaRec->fgIsInUse) {
@@ -5163,6 +5127,13 @@ qmGetFrameAction(IN P_ADAPTER_T prAdapter, IN UINT_8 ucBssIndex,
 				}
 			}
 		}
+		/* 4 <4> Queue, if BSS is absent */
+		if (prBssInfo->fgIsNetAbsent) {
+			DBGLOG(QM, TRACE, "Queue packets (BSS[%u] Absent)\n", prBssInfo->ucBssIndex);
+			eFrameAction = FRAME_ACTION_QUEUE_PKT;
+			break;
+		}
+
 	} while (FALSE);
 
 	/* <5> Resource CHECK! */
@@ -5462,9 +5433,6 @@ VOID qmDumpQueueStatus(IN P_ADAPTER_T prAdapter)
 	P_GLUE_INFO_T prGlueInfo;
 	UINT_32 i, u4TotalBufferCount, u4TotalPageCount;
 	UINT_32 u4CurBufferCount, u4CurPageCount;
-	PUINT_8 pucMemHandle;
-	P_MSDU_INFO_T prMsduInfo = NULL;
-	QUE_T rNotReturnedQue;
 
 	DEBUGFUNC(("%s", __func__));
 
@@ -5552,52 +5520,6 @@ VOID qmDumpQueueStatus(IN P_ADAPTER_T prAdapter)
 	DBGLOG(SW4, INFO, "MGMT: FreeMgmt[%u/%u] PendingMgmt[%u]\n",
 			   prAdapter->rTxCtrl.rFreeMsduInfoList.u4NumElem, CFG_TX_MAX_PKT_NUM,
 			   prAdapter->rTxCtrl.rTxMgmtTxingQueue.u4NumElem);
-
-	pucMemHandle = prTxCtrl->pucTxCached;
-	QUEUE_INITIALIZE(&rNotReturnedQue);
-	for (i = 0; i < CFG_TX_MAX_PKT_NUM; i++) {
-		P_MSDU_INFO_T prFreeMsduInfo = NULL;
-
-		prMsduInfo = (P_MSDU_INFO_T) pucMemHandle;
-		prFreeMsduInfo = (P_MSDU_INFO_T)QUEUE_GET_HEAD(&prAdapter->rTxCtrl.rFreeMsduInfoList);
-		while (prFreeMsduInfo && prFreeMsduInfo != prMsduInfo)
-			prFreeMsduInfo = (P_MSDU_INFO_T)QUEUE_GET_NEXT_ENTRY(&prFreeMsduInfo->rQueEntry);
-		if (!prFreeMsduInfo)
-			QUEUE_INSERT_TAIL(&rNotReturnedQue, &prMsduInfo->rQueEntry);
-		pucMemHandle += ALIGN_4(sizeof(MSDU_INFO_T));
-	}
-	DBGLOG(SW4, INFO, "not returned MSDU queue length: %u\n", rNotReturnedQue.u4NumElem);
-	prMsduInfo = (P_MSDU_INFO_T)QUEUE_GET_HEAD(&rNotReturnedQue);
-	while (prMsduInfo) {
-		P_MSDU_INFO_T prMsduInfo1 = NULL, prMsduInfo2 = NULL, prMsduInfo3 = NULL;
-
-		prMsduInfo1 = (P_MSDU_INFO_T)QUEUE_GET_NEXT_ENTRY(&prMsduInfo->rQueEntry);
-		if (!prMsduInfo1) {
-			DBGLOG(SW4, INFO, "src %d, 1x %d\n", prMsduInfo->eSrc, prMsduInfo->fgIs802_1x);
-			break;
-		}
-		prMsduInfo2 = (P_MSDU_INFO_T)QUEUE_GET_NEXT_ENTRY(&prMsduInfo1->rQueEntry);
-		if (!prMsduInfo2) {
-			DBGLOG(SW4, INFO, "src %d, 1x %d; src %d, 1x %d\n",
-			prMsduInfo->eSrc, prMsduInfo->fgIs802_1x,
-			prMsduInfo1->eSrc, prMsduInfo1->fgIs802_1x);
-			break;
-		}
-		prMsduInfo3 = (P_MSDU_INFO_T)QUEUE_GET_NEXT_ENTRY(&prMsduInfo2->rQueEntry);
-		if (!prMsduInfo3) {
-			DBGLOG(SW4, INFO, "src %d, 1x %d; src %d, 1x %d; src %d, 1x %d\n",
-			prMsduInfo->eSrc, prMsduInfo->fgIs802_1x,
-			prMsduInfo1->eSrc, prMsduInfo1->fgIs802_1x,
-			prMsduInfo2->eSrc, prMsduInfo2->fgIs802_1x);
-			break;
-		}
-		DBGLOG(SW4, INFO, "src %d, 1x %d; src %d, 1x %d; src %d, 1x %d; src %d, 1x %d\n",
-		prMsduInfo->eSrc, prMsduInfo->fgIs802_1x,
-		prMsduInfo1->eSrc, prMsduInfo1->fgIs802_1x,
-		prMsduInfo2->eSrc, prMsduInfo2->fgIs802_1x,
-		prMsduInfo3->eSrc, prMsduInfo3->fgIs802_1x);
-		prMsduInfo = (P_MSDU_INFO_T)QUEUE_GET_NEXT_ENTRY(&prMsduInfo3->rQueEntry);
-	}
 
 	DBGLOG(SW4, INFO, "---------------------------------\n\n");
 }
@@ -6377,80 +6299,4 @@ VOID mqmHandleBaActionFrame(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_T prSwRfb)
 
 }
 
-#endif
-
-#if ARP_MONITER_ENABLE
-VOID qmDetectArpNoResponse(P_ADAPTER_T prAdapter, P_MSDU_INFO_T prMsduInfo)
-{
-	struct sk_buff *prSkb = NULL;
-	PUINT_8 pucData = NULL;
-	UINT_16 u2EtherType = 0;
-	int arpOpCode = 0;
-
-	prSkb = (struct sk_buff *)prMsduInfo->prPacket;
-
-	if (!prSkb || (prSkb->len <= ETHER_HEADER_LEN))
-		return;
-
-	pucData = prSkb->data;
-	if (!pucData)
-		return;
-	u2EtherType = (pucData[ETH_TYPE_LEN_OFFSET] << 8) | (pucData[ETH_TYPE_LEN_OFFSET + 1]);
-
-	if (u2EtherType != ETH_P_ARP || (apIp[0] | apIp[1] | apIp[2] | apIp[3]) == 0)
-		return;
-
-	if (kalMemCmp(apIp, &pucData[ETH_TYPE_LEN_OFFSET + 26], sizeof(apIp))) /* dest ip address */
-		return;
-
-	arpOpCode = (pucData[ETH_TYPE_LEN_OFFSET + 8] << 8) | (pucData[ETH_TYPE_LEN_OFFSET + 8 + 1]);
-	if (arpOpCode == ARP_PRO_REQ) {
-		arpMoniter++;
-		if (arpMoniter > 20) {
-			DBGLOG(INIT, WARN, "IOT Critical issue, arp no resp, check AP!\n");
-			aisBssBeaconTimeout(prAdapter);
-			arpMoniter = 0;
-			kalMemZero(apIp, sizeof(apIp));
-		}
-	}
-}
-
-VOID qmHandleRxArpPackets(P_ADAPTER_T prAdapter, P_SW_RFB_T prSwRfb)
-{
-	PUINT_8 pucData = NULL;
-	UINT_16 u2EtherType = 0;
-	int arpOpCode = 0;
-
-	if (prSwRfb->u2PacketLen <= ETHER_HEADER_LEN)
-		return;
-
-	pucData = (PUINT_8)prSwRfb->pvHeader;
-	if (!pucData)
-		return;
-	u2EtherType = (pucData[ETH_TYPE_LEN_OFFSET] << 8) | (pucData[ETH_TYPE_LEN_OFFSET + 1]);
-
-	if (u2EtherType != ETH_P_ARP)
-		return;
-
-	arpOpCode = (pucData[ETH_TYPE_LEN_OFFSET + 8] << 8) | (pucData[ETH_TYPE_LEN_OFFSET + 8 + 1]);
-	if (arpOpCode == ARP_PRO_RSP) {
-		arpMoniter = 0;
-		if (prAdapter->prAisBssInfo &&
-				prAdapter->prAisBssInfo->prStaRecOfAP &&
-				prAdapter->prAisBssInfo->prStaRecOfAP->aucMacAddr) {
-			if (EQUAL_MAC_ADDR(&(pucData[ETH_TYPE_LEN_OFFSET + 10]), /* src hardware address */
-					prAdapter->prAisBssInfo->prStaRecOfAP->aucMacAddr)) {
-				kalMemCopy(apIp, &(pucData[ETH_TYPE_LEN_OFFSET + 16]), sizeof(apIp));
-				DBGLOG(INIT, TRACE, "get arp response from AP %d.%d.%d.%d\n",
-					apIp[0], apIp[1], apIp[2], apIp[3]);
-			}
-		}
-	}
-}
-
-VOID qmResetArpDetect(VOID)
-{
-	arpMoniter = 0;
-	kalMemZero(apIp, sizeof(apIp));
-}
 #endif

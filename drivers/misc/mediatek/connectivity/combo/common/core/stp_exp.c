@@ -152,7 +152,7 @@ VOID mtk_wcn_stp_set_if_tx_type(ENUM_STP_TX_IF_TYPE stp_if_type)
 {
 	g_stp_if_type = stp_if_type;
 	osal_dbg_print("[%s] set STP_IF_TX to %s.\n",
-        __FUNCTION__,
+        __func__,
 		       (STP_UART_IF_TX ==
 			stp_if_type) ? "UART" : ((STP_SDIO_IF_TX ==
 						  stp_if_type) ? "SDIO" : "NULL"));
@@ -169,7 +169,7 @@ INT32 mtk_wcn_stp_register_if_tx(ENUM_STP_TX_IF_TYPE stp_if, MTK_WCN_STP_IF_TX f
 	} else if (STP_SDIO_IF_TX == stp_if) {
 		stp_sdio_if_tx = func;
 	} else {
-        osal_dbg_print("[%s] STP_IF_TX(%d) out of boundary.\n", __FUNCTION__, stp_if);
+        osal_dbg_print("[%s] STP_IF_TX(%d) out of boundary.\n", __func__, stp_if);
 		return -1;
 	}
 

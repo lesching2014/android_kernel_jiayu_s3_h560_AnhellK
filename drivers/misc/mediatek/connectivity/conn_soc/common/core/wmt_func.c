@@ -270,8 +270,8 @@ INT32 wmt_func_bt_on(P_WMT_IC_OPS pOps, P_WMT_GEN_CONF pConf)
 {
 	/* return wmt_func_bt_ctrl(FUNC_ON); */
 	INT32 iRet = -1;
-	unsigned long ctrlPa1;
-	unsigned long ctrlPa2;
+	UINT32 ctrlPa1;
+	UINT32 ctrlPa2;
 
 	ctrlPa1 = BT_PALDO;
 	ctrlPa2 = PALDO_ON;
@@ -310,8 +310,8 @@ INT32 wmt_func_bt_off(P_WMT_IC_OPS pOps, P_WMT_GEN_CONF pConf)
 	/* return wmt_func_bt_ctrl(FUNC_OFF); */
 	INT32 iRet1 = -1;
 	INT32 iRet2 = -1;
-	unsigned long ctrlPa1;
-	unsigned long ctrlPa2;
+	UINT32 ctrlPa1;
+	UINT32 ctrlPa2;
 	iRet1 = wmt_core_func_ctrl_cmd(WMTDRV_TYPE_BT, MTK_WCN_BOOL_FALSE);
 	if (iRet1)
 		WMT_ERR_FUNC("wmt-func: wmt_core_func_ctrl_cmd(bt_off) failed(%d)\n", iRet1);
@@ -484,8 +484,8 @@ INT32 wmt_func_gps_pre_off(P_WMT_IC_OPS pOps, P_WMT_GEN_CONF pConf)
 INT32 wmt_func_gps_on(P_WMT_IC_OPS pOps, P_WMT_GEN_CONF pConf)
 {
 	INT32 iRet = 0;
-	unsigned long ctrlPa1;
-	unsigned long ctrlPa2;
+	UINT32 ctrlPa1;
+	UINT32 ctrlPa2;
 	UINT8 co_clock_type = (pConf->co_clock_flag & 0x0f);
 
 	if ((co_clock_type) && (0 == pConf->wmt_gps_lna_enable)) {	/* use SOC external LNA */
@@ -521,8 +521,8 @@ INT32 wmt_func_gps_on(P_WMT_IC_OPS pOps, P_WMT_GEN_CONF pConf)
 INT32 wmt_func_gps_off(P_WMT_IC_OPS pOps, P_WMT_GEN_CONF pConf)
 {
 	INT32 iRet = 0;
-	unsigned long ctrlPa1 = 0;
-	unsigned long ctrlPa2 = 0;
+	UINT32 ctrlPa1 = 0;
+	UINT32 ctrlPa2 = 0;
 	UINT8 co_clock_type = (pConf->co_clock_flag & 0x0f);
 
 	iRet = wmt_func_gps_pre_off(pOps, pConf);
@@ -568,8 +568,8 @@ INT32 _osal_inline_ wmt_func_fm_ctrl(ENUM_FUNC_STATE funcState)
 INT32 wmt_func_fm_on(P_WMT_IC_OPS pOps, P_WMT_GEN_CONF pConf)
 {
 	/* return wmt_func_fm_ctrl(FUNC_ON); */
-	unsigned long ctrlPa1 = 0;
-	unsigned long ctrlPa2 = 0;
+	UINT32 ctrlPa1 = 0;
+	UINT32 ctrlPa2 = 0;
 	INT32 iRet = -1;
 	UINT8 co_clock_type = (pConf->co_clock_flag & 0x0f);
 
@@ -595,8 +595,8 @@ INT32 wmt_func_fm_on(P_WMT_IC_OPS pOps, P_WMT_GEN_CONF pConf)
 INT32 wmt_func_fm_off(P_WMT_IC_OPS pOps, P_WMT_GEN_CONF pConf)
 {
 	/* return wmt_func_fm_ctrl(FUNC_OFF); */
-	unsigned long ctrlPa1 = 0;
-	unsigned long ctrlPa2 = 0;
+	UINT32 ctrlPa1 = 0;
+	UINT32 ctrlPa2 = 0;
 	INT32 iRet = -1;
 	UINT8 co_clock_type = (pConf->co_clock_flag & 0x0f);
 
@@ -640,8 +640,8 @@ INT32 wmt_func_wifi_ctrl(ENUM_FUNC_STATE funcState)
 INT32 wmt_func_wifi_on(P_WMT_IC_OPS pOps, P_WMT_GEN_CONF pConf)
 {
 	int iRet = 0;
-	unsigned long ctrlPa1;
-	unsigned long ctrlPa2;
+	UINT32 ctrlPa1;
+	UINT32 ctrlPa2;
 
 	if (NULL != mtk_wcn_wlan_probe) {
 
@@ -678,8 +678,8 @@ INT32 wmt_func_wifi_off(P_WMT_IC_OPS pOps, P_WMT_GEN_CONF pConf)
 {
 	int iRet = 0;
 
-	unsigned long ctrlPa1 = 0;
-	unsigned long ctrlPa2 = 0;
+	UINT32 ctrlPa1 = 0;
+	UINT32 ctrlPa2 = 0;
 
 	if (NULL != mtk_wcn_wlan_remove) {
 

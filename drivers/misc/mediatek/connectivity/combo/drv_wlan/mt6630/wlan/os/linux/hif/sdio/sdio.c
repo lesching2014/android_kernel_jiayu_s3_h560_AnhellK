@@ -323,7 +323,7 @@ void debug_gpio_init(void)
 		if (GPIO_INVALID == dbgPinSTP[i])
 			continue;
 
-		/* printk(KERN_INFO "[%s] %ld\n", __FUNCTION__, dbgPinSTP[i]); */
+		/* printk(KERN_INFO "[%s] %ld\n", __func__, dbgPinSTP[i]); */
 		mt_set_gpio_pull_enable(dbgPinSTP[i], 0);	/* disable pull */
 		mt_set_gpio_dir(dbgPinSTP[i], GPIO_DIR_OUT);	/* set output */
 		mt_set_gpio_mode(dbgPinSTP[i], GPIO_MODE_00);	/* set gpio mode */
@@ -334,7 +334,7 @@ void debug_gpio_init(void)
 		mt_set_gpio_out(dbgPinSTP[i], GPIO_OUT_ZERO);	/* tie low */
 		mt_set_gpio_out(dbgPinSTP[i], GPIO_OUT_ONE);	/* tie high */
 	}
-	/* printk(KERN_INFO "[%s] initialization ok\n", __FUNCTION__); */
+	/* printk(KERN_INFO "[%s] initialization ok\n", __func__); */
 }
 
 void debug_gpio_deinit(void)
@@ -344,11 +344,11 @@ void debug_gpio_deinit(void)
 		if (GPIO_INVALID == dbgPinSTP[i])
 			continue;
 
-		/* printk(KERN_INFO "[%s] %ld\n", __FUNCTION__, dbgPinSTP[i]); */
+		/* printk(KERN_INFO "[%s] %ld\n", __func__, dbgPinSTP[i]); */
 		mt_set_gpio_dir(dbgPinSTP[i], GPIO_DIR_IN);
 	}
 
-	/* printk(KERN_INFO "[%s] k\n", __FUNCTION__); */
+	/* printk(KERN_INFO "[%s] k\n", __func__); */
 }
 
 void mtk_wcn_stp_debug_gpio_assert(UINT_32 dwIndex, UINT_32 dwMethod)
@@ -356,11 +356,11 @@ void mtk_wcn_stp_debug_gpio_assert(UINT_32 dwIndex, UINT_32 dwMethod)
 	unsigned int i;
 
 	if (dwIndex >= (sizeof(dbgPinSTP) / sizeof(dbgPinSTP[0])))
-		/* printk(KERN_INFO "[%s] invalid dwIndex(%ld)\n", __FUNCTION__, dwIndex); */
+		/* printk(KERN_INFO "[%s] invalid dwIndex(%ld)\n", __func__, dwIndex); */
 		return;
 
 	if (dwIndex > IDX_STP_MAX)
-		/* printk(KERN_INFO "[%s] dwIndex(%ld) > IDX_STP_MAX(%d)\n", __FUNCTION__, dwIndex, IDX_STP_MAX); */
+		/* printk(KERN_INFO "[%s] dwIndex(%ld) > IDX_STP_MAX(%d)\n", __func__, dwIndex, IDX_STP_MAX); */
 
 		if (GPIO_INVALID == dbgPinSTP[dwIndex])
 			return;
@@ -559,7 +559,7 @@ static int mtk_sdio_probe(struct sdio_func *func, const struct sdio_device_id *i
 		ret = -1;
 	} else {
 #if CFG_DBG_GPIO_PINS
-		/* printk(KERN_INFO "[%s] init debug gpio, 20100815\n", __FUNCTION__); */
+		/* printk(KERN_INFO "[%s] init debug gpio, 20100815\n", __func__); */
 		/* Debug pins initialization */
 		debug_gpio_init();
 #endif
@@ -586,7 +586,7 @@ static void mtk_sdio_remove(struct sdio_func *func)
 	/* printk(KERN_INFO DRV_NAME"mtk_sdio_remove()\n"); */
 
 #if CFG_DBG_GPIO_PINS
-	/* printk(KERN_INFO "[%s] deinit debug gpio\n", __FUNCTION__); */
+	/* printk(KERN_INFO "[%s] deinit debug gpio\n", __func__); */
 	debug_gpio_deinit();
 #endif
 
@@ -858,14 +858,14 @@ VOID glBusFreeIrq(PVOID pvData, PVOID pvCookie)
 
 	ASSERT(pvData);
 	if (!pvData) {
-		/* printk(KERN_INFO DRV_NAME"%s null pvData\n", __FUNCTION__); */
+		/* printk(KERN_INFO DRV_NAME"%s null pvData\n", __func__); */
 		return;
 	}
 	prNetDevice = (struct net_device *)pvData;
 	prGlueInfo = (P_GLUE_INFO_T) pvCookie;
 	ASSERT(prGlueInfo);
 	if (!prGlueInfo) {
-		/* printk(KERN_INFO DRV_NAME"%s no glue info\n", __FUNCTION__); */
+		/* printk(KERN_INFO DRV_NAME"%s no glue info\n", __func__); */
 		return;
 	}
 

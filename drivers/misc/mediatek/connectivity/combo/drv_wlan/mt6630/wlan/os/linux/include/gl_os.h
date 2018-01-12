@@ -510,7 +510,7 @@
 
 #define CFG_TX_STOP_NETIF_QUEUE_THRESHOLD   256	/* packets */
 
-#define CFG_TX_STOP_NETIF_PER_QUEUE_THRESHOLD   256	/* packets */
+#define CFG_TX_STOP_NETIF_PER_QUEUE_THRESHOLD   512	/* packets */
 #define CFG_TX_START_NETIF_PER_QUEUE_THRESHOLD  128	/* packets */
 
 #if defined(MT6630)
@@ -671,7 +671,6 @@ extern BOOLEAN fgIsBusAccessFailed;
 #define GLUE_BOW_KFIFO_DEPTH        (1024)
 /* #define GLUE_BOW_DEVICE_NAME        "MT6620 802.11 AMP" */
 #define GLUE_BOW_DEVICE_NAME        "ampc0"
-#define GLUE_INFO_WSCIE_LENGTH		500
 
 #define NLA_PUT(skb, attrtype, attrlen, data) \
 	do { \
@@ -749,8 +748,6 @@ typedef enum _ENUM_PKT_FLAG_T {
 	ENUM_PKT_VLAN_EXIST,	/* VLAN tag exist */
 	ENUM_PKT_DHCP,		/* DHCP frame */
 	ENUM_PKT_ARP,		/* ARP */
-	ENUM_PKT_ICMP,		/* ICMP */
-
 	ENUM_PKT_FLAG_NUM
 } ENUM_PKT_FLAG_T;
 
@@ -936,7 +933,7 @@ struct _GLUE_INFO_T {
 #endif
 #endif
 	BOOLEAN fgWpsActive;
-	UINT_8 aucWSCIE[GLUE_INFO_WSCIE_LENGTH];	/*for probe req */
+	UINT_8 aucWSCIE[500];	/*for probe req */
 	UINT_16 u2WSCIELen;
 	UINT_8 aucWSCAssocInfoIE[200];	/*for Assoc req */
 	UINT_16 u2WSCAssocInfoIELen;
@@ -1111,8 +1108,6 @@ typedef struct _PACKET_PRIVATE_DATA {
 	UINT_8 ucProfilingFlag;
 	OS_SYSTIME rArrivalTime;
 	UINT_16 u2IpId;
-	/* package seq no for debug */
-	UINT_8 ucSeqNo;
 } PACKET_PRIVATE_DATA, *P_PACKET_PRIVATE_DATA;
 
 /*******************************************************************************
@@ -1216,12 +1211,6 @@ typedef struct _PACKET_PRIVATE_DATA {
 #define GLUE_GET_PKT_IP_ID(_p) \
 	    (GLUE_GET_PKT_PRIVATE_DATA(_p)->u2IpId)
 
-#define GLUE_SET_PKT_SEQ_NO(_p, _ucSeqNo) \
-	(GLUE_GET_PKT_PRIVATE_DATA(_p)->ucSeqNo = (UINT_8)(_ucSeqNo))
-
-#define GLUE_GET_PKT_SEQ_NO(_p) \
-	    (GLUE_GET_PKT_PRIVATE_DATA(_p)->ucSeqNo)
-
 #define GLUE_SET_PKT_FLAG_PROF_MET(_p) \
 	    (GLUE_GET_PKT_PRIVATE_DATA(_p)->ucProfilingFlag |= BIT(0))
 
@@ -1283,6 +1272,10 @@ INT_32 procUninitProcFs(VOID);
 BOOLEAN glRegisterAmpc(P_GLUE_INFO_T prGlueInfo);
 
 BOOLEAN glUnregisterAmpc(P_GLUE_INFO_T prGlueInfo);
+#endif
+
+#if CFG_ENABLE_WIFI_DIRECT
+void p2pSetMulticastListWorkQueueWrapper(P_GLUE_INFO_T prGlueInfo);
 #endif
 
 P_GLUE_INFO_T wlanGetGlueInfo(VOID);

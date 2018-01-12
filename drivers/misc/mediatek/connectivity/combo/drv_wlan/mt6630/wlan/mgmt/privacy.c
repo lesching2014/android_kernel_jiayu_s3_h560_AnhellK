@@ -641,28 +641,6 @@ BOOLEAN secEnabledInAis(IN P_ADAPTER_T prAdapter)
 
 }				/* secEnabledInAis */
 
-/**
-	to check if the packet is the second or fourth packet of 4-way handshake
-**/
-BOOLEAN secIs24Of4Packet(IN P_NATIVE_PACKET prPacket)
-{
-	struct sk_buff *prSkb = (struct sk_buff *)prPacket;
-	PUINT_8 pucPacket = (PUINT_8)prSkb->data;
-	UINT_16 u2EthType = 0;
-	UINT_16 u2KeyInfo = 0;
-
-	WLAN_GET_FIELD_BE16(&pucPacket[ETHER_HEADER_LEN - ETHER_TYPE_LEN], &u2EthType);
-	if (u2EthType != ETH_P_1X)
-		return FALSE;
-	u2KeyInfo = pucPacket[5+ETHER_HEADER_LEN]<<8 | pucPacket[6+ETHER_HEADER_LEN];
-	/* BIT3 is pairwise key bit, bit 8 is key mic bit.
-		only the two bits are set, it means this is 4-way handshake 4/4  or 2/4 frame */
-	DBGLOG(RSN, TRACE, "u2KeyInfo=%d\n", u2KeyInfo);
-	if ((u2KeyInfo & 0x108) == 0x108)
-		return TRUE;
-	return FALSE;
-}
-
 BOOLEAN secIsProtected1xFrame(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prStaRec)
 {
 	P_BSS_INFO_T prBssInfo;
@@ -1006,7 +984,7 @@ VOID secPrivacyFreeSta(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prStaRec)
 	/* the hotspot mode would be assert after connect-disconnect field try WTBL_SIZE times */
 	if (TRUE) {
 		for (entry = 0; entry < WTBL_SIZE; entry++) {
-			if (prWtbl[entry].ucUsed && (prStaRec->ucIndex == prWtbl[entry].ucStaIndex)) {
+			if (prWtbl[entry].ucUsed && EQUAL_MAC_ADDR(prStaRec->aucMacAddr, prWtbl[entry].aucMacAddr)) {
 				secPrivacyFreeForEntry(prAdapter, entry);
 #if 1				/* DBG */
 				DBGLOG(RSN, INFO, "Free the STA entry (%lu)!\n", entry);
@@ -1043,10 +1021,10 @@ secPrivacySeekForBcEntry(IN P_ADAPTER_T prAdapter,
 {
 	UINT_8 ucEntry = WTBL_ALLOC_FAIL;
 	UINT_8 ucStartIDX = 0, ucMaxIDX = 0;
-	UINT_8 i = 0;
+	UINT_8 i;
 	BOOLEAN fgCheckKeyId = TRUE;
 	P_WLAN_TABLE_T prWtbl;
-	P_BSS_INFO_T prBSSInfo = GET_BSS_INFO_BY_INDEX(prAdapter, ucBssIndex);
+	/* P_BSS_INFO_T            prBSSInfo = GET_BSS_INFO_BY_INDEX(prAdapter,ucBssIndex); */
 
 	prWtbl = prAdapter->rWifiVar.arWtbl;
 
@@ -1090,21 +1068,21 @@ secPrivacySeekForBcEntry(IN P_ADAPTER_T prAdapter,
 				MAC2STR(prWtbl[i].aucMacAddr), prWtbl[i].ucKeyId);
 		}
 #endif
-		if (prWtbl[i].ucUsed && !prWtbl[i].ucPairwise && prWtbl[i].ucBssIndex == ucBssIndex &&
-			(EQUAL_MAC_ADDR(prWtbl[i].aucMacAddr, pucAddr) ||
-			(prBSSInfo && prBSSInfo->eCurrentOPMode == OP_MODE_ACCESS_POINT))) {
-			if (!fgCheckKeyId || prWtbl[i].ucKeyId == 0xff || prWtbl[i].ucKeyId == ucKeyId) {
+		if (prWtbl[i].ucUsed && !prWtbl[i].ucPairwise && prWtbl[i].ucBssIndex == ucBssIndex && 1
+		    /* (EQUAL_MAC_ADDR(prWtbl[i].aucMacAddr, pucAddr) ||
+		     * (prBSSInfo && EQUAL_MAC_ADDR(prWtbl[i].aucMacAddr, prBSSInfo->aucOwnMacAddr))) */
+		    ) {
+			if (!fgCheckKeyId || prWtbl[i].ucKeyId == 0xff
+			    || (fgCheckKeyId && prWtbl[i].ucKeyId == ucKeyId)) {
 				ucEntry = i;
 				DBGLOG(RSN, TRACE, "[Wlan index]: Reuse entry #%d\n", i);
 				break;
 			}
-			#if 0
 			if (fgCheckKeyId && (prWtbl[i].ucKeyId != ucCurrentKeyId)) {
 				ucEntry = i;
 				DBGLOG(RSN, TRACE, "[Wlan index]: Replace the not current keyid entry #%d\n", i);
 				break;
 			}
-			#endif
 		}
 	}
 

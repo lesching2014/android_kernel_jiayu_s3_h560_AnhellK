@@ -624,11 +624,8 @@ VOID nicCmdEventQueryStatistics(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdI
 
 VOID nicCmdEventEnterRfTest(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo, IN PUINT_8 pucEventBuf)
 {
-#define WAIT_FW_READY_RETRY_CNT 200
-
 	UINT_32 u4WHISR = 0, u4Value = 0;
 	UINT_8 aucTxCount[8];
-	UINT_16 u2RetryCnt = 0;
 
 	ASSERT(prAdapter);
 	ASSERT(prCmdInfo);
@@ -665,8 +662,7 @@ VOID nicCmdEventEnterRfTest(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo,
 
 		if (u4Value & WCIR_WLAN_READY) {
 			break;
-		} else if (kalIsCardRemoved(prAdapter->prGlueInfo) == TRUE || fgIsBusAccessFailed == TRUE ||
-			kalIsResetting() || u2RetryCnt >= WAIT_FW_READY_RETRY_CNT) {
+		} else if (kalIsCardRemoved(prAdapter->prGlueInfo) == TRUE || fgIsBusAccessFailed == TRUE) {
 			if (prCmdInfo->fgIsOid) {
 				/* Update Set Infomation Length */
 				kalOidComplete(prAdapter->prGlueInfo,
@@ -675,9 +671,8 @@ VOID nicCmdEventEnterRfTest(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo,
 
 			}
 			return;
-		}
-		kalMsleep(10);
-		u2RetryCnt++;
+		} else
+			kalMsleep(10);
 	}
 
 	/* 5. Clear Interrupt Status */
@@ -706,11 +701,8 @@ VOID nicCmdEventEnterRfTest(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo,
 
 VOID nicCmdEventLeaveRfTest(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo, IN PUINT_8 pucEventBuf)
 {
-#define WAIT_FW_READY_RETRY_CNT 200
-
 	UINT_32 u4WHISR = 0, u4Value = 0;
 	UINT_8 aucTxCount[8];
-	UINT_16 u2RetryCnt = 0;
 
 	ASSERT(prAdapter);
 	ASSERT(prCmdInfo);
@@ -725,8 +717,7 @@ VOID nicCmdEventLeaveRfTest(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo,
 
 		if (u4Value & WCIR_WLAN_READY) {
 			break;
-		} else if (kalIsCardRemoved(prAdapter->prGlueInfo) == TRUE || fgIsBusAccessFailed == TRUE ||
-			kalIsResetting() || u2RetryCnt >= WAIT_FW_READY_RETRY_CNT) {
+		} else if (kalIsCardRemoved(prAdapter->prGlueInfo) == TRUE || fgIsBusAccessFailed == TRUE) {
 			if (prCmdInfo->fgIsOid) {
 				/* Update Set Infomation Length */
 				kalOidComplete(prAdapter->prGlueInfo,
@@ -735,9 +726,9 @@ VOID nicCmdEventLeaveRfTest(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo,
 
 			}
 			return;
+		} else {
+			kalMsleep(10);
 		}
-		u2RetryCnt++;
-		kalMsleep(10);
 	}
 
 	/* 3. Clear Interrupt Status */

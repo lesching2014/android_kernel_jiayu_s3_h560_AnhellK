@@ -2289,11 +2289,9 @@ wlanoidSetConnect(IN P_ADAPTER_T prAdapter, IN PVOID pvSetBuffer, IN UINT_32 u4S
 	/* re-association check */
 	if (kalGetMediaStateIndicated(prGlueInfo) == PARAM_MEDIA_STATE_CONNECTED) {
 		if (fgEqualSsid) {
-			prAisAbortMsg->ucReasonOfDisconnect = DISCONNECT_REASON_CODE_ROAMING;
-			if (fgEqualBssid) {
+			prAisAbortMsg->ucReasonOfDisconnect = DISCONNECT_REASON_CODE_REASSOCIATION;
+			if (fgEqualBssid)
 				kalSetMediaStateIndicated(prGlueInfo, PARAM_MEDIA_STATE_TO_BE_INDICATED);
-				prAisAbortMsg->ucReasonOfDisconnect = DISCONNECT_REASON_CODE_REASSOCIATION;
-			}
 		} else {
 			DBGLOG(OID, INFO, "DisBySsid\n");
 			kalIndicateStatusAndComplete(prGlueInfo, WLAN_STATUS_MEDIA_DISCONNECT, NULL, 0);
@@ -3801,13 +3799,12 @@ wlanoidSetRemoveKey(IN P_ADAPTER_T prAdapter,
 	P_AIS_SPECIFIC_BSS_INFO_T prAisSpecBssInfo;
 	P_WLAN_TABLE_T prWlanTable;
 	P_STA_RECORD_T prStaRec;
-	P_BSS_INFO_T prAisBssInfo;
 
 	DEBUGFUNC("wlanoidSetRemoveKey");
 
 	ASSERT(prAdapter);
 	ASSERT(pu4SetInfoLen);
-	prAisBssInfo = prAdapter->prAisBssInfo;
+
 	*pu4SetInfoLen = sizeof(PARAM_REMOVE_KEY_T);
 
 	if (u4SetBufferLen < sizeof(PARAM_REMOVE_KEY_T))
@@ -3931,8 +3928,7 @@ wlanoidSetRemoveKey(IN P_ADAPTER_T prAdapter,
 	} else {
 		DBGLOG(RSN, TRACE, "wlanoidSetRemoveKey\n");
 
-		if (prAisBssInfo->eConnectionState != PARAM_MEDIA_STATE_CONNECTED)
-			secPrivacyFreeForEntry(prAdapter, prCmdKey->ucWlanIndex);
+		secPrivacyFreeForEntry(prAdapter, prCmdKey->ucWlanIndex);
 	}
 
 	if (prCmdKey->ucKeyId < 4) {	/* BIP */
@@ -8103,7 +8099,7 @@ wlanoidSetNetworkAddress(IN P_ADAPTER_T prAdapter,
 		prCmdNetworkAddressList->ucAddressCount = (UINT_8) u4IPv4AddrCount;
 		prNetworkAddress = prNetworkAddressList->arAddress;
 
-		/* DBGLOG(INIT, INFO, ("%s: u4IPv4AddrCount (%lu)\n", __FUNCTION__, u4IPv4AddrCount)); */
+		/* DBGLOG(INIT, INFO, ("%s: u4IPv4AddrCount (%lu)\n", __func__, u4IPv4AddrCount)); */
 
 		for (i = 0, u4IPv4AddrIdx = 0; i < prNetworkAddressList->u4AddressCount; i++) {
 			if (prNetworkAddress->u2AddressType == PARAM_PROTOCOL_ID_TCP_IP &&
@@ -8626,12 +8622,6 @@ wlanSendSetQueryCmd(IN P_ADAPTER_T prAdapter,
 	UINT_8 ucCmdSeqNum;
 
 	prGlueInfo = prAdapter->prGlueInfo;
-
-	if (!prAdapter->prAisBssInfo) {
-		/* When wlanRemove is called, can't do wlanTriggerStatsLog in auth/assoc tx done */
-		return WLAN_STATUS_FAILURE;
-	}
-
 	prCmdInfo = cmdBufAllocateCmdInfo(prAdapter, (CMD_HDR_SIZE + u4SetQueryInfoLen));
 
 	DEBUGFUNC("wlanSendSetQueryCmd");
@@ -8640,7 +8630,10 @@ wlanSendSetQueryCmd(IN P_ADAPTER_T prAdapter,
 		DBGLOG(OID, ERROR, "Allocate CMD_INFO_T ==> FAILED.\n");
 		return WLAN_STATUS_FAILURE;
 	}
-
+	if (!prAdapter->prAisBssInfo) {
+		/* When wlanRemove is called, can't do wlanTriggerStatsLog in auth/assoc tx done */
+		return WLAN_STATUS_FAILURE;
+	}
 	/* increase command sequence number */
 	ucCmdSeqNum = nicIncreaseCmdSeqNum(prAdapter);
 	DBGLOG(OID, TRACE, "ucCmdSeqNum =%d\n", ucCmdSeqNum);
@@ -9992,12 +9985,12 @@ wlanoidSetCountryCode(IN P_ADAPTER_T prAdapter,
 
 	prAdapter->rWifiVar.rConnSettings.u2CountryCode = (((UINT_16) pucCountry[0]) << 8) | ((UINT_16) pucCountry[1]);
 
-	/* Force to re-search country code in country domains */
-	prAdapter->prDomainInfo = NULL;
+	prAdapter->prDomainInfo = NULL;	/* Force to re-search country code */
 	rlmDomainSendCmd(prAdapter, TRUE);
 
-	/* Update supported channel list in channel table based on current country domain */
+	/* Update supported channel list for WLAN & P2P interface (wiphy->bands) */
 	wlanUpdateChannelTable(prAdapter->prGlueInfo);
+	p2pUpdateChannelTableByDomain(prAdapter->prGlueInfo);
 
 	return WLAN_STATUS_SUCCESS;
 }
@@ -11948,59 +11941,3 @@ wlanoidGetGSCNResult(IN P_ADAPTER_T prAdapter,
 
 }
 #endif
-
-WLAN_STATUS
-wlanoidNotifyFwSuspend(IN P_ADAPTER_T prAdapter,
-			 IN PVOID pvSetBuffer, IN UINT_32 u4SetBufferLen, OUT PUINT_32 pu4SetInfoLen)
-{
-	CMD_SUSPEND_MODE_SETTING_T rSuspendCmd;
-
-	if (!prAdapter || !pvSetBuffer)
-		return WLAN_STATUS_INVALID_DATA;
-
-	rSuspendCmd.fIsEnableSuspendMode = *(PBOOLEAN)pvSetBuffer;
-	return wlanSendSetQueryCmd(prAdapter,
-				CMD_ID_SET_SUSPEND_MODE,
-				TRUE,
-				FALSE,
-				TRUE,
-				nicCmdEventSetCommon,
-				nicOidCmdTimeoutCommon,
-				sizeof(BOOLEAN),
-				(PUINT_8)&rSuspendCmd,
-				NULL,
-				0);
-}
-
-WLAN_STATUS
-wlanoidSetRoamingCtrl (
-    IN P_ADAPTER_T  prAdapter,
-    IN  PVOID    pvSetBuffer,
-    IN  UINT_32  u4SetBufferLen,
-    OUT PUINT_32 pu4SetInfoLen
-    )
-{
-	CMD_ROAMING_CTRL_T rRoamingCtrl;
-	UINT_8 fgEnable = *(PUINT_8)pvSetBuffer;
-
-	kalMemZero(&rRoamingCtrl, sizeof(rRoamingCtrl));
-	/* fgEnable:  enable roaming detect or not */
-	rRoamingCtrl.fgEnable = TRUE;
-	/* u2RcpiLowThr: RCPI threshold to trigger roaming event */
-	rRoamingCtrl.u2RcpiLowThr = (fgEnable == TRUE) ? 57:57;
-	/* ucRoamingRetryLimit: at most how many times report roaming discovery if roaming failed last time */
-	rRoamingCtrl.ucRoamingRetryLimit = 0;
-
-	return wlanSendSetQueryCmd(prAdapter,
-            CMD_ID_ROAMING_CONTROL,
-            TRUE,
-            FALSE,
-            TRUE,
-            nicCmdEventSetCommon,
-            nicOidCmdTimeoutCommon,
-            sizeof(rRoamingCtrl),
-            (PUINT_8)&rRoamingCtrl,
-            pvSetBuffer,
-            u4SetBufferLen
-            );
-}

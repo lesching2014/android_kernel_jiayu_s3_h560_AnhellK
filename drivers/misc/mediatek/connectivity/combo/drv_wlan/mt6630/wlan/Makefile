@@ -13,7 +13,6 @@ ccflags-y += -DCFG_SUPPORT_TSF_USING_BOOTTIME=1
 
 ccflags-y:=$(filter-out -U$(WLAN_CHIP_ID),$(ccflags-y))
 ccflags-y += -DLINUX -D$(WLAN_CHIP_ID)
-ccflags-y += -DARP_MONITER_ENABLE=1
 
 ifeq ($(CONFIG_MTK_WIFI_MCC_SUPPORT), y)
     ccflags-y += -DCFG_SUPPORT_CHNL_CONFLICT_REVISE=0

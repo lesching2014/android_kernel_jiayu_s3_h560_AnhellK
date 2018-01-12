@@ -565,8 +565,7 @@ const long channel_freq[] = {
 
 #define NUM_CHANNELS (sizeof(channel_freq) / sizeof(channel_freq[0]))
 
-#define MAX_SSID_LEN		32
-#define COUNTRY_CODE_LEN	10	/*country code length */
+#define MAX_SSID_LEN    32
 
 /*******************************************************************************
 *                             D A T A   T Y P E S
@@ -1369,7 +1368,7 @@ wext_set_mode(IN struct net_device *prNetDev,
 		return -EOPNOTSUPP;
 	}
 
-	/* DBGLOG(REQ, TRACE, "%s(): Set Mode = %d\n", __FUNCTION__, *pu4Mode); */
+	/* DBGLOG(REQ, TRACE, "%s(): Set Mode = %d\n", __func__, *pu4Mode); */
 
 	rStatus = kalIoctl(prGlueInfo,
 			   wlanoidSetInfrastructureMode,
@@ -1717,7 +1716,7 @@ wext_set_mlme(IN struct net_device *prNetDev,
 /*----------------------------------------------------------------------------*/
 static int
 wext_set_scan(IN struct net_device *prNetDev,
-	      IN struct iw_request_info *prIwrInfo, IN struct iw_scan_req *prIwScanReq, IN char *pcExtra)
+	      IN struct iw_request_info *prIwrInfo, IN union iwreq_data *prData, IN char *pcExtra)
 {
 	P_GLUE_INFO_T prGlueInfo = NULL;
 	WLAN_STATUS rStatus = WLAN_STATUS_SUCCESS;
@@ -1731,8 +1730,8 @@ wext_set_scan(IN struct net_device *prNetDev,
 
 #if WIRELESS_EXT > 17
 	/* retrieve SSID */
-	if (prIwScanReq)
-		essid_len = prIwScanReq->essid_len;
+	if (prData)
+		essid_len = ((struct iw_scan_req *)(((struct iw_point *)prData)->pointer))->essid_len;
 #endif
 
 	init_completion(&prGlueInfo->rScanComp);
@@ -2370,7 +2369,7 @@ wext_get_essid(IN struct net_device *prNetDev,
 
 	kalMemFree(prSsid, VIR_MEM_TYPE, sizeof(PARAM_SSID_T));
 
-	return rStatus;
+	return 0;
 }				/* wext_get_essid */
 
 #if 0
@@ -3452,75 +3451,41 @@ wext_set_encode_ext(IN struct net_device *prNetDev,
 /*!
 * \brief Set country code
 *
-* \param[in] prNetDev Net device requested.
-* \param[in] prData iwreq.u.data carries country code value.
+* \param[in] prDev Net device requested.
+* \param[in] prIwrInfo NULL.
+* \param[in] pu4Mode Pointer to new operation mode.
+* \param[in] pcExtra NULL.
 *
-* \retval 0  For success.
-* \retval -EEFAULT For fail.
+* \retval 0 For success.
+* \retval -EOPNOTSUPP If new mode is not supported.
 *
-* \note Country code is stored and channel list is updated based on current country domain.
+* \note Device will run in new operation mode if it is valid.
 */
 /*----------------------------------------------------------------------------*/
-static int wext_set_country(IN struct net_device *prNetDev, IN struct iw_point *prData)
+static int wext_set_country(IN struct net_device *prNetDev, IN struct iwreq *iwr)
 {
 	P_GLUE_INFO_T prGlueInfo;
 	WLAN_STATUS rStatus;
 	UINT_32 u4BufLen;
-	UINT_8 aucCountry[COUNTRY_CODE_LEN];
+	UINT_8 aucCountry[2];
 
 	ASSERT(prNetDev);
 
-	/* prData->pointer should be like "COUNTRY US", "COUNTRY EU"
+	/* iwr->u.data.pointer should be like "COUNTRY US", "COUNTRY EU"
 	 * and "COUNTRY JP"
 	 */
-	if (FALSE == GLUE_CHK_PR2(prNetDev, prData) || !prData->pointer || prData->length < COUNTRY_CODE_LEN)
+	if (FALSE == GLUE_CHK_PR2(prNetDev, iwr) || !iwr->u.data.pointer || iwr->u.data.length < 10)
 		return -EINVAL;
-
 	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prNetDev));
 
-	if (copy_from_user(aucCountry, prData->pointer, COUNTRY_CODE_LEN))
-		return -EFAULT;
+	aucCountry[0] = *((PUINT_8) iwr->u.data.pointer + 8);
+	aucCountry[1] = *((PUINT_8) iwr->u.data.pointer + 9);
 
-	rStatus = kalIoctl(prGlueInfo,
-			   wlanoidSetCountryCode,
-			   &aucCountry[COUNTRY_CODE_LEN - 2], 2, FALSE, FALSE, TRUE, FALSE, &u4BufLen);
-	if (rStatus != WLAN_STATUS_SUCCESS) {
-		DBGLOG(REQ, ERROR, "Set country code error: %x\n", rStatus);
-		return -EFAULT;
-	}
-
+	rStatus = kalIoctl(prGlueInfo, wlanoidSetCountryCode, &aucCountry[0], 2, FALSE, FALSE, TRUE, FALSE, &u4BufLen);
+	wlanUpdateChannelTable(prGlueInfo);
+	p2pUpdateChannelTableByDomain(prGlueInfo);
 	return 0;
 }
-
-/*----------------------------------------------------------------------------*/
-/*!
-* \brief To report the iw private args table to user space.
-*
-* \param[in] prNetDev Net device requested.
-* \param[out] prData iwreq.u.data to carry the private args table.
-*
-* \retval 0  For success.
-* \retval -E2BIG For user's buffer size is too small.
-* \retval -EFAULT For fail.
-*
-*/
-/*----------------------------------------------------------------------------*/
-static int wext_get_priv(IN struct net_device *prNetDev, OUT struct iw_point *prData)
-{
-	UINT_16 u2BufferSize = prData->length;
-
-	/* Update our private args table size */
-	prData->length = (__u16)sizeof(rIwPrivTable);
-	if (u2BufferSize < prData->length)
-		return -E2BIG;
-
-	if (prData->length) {
-		if (copy_to_user(prData->pointer, rIwPrivTable, sizeof(rIwPrivTable)))
-			return -EFAULT;
-	}
-
-	return 0;
-}				/* wext_get_priv */
 
 /*----------------------------------------------------------------------------*/
 /*!
@@ -3540,9 +3505,9 @@ static int wext_get_priv(IN struct net_device *prNetDev, OUT struct iw_point *pr
 /*----------------------------------------------------------------------------*/
 int wext_support_ioctl(IN struct net_device *prDev, IN struct ifreq *prIfReq, IN int i4Cmd)
 {
+	/* prIfReq is verified in the caller function wlanDoIOCTL() */
 	struct iwreq *iwr = (struct iwreq *)prIfReq;
 	struct iw_request_info rIwReqInfo;
-	struct iw_scan_req *prIwScanReq = NULL;
 	int ret = 0;
 	char *prExtraBuf = NULL;
 	UINT_32 u4ExtraSize = 0;
@@ -3551,8 +3516,11 @@ int wext_support_ioctl(IN struct net_device *prDev, IN struct ifreq *prIfReq, IN
 	UINT_32 u4BufLen;
 	P_PARAM_PMKID_T prPmkid;
 
+	/* prDev is verified in the caller function wlanDoIOCTL() */
+
 	/* DBGLOG(REQ, TRACE, "%d CMD:0x%x\n", jiffies_to_msecs(jiffies), i4Cmd); */
 
+	/* Prepare the call */
 	rIwReqInfo.cmd = (__u16) i4Cmd;
 	rIwReqInfo.flags = 0;
 
@@ -3587,7 +3555,7 @@ int wext_support_ioctl(IN struct net_device *prDev, IN struct ifreq *prIfReq, IN
 		/* case SIOCSIWRANGE: 0x8B0A, unused */
 	case SIOCGIWRANGE:	/* 0x8B0B, get range of parameters */
 		if (iwr->u.data.pointer != NULL) {
-			/* Buffer size should be large enough */
+			/* Buffer size shoule be large enough */
 			if (iwr->u.data.length < sizeof(struct iw_range)) {
 				ret = -E2BIG;
 				break;
@@ -3615,15 +3583,12 @@ int wext_support_ioctl(IN struct net_device *prDev, IN struct ifreq *prIfReq, IN
 		}
 		break;
 
-	case SIOCSIWPRIV:	/* 0x8B0C, set country code */
-		ret = wext_set_country(prDev, &iwr->u.data);
+	case SIOCSIWPRIV:	/* 0x8B0C, Country */
+		ret = wext_set_country(prDev, iwr);
 		break;
 
-	case SIOCGIWPRIV:	/* 0x8B0D, get private args table */
-		ret = wext_get_priv(prDev, &iwr->u.data);
-		break;
-
-		/* case SIOCSIWSTATS: 0x8B0E, unused */
+		/* case SIOCGIWPRIV: 0x8B0D, handled in wlan_do_ioctl() */
+		/* caes SIOCSIWSTATS: 0x8B0E, unused */
 		/* case SIOCGIWSTATS:
 		   get statistics, intercepted by wireless_process_ioctl() in wireless.c,
 		   redirected to dev_iwstats(), dev->get_wireless_stats().
@@ -3687,22 +3652,20 @@ int wext_support_ioctl(IN struct net_device *prDev, IN struct ifreq *prIfReq, IN
 			ret = wext_set_scan(prDev, NULL, NULL, NULL);
 #if WIRELESS_EXT > 17
 		else if (iwr->u.data.length == sizeof(struct iw_scan_req)) {
-			prIwScanReq = kalMemAlloc(sizeof(struct iw_scan_req), VIR_MEM_TYPE);
-			if (!prIwScanReq) {
+			prExtraBuf = kalMemAlloc(MAX_SSID_LEN, VIR_MEM_TYPE);
+			if (!prExtraBuf) {
 				ret = -ENOMEM;
 				break;
 			}
-
-			if (copy_from_user(prIwScanReq, iwr->u.data.pointer, sizeof(struct iw_scan_req))) {
+			if (copy_from_user(prExtraBuf, ((struct iw_scan_req *)(iwr->u.data.pointer))->essid,
+					   ((struct iw_scan_req *)(iwr->u.data.pointer))->essid_len)) {
 				ret = -EFAULT;
 			} else {
-				if (prIwScanReq->essid_len > IW_ESSID_MAX_SIZE)
-					prIwScanReq->essid_len = IW_ESSID_MAX_SIZE;
-				ret = wext_set_scan(prDev, NULL, prIwScanReq, &(prIwScanReq->essid[0]));
+				ret = wext_set_scan(prDev, NULL, (union iwreq_data *)&(iwr->u.data), prExtraBuf);
 			}
 
-			kalMemFree(prIwScanReq, VIR_MEM_TYPE, sizeof(struct iw_scan_req));
-			prIwScanReq = NULL;
+			kalMemFree(prExtraBuf, VIR_MEM_TYPE, MAX_SSID_LEN);
+			prExtraBuf = NULL;
 		}
 #endif
 		else
@@ -3750,8 +3713,7 @@ int wext_support_ioctl(IN struct net_device *prDev, IN struct ifreq *prIfReq, IN
 
 #if 1
 	case SIOCSIWESSID:	/* 0x8B1A, set SSID (network name) */
-		u4ExtraSize = iwr->u.essid.length;
-		if (u4ExtraSize > IW_ESSID_MAX_SIZE) {
+		if (iwr->u.essid.length > IW_ESSID_MAX_SIZE) {
 			ret = -E2BIG;
 			break;
 		}
@@ -3766,7 +3728,7 @@ int wext_support_ioctl(IN struct net_device *prDev, IN struct ifreq *prIfReq, IN
 			break;
 		}
 
-		if (copy_from_user(prExtraBuf, iwr->u.essid.pointer, u4ExtraSize)) {
+		if (copy_from_user(prExtraBuf, iwr->u.essid.pointer, iwr->u.essid.length)) {
 			ret = -EFAULT;
 		} else {
 			/* prExtraBuf[iwr->u.essid.length] = 0; */
@@ -3782,19 +3744,18 @@ int wext_support_ioctl(IN struct net_device *prDev, IN struct ifreq *prIfReq, IN
 #endif
 
 	case SIOCGIWESSID:	/* 0x8B1B, get SSID */
-		u4ExtraSize = iwr->u.essid.length;
 		if (!iwr->u.essid.pointer) {
 			ret = -EINVAL;
 			break;
 		}
 
-		if (u4ExtraSize != IW_ESSID_MAX_SIZE && u4ExtraSize != IW_ESSID_MAX_SIZE + 1) {
-			DBGLOG(REQ, ERROR, "[wifi] iwr->u.essid.length:%u error\n", u4ExtraSize);
+		if (iwr->u.essid.length < IW_ESSID_MAX_SIZE) {
+			DBGLOG(REQ, ERROR, "[wifi] iwr->u.essid.length:%d too small\n", iwr->u.essid.length);
 			ret = -E2BIG;	/* let caller try larger buffer */
 			break;
 		}
 
-		prExtraBuf = kalMemAlloc(IW_ESSID_MAX_SIZE + 1, VIR_MEM_TYPE);
+		prExtraBuf = kalMemAlloc(IW_ESSID_MAX_SIZE, VIR_MEM_TYPE);
 		if (!prExtraBuf) {
 			ret = -ENOMEM;
 			break;
@@ -3808,7 +3769,7 @@ int wext_support_ioctl(IN struct net_device *prDev, IN struct ifreq *prIfReq, IN
 				ret = -EFAULT;
 		}
 
-		kalMemFree(prExtraBuf, VIR_MEM_TYPE, IW_ESSID_MAX_SIZE + 1);
+		kalMemFree(prExtraBuf, VIR_MEM_TYPE, IW_ESSID_MAX_SIZE);
 		prExtraBuf = NULL;
 
 		break;
@@ -3851,22 +3812,22 @@ int wext_support_ioctl(IN struct net_device *prDev, IN struct ifreq *prIfReq, IN
 #if 1
 	case SIOCSIWENCODE:	/* 0x8B2A, set encoding token & mode */
 		/* Only DISABLED case has NULL pointer and length == 0 */
-		u4ExtraSize = iwr->u.encoding.length;
 		if (iwr->u.encoding.pointer) {
-			if (u4ExtraSize > 16) {
+			if (iwr->u.encoding.length > 16) {
 				ret = -E2BIG;
 				break;
 			}
 
+			u4ExtraSize = iwr->u.encoding.length;
 			prExtraBuf = kalMemAlloc(u4ExtraSize, VIR_MEM_TYPE);
 			if (!prExtraBuf) {
 				ret = -ENOMEM;
 				break;
 			}
 
-			if (copy_from_user(prExtraBuf, iwr->u.encoding.pointer, u4ExtraSize))
+			if (copy_from_user(prExtraBuf, iwr->u.encoding.pointer, iwr->u.encoding.length))
 				ret = -EFAULT;
-		} else {
+		} else if (iwr->u.encoding.length != 0) {
 			ret = -EINVAL;
 			break;
 		}
@@ -3902,14 +3863,13 @@ int wext_support_ioctl(IN struct net_device *prDev, IN struct ifreq *prIfReq, IN
 			break;
 
 		/* Fixed length structure */
-		u4ExtraSize = iwr->u.data.length;
-
 #if CFG_SUPPORT_WAPI
-		if (u4ExtraSize > 42 /* The max wapi ie buffer */) {
+		if (iwr->u.data.length > 42 /* The max wapi ie buffer */) {
 			ret = -EINVAL;
 			break;
 		}
 #endif
+		u4ExtraSize = iwr->u.data.length;
 		if (u4ExtraSize == 0)
 			break;
 
@@ -3918,7 +3878,7 @@ int wext_support_ioctl(IN struct net_device *prDev, IN struct ifreq *prIfReq, IN
 			ret = -ENOMEM;
 			break;
 		}
-		if (copy_from_user(prExtraBuf, iwr->u.data.pointer, u4ExtraSize)) {
+		if (copy_from_user(prExtraBuf, iwr->u.data.pointer, iwr->u.data.length)) {
 			ret = -EFAULT;
 		} else {
 #if CFG_SUPPORT_WAPI
@@ -3969,20 +3929,15 @@ int wext_support_ioctl(IN struct net_device *prDev, IN struct ifreq *prIfReq, IN
 	case SIOCSIWENCODEEXT:	/* 0x8B34, set extended encoding token & mode */
 		if (iwr->u.encoding.pointer) {
 			u4ExtraSize = iwr->u.encoding.length;
-			if (u4ExtraSize > sizeof(struct iw_encode_ext)) {
-				ret = -EINVAL;
-				break;
-			}
-
 			prExtraBuf = kalMemAlloc(u4ExtraSize, VIR_MEM_TYPE);
 			if (!prExtraBuf) {
 				ret = -ENOMEM;
 				break;
 			}
 
-			if (copy_from_user(prExtraBuf, iwr->u.encoding.pointer, u4ExtraSize))
+			if (copy_from_user(prExtraBuf, iwr->u.encoding.pointer, iwr->u.encoding.length))
 				ret = -EFAULT;
-		} else {
+		} else if (iwr->u.encoding.length != 0) {
 			ret = -EINVAL;
 			break;
 		}
@@ -4092,7 +4047,7 @@ int wext_support_ioctl(IN struct net_device *prDev, IN struct ifreq *prIfReq, IN
 				kalMemFree(prExtraBuf, VIR_MEM_TYPE, u4ExtraSize);
 				prExtraBuf = NULL;
 			}
-		} else {
+		} else if (iwr->u.data.length != 0) {
 			ret = -EINVAL;
 			break;
 		}
@@ -4317,5 +4272,41 @@ stat_out:
 	return pStats;
 }				/* wlan_get_wireless_stats */
 
+/*----------------------------------------------------------------------------*/
+/*!
+* \brief To report the private supported IOCTLs table to user space.
+*
+* \param[in] prNetDev Net device requested.
+* \param[out] prIfReq Pointer to ifreq structure, content is copied back to
+*                  user space buffer in gl_iwpriv_table.
+*
+* \retval 0 For success.
+* \retval -E2BIG For user's buffer size is too small.
+* \retval -EFAULT For fail.
+*
+*/
+/*----------------------------------------------------------------------------*/
+int wext_get_priv(IN struct net_device *prNetDev, IN struct ifreq *prIfReq)
+{
+	/* prIfReq is verified in the caller function wlanDoIOCTL() */
+	struct iwreq *prIwReq = (struct iwreq *)prIfReq;
+	struct iw_point *prData = (struct iw_point *)&prIwReq->u.data;
+	UINT_16 u2BufferSize = 0;
+
+	u2BufferSize = prData->length;
+
+	/* update our private table size */
+	prData->length = (__u16) sizeof(rIwPrivTable) / sizeof(struct iw_priv_args);
+
+	if (u2BufferSize < prData->length)
+		return -E2BIG;
+
+	if (prData->length) {
+		if (copy_to_user(prData->pointer, rIwPrivTable, sizeof(rIwPrivTable)))
+			return -EFAULT;
+	}
+
+	return 0;
+}				/* wext_get_priv */
 
 #endif /* WIRELESS_EXT */

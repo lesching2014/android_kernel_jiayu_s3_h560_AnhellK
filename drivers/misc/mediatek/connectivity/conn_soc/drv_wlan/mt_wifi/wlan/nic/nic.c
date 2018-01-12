@@ -2790,34 +2790,50 @@ VOID nicInitMGMT(IN P_ADAPTER_T prAdapter, IN P_REG_INFO_T prRegInfo)
 * @retval none
 */
 /*----------------------------------------------------------------------------*/
+extern int is_in_off;
 VOID nicUninitMGMT(IN P_ADAPTER_T prAdapter)
 {
 	ASSERT(prAdapter);
-
+	if (is_in_off)
+		printk("%s %d\n", __func__, __LINE__);
 #if CFG_SUPPORT_SWCR
 	swCrDebugUninit(prAdapter);
 #endif /* CFG_SUPPORT_SWCR */
+	if (is_in_off)
+		printk("%s %d\n", __func__, __LINE__);
 
 #if CFG_SUPPORT_ROAMING
 	/* Roaming Module - unintiailization */
 	roamingFsmUninit(prAdapter);
 #endif /* CFG_SUPPORT_ROAMING */
+	if (is_in_off)
+		printk("%s %d\n", __func__, __LINE__);
 
 	/* AIS Module - unintiailization */
 	aisFsmUninit(prAdapter);
+	if (is_in_off)
+		printk("%s %d\n", __func__, __LINE__);
 
 	/* SCN Module - unintiailization */
 	scnUninit(prAdapter);
+	if (is_in_off)
+		printk("%s %d\n", __func__, __LINE__);
 
 	/* RLM Module - uninitialization */
 	rlmFsmEventUninit(prAdapter);
+	if (is_in_off)
+		printk("%s %d\n", __func__, __LINE__);
 
 	/* CNM Module - uninitialization */
 	cnmUninit(prAdapter);
+	if (is_in_off)
+		printk("%s %d\n", __func__, __LINE__);
 
 #if (CFG_SUPPORT_TDLS == 1)
 	TdlsexUninit(prAdapter);
 #endif /* CFG_SUPPORT_TDLS */
+	if (is_in_off)
+		printk("%s %d\n", __func__, __LINE__);
 	return;
 }
 

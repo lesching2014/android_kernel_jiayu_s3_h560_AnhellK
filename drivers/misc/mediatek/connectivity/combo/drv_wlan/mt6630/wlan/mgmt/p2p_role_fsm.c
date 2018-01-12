@@ -396,11 +396,6 @@ p2pRoleFsmRunEventDeauthTxDone(IN P_ADAPTER_T prAdapter,
 		}
 
 		prP2pBssInfo = prAdapter->aprBssInfo[prMsduInfo->ucBssIndex];
-		/* Change station state. */
-		cnmStaRecChangeState(prAdapter, prStaRec, STA_STATE_1);
-
-		/* Reset Station Record Status. */
-		p2pFuncResetStaRecStatus(prAdapter, prStaRec);
 
 		/* Try to remove StaRec in BSS client list before free it */
 		bssRemoveClient(prAdapter, prP2pBssInfo, prStaRec);
@@ -1428,12 +1423,6 @@ p2pRoleFsmRunEventChnlGrant(IN P_ADAPTER_T prAdapter,
 				}
 
 				p2pRoleFsmStateTransition(prAdapter, prP2pRoleFsmInfo, eNextState);
-				break;
-			case P2P_ROLE_STATE_IDLE:
-				DBGLOG(P2P, WARN,
-				       "p2pRoleFsmRunEventChnlGrant: Ignore channel grant event when in ROLE IDLE\n");
-				p2pFuncReleaseCh(prAdapter,
-					prP2pRoleFsmInfo->ucBssIndex, prChnlReqInfo);
 				break;
 			default:
 				/* Channel is granted under unexpected state.

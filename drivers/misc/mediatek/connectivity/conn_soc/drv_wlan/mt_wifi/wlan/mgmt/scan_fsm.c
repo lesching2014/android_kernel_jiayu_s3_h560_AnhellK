@@ -269,7 +269,8 @@
 *                           P R I V A T E   D A T A
 ********************************************************************************
 */
-#if DBG
+/*lenovo-sw lumy1, wifi log enhance*/
+#if 1
 /*lint -save -e64 Type mismatch */
 static PUINT_8 apucDebugScanState[SCAN_STATE_NUM] = {
 	(PUINT_8) DISP_STRING("SCAN_STATE_IDLE"),
@@ -317,14 +318,17 @@ VOID scnFsmSteps(IN P_ADAPTER_T prAdapter, IN ENUM_SCAN_STATE_T eNextState)
 	prScanInfo = &(prAdapter->rWifiVar.rScanInfo);
 	prScanParam = &prScanInfo->rScanParam;
 
-	do {
-
-#if DBG
-		DBGLOG(SCN, STATE, "TRANSITION: [%s] -> [%s]\n",
-				    apucDebugScanState[prScanInfo->eCurrentState], apucDebugScanState[eNextState]);
+    do {
+/*lenovo-sw lumy1, wifi log enhance*/
+#if 1
+        DBGLOG(SCN, STATE, "TRANSITION: [%s] -> [%s]\n",
+                             apucDebugScanState[prScanInfo->eCurrentState],
+                             apucDebugScanState[eNextState]);
 #else
-		DBGLOG(SCN, STATE, "[%d] TRANSITION: [%d] -> [%d]\n",
-				    DBG_SCN_IDX, prScanInfo->eCurrentState, eNextState);
+        DBGLOG(SCN, STATE, "[%d] TRANSITION: [%d] -> [%d]\n",
+                             DBG_SCN_IDX,
+                             prScanInfo->eCurrentState,
+                             eNextState);
 #endif
 
 		/* NOTE(Kevin): This is the only place to change the eCurrentState(except initial) */
@@ -2099,6 +2103,6 @@ scnPSCNFsm(IN P_ADAPTER_T prAdapter,
 		prScanInfo->eCurrentPSCNState = eNextPSCNState;
 	} while (fgTransitionState);
 
-	return prScanInfo->eCurrentPSCNState;
+	return prScanInfo->eCurrentState;
 }
 #endif

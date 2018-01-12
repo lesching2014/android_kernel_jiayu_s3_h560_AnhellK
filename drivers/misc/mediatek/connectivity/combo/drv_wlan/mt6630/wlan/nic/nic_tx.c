@@ -767,11 +767,6 @@ VOID nicTxInitialize(IN P_ADAPTER_T prAdapter)
 	for (i = 0; i < CFG_TX_MAX_PKT_NUM; i++) {
 		prMsduInfo = (P_MSDU_INFO_T) pucMemHandle;
 		kalMemZero(prMsduInfo, sizeof(MSDU_INFO_T));
-#if CFG_DBG_MGT_BUF
-		prMsduInfo->fgIsUsed = FALSE;
-		prMsduInfo->rLastAllocTime = kalGetTimeTick();
-		prMsduInfo->rLastFreeTime = kalGetTimeTick();
-#endif
 
 		KAL_ACQUIRE_SPIN_LOCK(prAdapter, SPIN_LOCK_TX_MSDU_INFO_LIST);
 		QUEUE_INSERT_TAIL(&prTxCtrl->rFreeMsduInfoList, (P_QUE_ENTRY_T) prMsduInfo);
@@ -1593,7 +1588,7 @@ UINT_32 nicTxMsduQueueMthread(IN P_ADAPTER_T prAdapter)
 			QUEUE_MOVE_ALL((prDataPort1), (&(prAdapter->rTxP1Queue)));
 			KAL_RELEASE_SPIN_LOCK(prAdapter, SPIN_LOCK_TX_PORT_QUE);
 
-			nicTxMsduQueue(prAdapter, 1, prDataPort1);
+			nicTxMsduQueue(prAdapter, 1, prDataPort0);
 		}
 	}
 
@@ -2600,9 +2595,6 @@ VOID nicTxReturnMsduInfo(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMsduInfoLi
 {
 	P_TX_CTRL_T prTxCtrl;
 	P_MSDU_INFO_T prMsduInfo = prMsduInfoListHead, prNextMsduInfo;
-#if CFG_DBG_MGT_BUF
-	OS_SYSTIME rAllocTime;
-#endif
 
 	KAL_SPIN_LOCK_DECLARATION();
 
@@ -2624,15 +2616,9 @@ VOID nicTxReturnMsduInfo(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMsduInfoLi
 		default:
 			break;
 		}
-#if CFG_DBG_MGT_BUF
-		rAllocTime = prMsduInfo->rLastAllocTime;
-#endif
+
 		/* Reset MSDU_INFO fields */
 		kalMemZero(prMsduInfo, sizeof(MSDU_INFO_T));
-#if CFG_DBG_MGT_BUF
-		prMsduInfo->rLastFreeTime = kalGetTimeTick();
-		prMsduInfo->rLastAllocTime = rAllocTime;
-#endif
 
 		KAL_ACQUIRE_SPIN_LOCK(prAdapter, SPIN_LOCK_TX_MSDU_INFO_LIST);
 		QUEUE_INSERT_TAIL(&prTxCtrl->rFreeMsduInfoList, (P_QUE_ENTRY_T) prMsduInfo);
@@ -2658,7 +2644,6 @@ VOID nicTxReturnMsduInfo(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMsduInfoLi
 BOOLEAN nicTxFillMsduInfo(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMsduInfo, IN P_NATIVE_PACKET prPacket)
 {
 	P_GLUE_INFO_T prGlueInfo;
-	BOOLEAN fgIsUseFixRate = FALSE;
 
 	ASSERT(prAdapter);
 
@@ -2681,28 +2666,10 @@ BOOLEAN nicTxFillMsduInfo(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMsduInfo,
 		prMsduInfo->fgIs802_3 = GLUE_TEST_PKT_FLAG(prPacket, ENUM_PKT_802_3);
 		prMsduInfo->fgIsVlanExists = GLUE_TEST_PKT_FLAG(prPacket, ENUM_PKT_VLAN_EXIST);
 
-		if (GLUE_TEST_PKT_FLAG(prPacket, ENUM_PKT_DHCP) &&
-			prAdapter->rWifiVar.ucDhcpTxDone) {
+		if (GLUE_TEST_PKT_FLAG(prPacket, ENUM_PKT_DHCP) && prAdapter->rWifiVar.ucDhcpTxDone)
 			prMsduInfo->pfTxDoneHandler = wlanDhcpTxDone;
-			prMsduInfo->ucTxSeqNum = GLUE_GET_PKT_SEQ_NO(prPacket);
-			fgIsUseFixRate = TRUE;
-		} else if (GLUE_TEST_PKT_FLAG(prPacket, ENUM_PKT_ARP) &&
-			prAdapter->rWifiVar.ucArpTxDone) {
+		else if (GLUE_TEST_PKT_FLAG(prPacket, ENUM_PKT_ARP) && prAdapter->rWifiVar.ucArpTxDone)
 			prMsduInfo->pfTxDoneHandler = wlanArpTxDone;
-			prMsduInfo->ucTxSeqNum = GLUE_GET_PKT_SEQ_NO(prPacket);
-			fgIsUseFixRate = TRUE;
-		} else if (GLUE_TEST_PKT_FLAG(prPacket, ENUM_PKT_ICMP) &&
-			prAdapter->rWifiVar.ucIcmpTxDone) {
-			prMsduInfo->pfTxDoneHandler = wlanIcmpTxDone;
-			prMsduInfo->ucTxSeqNum = GLUE_GET_PKT_SEQ_NO(prPacket);
-		}
-		if (fgIsUseFixRate == TRUE) {
-			if (prMsduInfo->ucBssIndex <= MAX_BSS_INDEX) {
-				P_BSS_INFO_T prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, prMsduInfo->ucBssIndex);
-				prMsduInfo->u4FixedRateOption |= HAL_MAC_TX_DESC_SET_FIX_RATE(prBssInfo);
-				prMsduInfo->ucRateMode = MSDU_RATE_MODE_MANUAL_DESC;
-			}
-		}
 	}
 
 	/* Reset to default value by memory zero */
@@ -3144,10 +3111,6 @@ WLAN_STATUS nicTxEnqueueMsdu(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMsduIn
 					prCmdInfo->fgSetQuery = TRUE;
 					prCmdInfo->fgNeedResp = FALSE;
 					prCmdInfo->ucCmdSeqNum = prMsduInfoHead->ucTxSeqNum;
-#if CFG_DBG_MGT_BUF
-					prCmdInfo->fgIsUsed = TRUE;
-					prCmdInfo->rLastAllocTime = kalGetTimeTick();
-#endif
 
 					DBGLOG(TX, TRACE, "%s: EN-Q MSDU[0x%p] SEQ[%u] BSS[%u] STA[%u] to CMD Q\n",
 							  __func__, prMsduInfoHead,
@@ -3308,8 +3271,6 @@ nicTxSetMngPacket(P_ADAPTER_T prAdapter, P_MSDU_INFO_T prMsduInfo,
 		  UINT_8 ucBssIndex, UINT_8 ucStaRecIndex, UINT_8 ucMacHeaderLength,
 		  UINT_16 u2FrameLength, PFN_TX_DONE_HANDLER pfTxDoneHandler, UINT_8 ucRateMode)
 {
-	static UINT_16 u2SwSN;
-
 	ASSERT(prMsduInfo);
 
 	prMsduInfo->ucBssIndex = ucBssIndex;
@@ -3330,10 +3291,6 @@ nicTxSetMngPacket(P_ADAPTER_T prAdapter, P_MSDU_INFO_T prMsduInfo,
 	prMsduInfo->ucPacketType = TX_PACKET_TYPE_MGMT;
 	prMsduInfo->ucUserPriority = 0;
 	prMsduInfo->eSrc = TX_PACKET_MGMT;
-	u2SwSN++;
-	if (u2SwSN > 4095)
-		u2SwSN = 0;
-	nicTxSetPktSequenceNumber(prMsduInfo, u2SwSN);
 }
 
 VOID

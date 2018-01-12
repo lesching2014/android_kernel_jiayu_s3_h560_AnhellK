@@ -86,6 +86,7 @@ extern OSAL_BIT_OP_VAR gGpsFmState;
 extern UINT32 gWifiProbed;
 extern UINT32 g_IsNeedDoChipReset;
 extern MTK_WCN_BOOL g_pwr_off_flag;
+
 /*******************************************************************************
 *                              C O N S T A N T S
 ********************************************************************************
@@ -285,7 +286,9 @@ extern VOID wmt_lib_ps_irq_cb(VOID);
 extern VOID mtk_wcn_wmt_func_ctrl_for_plat(UINT32 on, ENUM_WMTDRV_TYPE_T type);
 
 extern INT32 mtk_wcn_wmt_system_state_reset(VOID);
+
 extern MTK_WCN_BOOL mtk_wcn_set_connsys_power_off_flag(MTK_WCN_BOOL value);
+
 #ifdef MTK_WCN_WMT_STP_EXP_SYMBOL_ABSTRACT
 extern VOID mtk_wcn_wmt_exp_init(VOID);
 extern VOID mtk_wcn_wmt_exp_deinit(VOID);
