@@ -32,10 +32,6 @@ else
     ccflags-y += -DCFG_SUPPORT_AEE=0
 endif
 
-ifneq ($(filter "CONSYS_6752",$(CONFIG_MTK_COMBO_CHIP)),)
-    ccflags-y += -DCFG_FORCE_5G_SUPPORT
-endif
-
 #ifeq ($(CONFIG_MTK_COMBO_WIFI_HIF_SDIO1), y)
 #    ccflags-y += -D_HIF_SDIO=1
 #endif
@@ -147,8 +143,10 @@ OS_OBJS :=	$(OS_DIR)gl_init.o \
 			$(OS_DIR)gl_wext_priv.o \
 			$(OS_DIR)gl_rst.o \
 			$(OS_DIR)gl_cfg80211.o \
-			$(OS_DIR)platform.o		\
+			$(OS_DIR)gl_vendor.o \
+			$(OS_DIR)platform.o \
 			$(OS_DIR)gl_proc.o
+
 MGMT_OBJS := $(MGMT_DIR)ais_fsm.o \
 			 $(MGMT_DIR)aaa_fsm.o \
 			 $(MGMT_DIR)assoc.o \

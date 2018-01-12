@@ -682,6 +682,21 @@
 
 #define ROAMING_NO_SWING_RCPI_STEP              (10)
 
+#define RSSI_HI_5GHZ	(-60)
+#define RSSI_MED_5GHZ	(-70)
+#define RSSI_LO_5GHZ	(-80)
+
+#define PREF_HI_5GHZ	(20)
+#define PREF_MED_5GHZ	(15)
+#define PREF_LO_5GHZ	(10)
+
+INT_32 rssiRangeHi = RSSI_HI_5GHZ;
+INT_32 rssiRangeMed = RSSI_MED_5GHZ;
+INT_32 rssiRangeLo = RSSI_LO_5GHZ;
+UINT_8 pref5GhzHi = PREF_HI_5GHZ;
+UINT_8 pref5GhzMed = PREF_MED_5GHZ;
+UINT_8 pref5GhzLo = PREF_LO_5GHZ;
+
 /*******************************************************************************
 *                             D A T A   T Y P E S
 ********************************************************************************
@@ -1214,7 +1229,6 @@ VOID scanRemoveBssDescsByPolicy(IN P_ADAPTER_T prAdapter, IN UINT_32 u4RemovePol
 			if ((!prBssDesc->fgIsHiddenSSID) &&
 			    (EQUAL_SSID(prBssDesc->aucSSID,
 					prBssDesc->ucSSIDLen, prConnSettings->aucSSID, prConnSettings->ucSSIDLen))) {
-
 				u4SameSSIDCount++;
 
 				if (!prBssDescWeakestSameSSID)
@@ -1232,7 +1246,6 @@ VOID scanRemoveBssDescsByPolicy(IN P_ADAPTER_T prAdapter, IN UINT_32 u4RemovePol
 				prBssDescWeakest = prBssDesc;
 
 		}
-
 		if ((u4SameSSIDCount >= SCN_BSS_DESC_SAME_SSID_THRESHOLD) && (prBssDescWeakestSameSSID))
 			prBssDescWeakest = prBssDescWeakestSameSSID;
 
@@ -1604,7 +1617,8 @@ P_BSS_DESC_T scanAddToBssDesc(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_T prSwRfb)
 				break;
 			/* 4 <1.2.2> Hidden is useless, remove the oldest hidden ssid. (for passive scan) */
 			scanRemoveBssDescsByPolicy(prAdapter,
-						   (SCN_RM_POLICY_EXCLUDE_CONNECTED | SCN_RM_POLICY_OLDEST_HIDDEN));
+						   (SCN_RM_POLICY_EXCLUDE_CONNECTED | SCN_RM_POLICY_OLDEST_HIDDEN |
+						   SCN_RM_POLICY_TIMEOUT));
 
 			/* 4 <1.2.3> Second tail of allocation */
 			prBssDesc = scanAllocateBssDesc(prAdapter);
@@ -2065,8 +2079,8 @@ WLAN_STATUS scanAddScanResult(IN P_ADAPTER_T prAdapter, IN P_BSS_DESC_T prBssDes
 		eOpMode = NET_TYPE_INFRA;
 		break;
 	}
-	/*lenovo-sw lumy1, wifi log enhance*/
-	DBGLOG(SCN, INFO, "ind ["MACSTR"], RSSI %d, %s,  channel %d\n", MAC2STR(prBssDesc->aucBSSID), RCPI_TO_dBm(prBssDesc->ucRCPI), prBssDesc->aucSSID, prBssDesc->ucChannelNum);
+
+	DBGLOG(SCN, TRACE, "ind %s %d\n", prBssDesc->aucSSID, prBssDesc->ucChannelNum);
 
 #if (CFG_SUPPORT_TDLS == 1)
 	{
@@ -2428,6 +2442,29 @@ WLAN_STATUS scanProcessBeaconAndProbeResp(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_
 
 }				/* end of scanProcessBeaconAndProbeResp() */
 
+INT_32 scanResultsAdjust5GPref(P_BSS_DESC_T prBssDesc)
+{
+	INT_32 rssi = RCPI_TO_dBm(prBssDesc->ucRCPI);
+	INT_32 orgRssi = rssi;
+
+	if (prBssDesc->eBand == BAND_5G) {
+		if (rssi >= rssiRangeHi)
+			rssi += pref5GhzHi;
+		else if (rssi >= rssiRangeMed)
+			rssi += pref5GhzMed;
+		else if (rssi >= rssiRangeLo)
+			rssi += pref5GhzLo;
+	}
+	/* Reduce chances of roam ping-pong */
+	if (prBssDesc->fgIsConnected)
+		rssi += (ROAMING_NO_SWING_RCPI_STEP >> 1);
+
+	if (prBssDesc->eBand == BAND_5G || prBssDesc->fgIsConnected)
+		DBGLOG(SCN, TRACE, "Adjust 5G band RSSI: " MACSTR " band=%d, orgRssi=%d afterRssi=%d\n",
+			MAC2STR(prBssDesc->aucBSSID), prBssDesc->eBand, orgRssi, rssi);
+	return rssi;
+}
+
 /*----------------------------------------------------------------------------*/
 /*!
 * \brief Search the Candidate of BSS Descriptor for JOIN(Infrastructure) or
@@ -2497,9 +2534,9 @@ P_BSS_DESC_T scanSearchBssDescByPolicy(IN P_ADAPTER_T prAdapter, IN ENUM_NETWORK
 		prConnSettings->aucSSID[prConnSettings->ucSSIDLen] = '\0';
 #endif
 
-	DBGLOG(SCN, TRACE, "SEARCH: Bss Num: %d, Look for SSID: %s, %pM Band=%d, channel=%d\n",
+	DBGLOG(SCN, INFO, "SEARCH: Bss Num: %d, Look for SSID: %s, %pM Band=%d, channel=%d\n",
 			   (UINT_32) prBSSDescList->u4NumElem, prConnSettings->aucSSID,
-			   (prConnSettings->aucBSSID), eBand, ucChannel);/*lenovo-sw lumy1, wifi log enhance*/
+			   (prConnSettings->aucBSSID), eBand, ucChannel);
 
 	/* 4 <1> The outer loop to search for a candidate. */
 	LINK_FOR_EACH_ENTRY(prBssDesc, prBSSDescList, rLinkEntry, BSS_DESC_T) {
@@ -2544,9 +2581,7 @@ P_BSS_DESC_T scanSearchBssDescByPolicy(IN P_ADAPTER_T prAdapter, IN ENUM_NETWORK
 #endif
 
 			if (fgIsNeedToCheckTimeout == TRUE) {
-
-				DBGLOG(SCN, TRACE, "Ignore stale bss %pM\n", prBssDesc->aucBSSID);/*lenovo-sw lumy1, wifi log enhance*/
-
+				DBGLOG(SCN, TRACE, "Ignore stale bss %pM\n", prBssDesc->aucBSSID);
 				continue;
 			}
 		}
@@ -2966,12 +3001,18 @@ P_BSS_DESC_T scanSearchBssDescByPolicy(IN P_ADAPTER_T prAdapter, IN ENUM_NETWORK
 				/* TODO(Kevin): We shouldn't compare the actual value, we should
 				 * allow some acceptable tolerance of some RSSI percentage here.
 				 */
-			DBGLOG(SCN, TRACE,
-			"Candidate [%pM]: RCPI = %d, joinFailCnt=%d, Primary [%pM]: RCPI = %d, joinFailCnt=%d\n",
-					prCandidateBssDesc->aucBSSID,
-					prCandidateBssDesc->ucRCPI, prCandidateBssDesc->ucJoinFailureCount,
-					prPrimaryBssDesc->aucBSSID,
-					prPrimaryBssDesc->ucRCPI, prPrimaryBssDesc->ucJoinFailureCount);
+				INT_32 u4PrimAdjRssi = scanResultsAdjust5GPref(prPrimaryBssDesc);
+				INT_32 u4CandAdjRssi = scanResultsAdjust5GPref(prCandidateBssDesc);
+
+				DBGLOG(SCN, TRACE,
+					"Candidate [" MACSTR "]: RCPI=%d, RSSI=%d, joinFailCnt=%d, Primary ["
+					MACSTR "]: RCPI=%d, RSSI=%d, joinFailCnt=%d\n",
+					MAC2STR(prCandidateBssDesc->aucBSSID),
+					prCandidateBssDesc->ucRCPI, u4CandAdjRssi,
+					prCandidateBssDesc->ucJoinFailureCount,
+					MAC2STR(prPrimaryBssDesc->aucBSSID),
+					prPrimaryBssDesc->ucRCPI, u4PrimAdjRssi,
+					prPrimaryBssDesc->ucJoinFailureCount);
 
 				ASSERT(!(prCandidateBssDesc->fgIsConnected && prPrimaryBssDesc->fgIsConnected));
 				if (prPrimaryBssDesc->ucJoinFailureCount >= SCN_BSS_JOIN_FAIL_THRESOLD) {
@@ -2992,17 +3033,14 @@ P_BSS_DESC_T scanSearchBssDescByPolicy(IN P_ADAPTER_T prAdapter, IN ENUM_NETWORK
 				/* NOTE: To prevent SWING,
 				 * we do roaming only if target AP has at least 5dBm larger than us. */
 				if (prCandidateBssDesc->fgIsConnected) {
-					if (prCandidateBssDesc->ucRCPI + ROAMING_NO_SWING_RCPI_STEP <=
-						prPrimaryBssDesc->ucRCPI &&
+					if (u4CandAdjRssi < u4PrimAdjRssi &&
 						prPrimaryBssDesc->ucJoinFailureCount < SCN_BSS_JOIN_FAIL_THRESOLD) {
-
 						prCandidateBssDesc = prPrimaryBssDesc;
 						prCandidateStaRec = prPrimaryStaRec;
 						continue;
 					}
 				} else if (prPrimaryBssDesc->fgIsConnected) {
-					if (prCandidateBssDesc->ucRCPI <
-					(prPrimaryBssDesc->ucRCPI + ROAMING_NO_SWING_RCPI_STEP) ||
+					if (u4CandAdjRssi < u4PrimAdjRssi ||
 					(prCandidateBssDesc->ucJoinFailureCount >= SCN_BSS_JOIN_FAIL_THRESOLD)) {
 						prCandidateBssDesc = prPrimaryBssDesc;
 						prCandidateStaRec = prPrimaryStaRec;
@@ -3011,7 +3049,7 @@ P_BSS_DESC_T scanSearchBssDescByPolicy(IN P_ADAPTER_T prAdapter, IN ENUM_NETWORK
 				} else if (prPrimaryBssDesc->ucJoinFailureCount >= SCN_BSS_JOIN_FAIL_THRESOLD)
 					continue;
 				else if (prCandidateBssDesc->ucJoinFailureCount >= SCN_BSS_JOIN_FAIL_THRESOLD ||
-					prCandidateBssDesc->ucRCPI < prPrimaryBssDesc->ucRCPI) {
+					u4CandAdjRssi < u4PrimAdjRssi) {
 					prCandidateBssDesc = prPrimaryBssDesc;
 					prCandidateStaRec = prPrimaryStaRec;
 					continue;

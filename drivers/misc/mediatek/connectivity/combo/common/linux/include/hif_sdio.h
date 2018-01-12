@@ -243,11 +243,11 @@ typedef enum {
 
 extern UINT32 gHifSdioDbgLvl;
 
-#define HIF_SDIO_LOUD_FUNC(fmt, arg...)   if (gHifSdioDbgLvl >= HIF_SDIO_LOG_LOUD) { osal_dbg_print(DFT_TAG"[L]%s:"  fmt, __func__ ,##arg);}
-#define HIF_SDIO_DBG_FUNC(fmt, arg...)    if (gHifSdioDbgLvl >= HIF_SDIO_LOG_DBG) { osal_dbg_print(DFT_TAG"[D]%s:"  fmt, __func__ ,##arg);}
-#define HIF_SDIO_INFO_FUNC(fmt, arg...)   if (gHifSdioDbgLvl >= HIF_SDIO_LOG_INFO) { osal_info_print(DFT_TAG"[I]%s:"  fmt, __func__ ,##arg);}
-#define HIF_SDIO_WARN_FUNC(fmt, arg...)   if (gHifSdioDbgLvl >= HIF_SDIO_LOG_WARN) { osal_warn_print(DFT_TAG"[W]%s(%d):"  fmt, __func__ , __LINE__, ##arg);}
-#define HIF_SDIO_ERR_FUNC(fmt, arg...)    if (gHifSdioDbgLvl >= HIF_SDIO_LOG_ERR) { osal_err_print(DFT_TAG"[E]%s(%d):"  fmt, __func__ , __LINE__, ##arg);}
+#define HIF_SDIO_LOUD_FUNC(fmt, arg...)   if (gHifSdioDbgLvl >= HIF_SDIO_LOG_LOUD) { osal_dbg_print(DFT_TAG"[L]%s:"  fmt, __FUNCTION__ ,##arg);}
+#define HIF_SDIO_DBG_FUNC(fmt, arg...)    if (gHifSdioDbgLvl >= HIF_SDIO_LOG_DBG) { osal_dbg_print(DFT_TAG"[D]%s:"  fmt, __FUNCTION__ ,##arg);}
+#define HIF_SDIO_INFO_FUNC(fmt, arg...)   if (gHifSdioDbgLvl >= HIF_SDIO_LOG_INFO) { osal_info_print(DFT_TAG"[I]%s:"  fmt, __FUNCTION__ ,##arg);}
+#define HIF_SDIO_WARN_FUNC(fmt, arg...)   if (gHifSdioDbgLvl >= HIF_SDIO_LOG_WARN) { osal_warn_print(DFT_TAG"[W]%s(%d):"  fmt, __FUNCTION__ , __LINE__, ##arg);}
+#define HIF_SDIO_ERR_FUNC(fmt, arg...)    if (gHifSdioDbgLvl >= HIF_SDIO_LOG_ERR) { osal_err_print(DFT_TAG"[E]%s(%d):"  fmt, __FUNCTION__ , __LINE__, ##arg);}
 
 /*!
  * \brief ASSERT function definition.
@@ -256,7 +256,7 @@ extern UINT32 gHifSdioDbgLvl;
 #if HIF_SDIO_DEBUG
 #define HIF_SDIO_ASSERT(expr)    if (!(expr)) { \
 			    osal_dbg_print("assertion failed! %s[%d]: %s\n",\
-                                __func__, __LINE__, #expr); \
+                                __FUNCTION__, __LINE__, #expr); \
 			    osal_bug_on(!(expr));\
 			}
 #else

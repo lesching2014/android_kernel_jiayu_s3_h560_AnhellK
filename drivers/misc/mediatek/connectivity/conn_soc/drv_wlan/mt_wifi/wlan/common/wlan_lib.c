@@ -984,7 +984,6 @@ const UINT_8 aucPriorityParam2TC[] = {
 	TC3_INDEX
 };
 
-int is_in_off = 0;
 /*******************************************************************************
 *							  D A T A	T Y P E S
 ********************************************************************************
@@ -1012,8 +1011,6 @@ BOOLEAN fgIsBusAccessFailed = FALSE;
 #define SIGNED_EXTEND(n, _sValue) \
 	(((_sValue) & BIT((n)-1)) ? ((_sValue) | BITS(n, 31)) : \
 	((_sValue) & ~BITS(n, 31)))
-
-#define FW_DOWNLOAD_RETRY_COUNT 3
 
 /* TODO: Check */
 /* OID set handlers without the need to access HW register */
@@ -1239,7 +1236,6 @@ wlanAdapterStart(IN P_ADAPTER_T prAdapter,
 	ASSERT(prAdapter);
 
 	DEBUGFUNC("wlanAdapterStart");
-	is_in_off = 0;
 
 	eFailReason = FAIL_REASON_MAX;
 	/* 4 <0> Reset variables in ADAPTER_T */
@@ -1689,14 +1685,9 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
 	if (prAdapter->fgIsClockGatingEnabled == TRUE)
 		nicDisableClockGating(prAdapter);
 #endif
-	is_in_off = 1;
 
 	/* MGMT - unitialization */
-	if (is_in_off)
-		printk("%s %d\n", __func__, __LINE__);
 	nicUninitMGMT(prAdapter);
-	if (is_in_off)
-		printk("%s %d\n", __func__, __LINE__);
 
 	if (prAdapter->rAcpiState == ACPI_STATE_D0 &&
 #if (CFG_CHIP_RESET_SUPPORT == 1)
@@ -1708,8 +1699,6 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
 		nicDisableInterrupt(prAdapter);
 
 		ACQUIRE_POWER_CONTROL_FROM_PM(prAdapter);
-		if (is_in_off)
-			printk("%s %d\n", __func__, __LINE__);
 
 		/* 1. Set CMD to FW to tell WIFI to stop (enter power off state) */
 		/* the command must be issue to firmware even in wlanRemove() */
@@ -1717,8 +1706,6 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
 			/* 2. Clear pending interrupt */
 			i = 0;
 			while (i < CFG_IST_LOOP_COUNT && nicProcessIST(prAdapter) != WLAN_STATUS_NOT_INDICATING) {
-				if (is_in_off)
-					printk("%s %d\n", __func__, __LINE__);
 				i++;
 			};
 
@@ -1726,8 +1713,6 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
 			i = 0;
 			while (1) {
 				HAL_MCR_RD(prAdapter, MCR_WCIR, &u4Value);
-				if (is_in_off)
-					printk("%s %d\n", __func__, __LINE__);
 
 				if ((u4Value & WCIR_WLAN_READY) == 0)
 					break;
@@ -1738,22 +1723,13 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
 					break;
 				} else {
 					i++;
-					if (is_in_off) {
-						printk("%s %d\n", __func__, __LINE__);
-						if (i >= 300)
-							glDumpConnSysCpuInfo(prAdapter->prGlueInfo);
-					}
 					kalMsleep(10);
 				}
 			}
 		}
 
 		/* 4. Set Onwership to F/W */
-		if (is_in_off)
-			printk("%s %d\n", __func__, __LINE__);
 		nicpmSetFWOwn(prAdapter, FALSE);
-		if (is_in_off)
-			printk("%s %d\n", __func__, __LINE__);
 
 #if CFG_FORCE_RESET_UNDER_BUS_ERROR
 		if (HAL_TEST_FLAG(prAdapter, ADAPTER_FLAG_HW_ERR) == TRUE) {
@@ -1774,24 +1750,14 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
 		RECLAIM_POWER_CONTROL_TO_PM(prAdapter, FALSE);
 	}
 
-	if (is_in_off)
-		printk("%s %d\n", __func__, __LINE__);
 	nicRxUninitialize(prAdapter);
-	if (is_in_off)
-		printk("%s %d\n", __func__, __LINE__);
 
 	nicTxRelease(prAdapter);
-	if (is_in_off)
-		printk("%s %d\n", __func__, __LINE__);
 
 	/* System Service Uninitialization */
 	nicUninitSystemService(prAdapter);
-	if (is_in_off)
-		printk("%s %d\n", __func__, __LINE__);
 
 	nicReleaseAdapterMemory(prAdapter);
-	if (is_in_off)
-		printk("%s %d\n", __func__, __LINE__);
 
 #if defined(_HIF_SPI)
 	/* Note: restore the SPI Mode Select from 32 bit to default */
@@ -2067,6 +2033,7 @@ WLAN_STATUS wlanSendCommand(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo)
 			if ((prCmdInfo->eCmdType == COMMAND_TYPE_SECURITY_FRAME) ||
 				(prCmdInfo->eCmdType == COMMAND_TYPE_MANAGEMENT_FRAME))
 				pfgIsSecOrMgmt = TRUE;
+
 			/* <1.2> Check if pending packet or resource was exhausted */
 			rStatus = nicTxAcquireResource(prAdapter, ucTC, pfgIsSecOrMgmt);
 			if (rStatus == WLAN_STATUS_RESOURCES) {
@@ -2647,8 +2614,6 @@ WLAN_STATUS wlanSendNicPowerCtrlCmd(IN P_ADAPTER_T prAdapter, IN UINT_8 ucPowerM
 		/* 3.1 Acquire TX Resource */
 		if (nicTxAcquireResource(prAdapter, ucTC, FALSE) == WLAN_STATUS_RESOURCES) {
 
-			if (is_in_off)
-				printk("%s %d\n", __func__, __LINE__);
 			/* wait and poll tx resource */
 			if (nicTxPollingResource(prAdapter, ucTC) != WLAN_STATUS_SUCCESS) {
 				DBGLOG(INIT, ERROR, "Fail to get TX resource return within timeout\n");
@@ -2659,14 +2624,10 @@ WLAN_STATUS wlanSendNicPowerCtrlCmd(IN P_ADAPTER_T prAdapter, IN UINT_8 ucPowerM
 			}
 		}
 		/* 3.2 Send CMD Info Packet */
-		if (is_in_off)
-			printk("%s %d\n", __func__, __LINE__);
 		if (nicTxCmd(prAdapter, prCmdInfo, ucTC) != WLAN_STATUS_SUCCESS) {
 			DBGLOG(INIT, ERROR, "Fail to transmit CMD_NIC_POWER_CTRL command\n");
 			status = WLAN_STATUS_FAILURE;
 		}
-		if (is_in_off)
-			printk("%s %d\n", __func__, __LINE__);
 
 		break;
 	};
@@ -2873,7 +2834,6 @@ wlanImageSectionDownload(IN P_ADAPTER_T prAdapter,
 	P_INIT_CMD_DOWNLOAD_BUF prInitCmdDownloadBuf;
 	UINT_8 ucTC, ucCmdSeqNum;
 	WLAN_STATUS u4Status = WLAN_STATUS_SUCCESS;
-	UINT_32 reTryCounter = FW_DOWNLOAD_RETRY_COUNT;
 
 	ASSERT(prAdapter);
 	ASSERT(pucImgSecBuf);
@@ -2919,35 +2879,35 @@ wlanImageSectionDownload(IN P_ADAPTER_T prAdapter,
 		| DOWNLOAD_BUF_ENCRYPTION_MODE
 #endif
 		;
-	do {
-		kalMemCopy(prInitCmdDownloadBuf->aucBuffer, pucImgSecBuf, u4ImgSecSize);
 
-		/* 6. Send FW_Download command */
-		while (1) {
-			/* 6.1 Acquire TX Resource */
-			if (nicTxAcquireResource(prAdapter, ucTC, FALSE) == WLAN_STATUS_RESOURCES) {
-				if (nicTxPollingResource(prAdapter, ucTC) != WLAN_STATUS_SUCCESS) {
-					u4Status = WLAN_STATUS_FAILURE;
-					DBGLOG(INIT, ERROR, "Fail to get TX resource return within timeout\n");
-					break;
-				} else {
-					continue;
-				}
-			}
-			/* 6.2 Send CMD Info Packet */
-			if (nicTxInitCmd(prAdapter, prCmdInfo, ucTC) != WLAN_STATUS_SUCCESS) {
+	kalMemCopy(prInitCmdDownloadBuf->aucBuffer, pucImgSecBuf, u4ImgSecSize);
+
+	/* 6. Send FW_Download command */
+	while (1) {
+		/* 6.1 Acquire TX Resource */
+		if (nicTxAcquireResource(prAdapter, ucTC, FALSE) == WLAN_STATUS_RESOURCES) {
+			if (nicTxPollingResource(prAdapter, ucTC) != WLAN_STATUS_SUCCESS) {
 				u4Status = WLAN_STATUS_FAILURE;
-				DBGLOG(INIT, ERROR, "Fail to transmit image download command\n");
+				DBGLOG(INIT, ERROR, "Fail to get TX resource return within timeout\n");
+				break;
+			} else {
+				continue;
 			}
-			break;
-		};
+		}
+		/* 6.2 Send CMD Info Packet */
+		if (nicTxInitCmd(prAdapter, prCmdInfo, ucTC) != WLAN_STATUS_SUCCESS) {
+			u4Status = WLAN_STATUS_FAILURE;
+			DBGLOG(INIT, ERROR, "Fail to transmit image download command\n");
+		}
+
+		break;
+	};
 
 #if CFG_ENABLE_FW_DOWNLOAD_ACK
-		/* 7. Wait for INIT_EVENT_ID_CMD_RESULT */
-		u4Status = wlanImageSectionDownloadStatus(prAdapter, ucCmdSeqNum);
+	/* 7. Wait for INIT_EVENT_ID_CMD_RESULT */
+	u4Status = wlanImageSectionDownloadStatus(prAdapter, ucCmdSeqNum);
 #endif
-		reTryCounter--;
-	} while(u4Status != WLAN_STATUS_SUCCESS && reTryCounter >= 0);
+
 	/* 8. Free CMD Info Packet. */
 	cmdBufFreeCmdInfo(prAdapter, prCmdInfo);
 
@@ -3994,8 +3954,8 @@ WLAN_STATUS wlanQueryNicCapability(IN P_ADAPTER_T prAdapter)
 	UINT_8 ucCmdSeqNum;
 	P_CMD_INFO_T prCmdInfo;
 	P_WIFI_CMD_T prWifiCmd;
-	UINT_32 u4RxPktLength;	
-	/* UINT_32 u4FwIDVersion = 0; */
+	UINT_32 u4RxPktLength;
+	UINT_32 u4FwIDVersion = 0;
 	UINT_8 aucBuffer[sizeof(WIFI_EVENT_T) + sizeof(EVENT_NIC_CAPABILITY)];
 	P_HIF_RX_HEADER_T prHifRxHdr;
 	P_WIFI_EVENT_T prEvent;
@@ -4063,10 +4023,8 @@ WLAN_STATUS wlanQueryNicCapability(IN P_ADAPTER_T prAdapter)
 	prAdapter->fgIsEfuseValid = (BOOLEAN) prEventNicCapability->ucEfuseValid;
 	prAdapter->fgIsEmbbededMacAddrValid = (BOOLEAN) prEventNicCapability->ucMacAddrValid;
 
-	#if 0
 	u4FwIDVersion = (prAdapter->rVerInfo.u2FwProductID << 16) | (prAdapter->rVerInfo.u2FwOwnVersion);
-	mtk_wcn_set_wifi_ver(u4FwIDVersion);
-	#endif
+	mtk_wcn_wmt_set_wifi_ver(u4FwIDVersion);
 #if (CFG_SUPPORT_TDLS == 1)
 	if (prEventNicCapability->ucFeatureSet & (1 << FEATURE_SET_OFFSET_TDLS))
 		prAdapter->fgTdlsIsSup = TRUE;
@@ -4534,12 +4492,10 @@ WLAN_STATUS wlanLoadManufactureData(IN P_ADAPTER_T prAdapter, IN P_REG_INFO_T pr
 	/* 3. Check if needs to support 5GHz */
 	/* if(prRegInfo->ucEnable5GBand) { // Frank workaround */
 	if (1) {
-#ifndef CFG_FORCE_5G_SUPPORT
 		/* check if it is disabled by hardware */
 		if (prAdapter->fgIsHw5GBandDisabled || prRegInfo->ucSupport5GBand == 0)
 			prAdapter->fgEnable5GBand = FALSE;
 		else
-#endif
 			prAdapter->fgEnable5GBand = TRUE;
 	} else
 		prAdapter->fgEnable5GBand = FALSE;
@@ -4575,19 +4531,21 @@ WLAN_STATUS wlanLoadManufactureData(IN P_ADAPTER_T prAdapter, IN P_REG_INFO_T pr
 	DBGLOG(INIT, INFO, "NVRAM CountryCode(0x%x 0x%x)\n",
 		prRegInfo->au2CountryCode[0], prRegInfo->au2CountryCode[1]);
 
-#if 0				/* Bandwidth control will be controlled by GUI. 20110930
-				 * So ignore the setting from registry/NVRAM
-				 */
+#if 0  /* Bandwidth control will be controlled by GUI. 20110930
+	* So ignore the setting from registry/NVRAM
+	*/
 	prAdapter->rWifiVar.rConnSettings.uc2G4BandwidthMode =
-		prRegInfo->uc2G4BwFixed20M ? CONFIG_BW_20M : CONFIG_BW_20_40M;
+	    prRegInfo->uc2G4BwFixed20M ? CONFIG_BW_20M : CONFIG_BW_20_40M;
 	prAdapter->rWifiVar.rConnSettings.uc5GBandwidthMode =
-		prRegInfo->uc5GBwFixed20M ? CONFIG_BW_20M : CONFIG_BW_20_40M;
+	    prRegInfo->uc5GBwFixed20M ? CONFIG_BW_20M : CONFIG_BW_20_40M;
 #endif
 
 	/* 6. Set domain and channel information to chip */
 	rlmDomainSendCmd(prAdapter, FALSE);
+	/* Update supported channel list in channel table */
+	wlanUpdateChannelTable(prAdapter->prGlueInfo);
 
-	/* 7. set band edge tx power if available */
+	/* 7. Set band edge tx power if available */
 	if (prRegInfo->fg2G4BandEdgePwrUsed) {
 		CMD_EDGE_TXPWR_LIMIT_T rCmdEdgeTxPwrLimit;
 
@@ -4600,12 +4558,12 @@ WLAN_STATUS wlanLoadManufactureData(IN P_ADAPTER_T prAdapter, IN P_REG_INFO_T pr
 			   rCmdEdgeTxPwrLimit.cBandEdgeMaxPwrOFDM20, rCmdEdgeTxPwrLimit.cBandEdgeMaxPwrOFDM40);
 
 		wlanSendSetQueryCmd(prAdapter,
-					CMD_ID_SET_EDGE_TXPWR_LIMIT,
-					TRUE,
-					FALSE,
-					FALSE,
-					NULL,
-					NULL, sizeof(CMD_EDGE_TXPWR_LIMIT_T), (PUINT_8)&rCmdEdgeTxPwrLimit, NULL, 0);
+				    CMD_ID_SET_EDGE_TXPWR_LIMIT,
+				    TRUE,
+				    FALSE,
+				    FALSE,
+				    NULL,
+				    NULL, sizeof(CMD_EDGE_TXPWR_LIMIT_T), (PUINT_8)&rCmdEdgeTxPwrLimit, NULL, 0);
 	}
 	/* 8. set 5G band edge tx power if available (add for 6625) */
 	if (prAdapter->fgEnable5GBand) {

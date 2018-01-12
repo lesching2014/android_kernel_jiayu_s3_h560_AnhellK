@@ -29,11 +29,12 @@ MODULE_LICENSE("Dual BSD/GPL");
 #define BT_LOG_WARN                 1
 #define BT_LOG_ERR                  0
 
-#define COMBO_IOCTL_FW_ASSERT        2
-#define COMBO_IOCTL_BT_IC_HW_VER     3
-#define COMBO_IOCTL_BT_IC_FW_VER     4
-#define COMBO_IOC_BT_HWVER           5
-
+#define COMBO_IOC_MAGIC             0xb0
+#define COMBO_IOCTL_FW_ASSERT       _IOWR(COMBO_IOC_MAGIC, 0, int)
+#define COMBO_IOCTL_BT_SET_PSM      _IOWR(COMBO_IOC_MAGIC, 1, bool)
+#define COMBO_IOCTL_BT_IC_HW_VER    _IOWR(COMBO_IOC_MAGIC, 2, void*)
+#define COMBO_IOCTL_BT_IC_FW_VER    _IOWR(COMBO_IOC_MAGIC, 3, void*)
+#define COMBO_IOC_BT_HWVER          _IOWR(COMBO_IOC_MAGIC, 4, void*)
 
 static UINT32 gDbgLevel = BT_LOG_INFO;
 
@@ -290,6 +291,10 @@ long BT_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case COMBO_IOCTL_BT_IC_FW_VER:
 		retval = mtk_wcn_wmt_ic_info_get(WMTCHIN_FWVER);
 		break;
+	case COMBO_IOCTL_BT_SET_PSM:
+		BT_INFO_FUNC("BT Set PSM setting:%lu\n", arg);
+		retval = mtk_wcn_wmt_psm_ctrl(arg);
+		break;
 	default:
 		retval = -EFAULT;
 		BT_ERR_FUNC("Unknown cmd (%d)\n", cmd);
@@ -337,9 +342,9 @@ static int BT_open(struct inode *inode, struct file *file)
 	BT_DBG_FUNC("Register BT reset callback!\n");
 	mtk_wcn_wmt_msgcb_reg(WMTDRV_TYPE_BT, bt_cdev_rst_cb);
 
-/* init_MUTEX(&wr_mtx); */
+	/* init_MUTEX(&wr_mtx); */
 	sema_init(&wr_mtx, 1);
-/* init_MUTEX(&rd_mtx); */
+	/* init_MUTEX(&rd_mtx); */
 	sema_init(&rd_mtx, 1);
 	BT_INFO_FUNC("%s: finish\n", __func__);
 
@@ -370,7 +375,7 @@ const struct file_operations BT_fops = {
 	.release = BT_close,
 	.read = BT_read,
 	.write = BT_write,
-/* .ioctl = BT_ioctl, */
+	/* .ioctl = BT_ioctl, */
 	.unlocked_ioctl = BT_unlocked_ioctl,
 	.compat_ioctl = BT_compat_ioctl,
 	.poll = BT_poll

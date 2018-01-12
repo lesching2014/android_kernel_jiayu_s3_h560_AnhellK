@@ -1914,10 +1914,12 @@ wlanoidSetConnect(IN P_ADAPTER_T prAdapter, IN PVOID pvSetBuffer, IN UINT_32 u4S
 	}
 
 	/* Set Connection Request Issued Flag */
-	if (fgIsValidSsid)
+	if (fgIsValidSsid) {
 		prConnSettings->fgIsConnReqIssued = TRUE;
-	else
+	} else {
+		prConnSettings->eReConnectLevel = RECONNECT_LEVEL_USER_SET;
 		prConnSettings->fgIsConnReqIssued = FALSE;
+	}
 
 	if (fgEqualSsid || fgEqualBssid)
 		prAisAbortMsg->fgDelayIndication = TRUE;
@@ -5643,40 +5645,16 @@ wlanoidSetSwCtrlWrite(IN P_ADAPTER_T prAdapter,
 							  (PUINT_8) &arHotspotOptimizationCfg, NULL, 0);
 			}
 #endif /* CFG_SUPPORT_HOTSPOT_OPTIMIZATION */
-            else if (u2SubId == 0x1250) {
-                printk(KERN_WARNING "LTE_COEX: SW SET DUAL BAND\n");
-                prAdapter->aePreferBand[NETWORK_TYPE_AIS_INDEX] = BAND_NULL;    
-            }
-            else if (u2SubId == 0x1251) {
-                printk(KERN_WARNING "LTE_COEX: SW SET 2.4G BAND\n");    
-                prAdapter->aePreferBand[NETWORK_TYPE_AIS_INDEX] = BAND_2G4;
-                if (kalGetMediaStateIndicated(prAdapter->prGlueInfo) == PARAM_MEDIA_STATE_CONNECTED) {
-                    DBGLOG(INIT, TRACE, "current ssid %s, bssid "MACSTR", freq is %d\n",
-                        prAdapter->rWlanInfo.rCurrBssId.rSsid.aucSsid,
-                        MAC2STR(prAdapter->rWlanInfo.rCurrBssId.arMacAddress),
-                        prAdapter->rWlanInfo.rCurrBssId.rConfiguration.u4DSConfig);
-                    if (prAdapter->rWlanInfo.rCurrBssId.rConfiguration.u4DSConfig <= 5825000 &&
-                        prAdapter->rWlanInfo.rCurrBssId.rConfiguration.u4DSConfig >= 5180000) {
-                        kalIndicateStatusAndComplete(prAdapter->prGlueInfo,
-                            WLAN_STATUS_MEDIA_DISCONNECT, NULL, 0);
-                    }
-                }
-            }
-            else if (u2SubId == 0x1252) {
-                printk(KERN_WARNING "LTE_COEX: SW SET 5G BAND\n");    
-                prAdapter->aePreferBand[NETWORK_TYPE_AIS_INDEX] = BAND_5G;				
-                if (kalGetMediaStateIndicated(prAdapter->prGlueInfo) == PARAM_MEDIA_STATE_CONNECTED) {
-                    DBGLOG(INIT, TRACE, "current ssid %s, bssid "MACSTR", freq is %d\n",
-                        prAdapter->rWlanInfo.rCurrBssId.rSsid.aucSsid,
-                        MAC2STR(prAdapter->rWlanInfo.rCurrBssId.arMacAddress),
-                        prAdapter->rWlanInfo.rCurrBssId.rConfiguration.u4DSConfig);
-                    if (prAdapter->rWlanInfo.rCurrBssId.rConfiguration.u4DSConfig <= 2484000 &&
-                        prAdapter->rWlanInfo.rCurrBssId.rConfiguration.u4DSConfig >= 2412000) {
-                        kalIndicateStatusAndComplete(prAdapter->prGlueInfo,
-                            WLAN_STATUS_MEDIA_DISCONNECT, NULL, 0);
-                    }
-                }
-            }
+			else if (u2SubId == 0x1250) {
+				DBGLOG(OID, TRACE, "LTE_COEX: SW SET DUAL BAND\n");
+				prAdapter->aePreferBand[NETWORK_TYPE_AIS_INDEX] = BAND_NULL;
+			} else if (u2SubId == 0x1251) {
+				DBGLOG(OID, TRACE, "LTE_COEX: SW SET 2.4G BAND\n");
+				prAdapter->aePreferBand[NETWORK_TYPE_AIS_INDEX] = BAND_2G4;
+			} else if (u2SubId == 0x1252) {
+				DBGLOG(OID, TRACE, "LTE_COEX: SW SET 5G BAND\n");
+				prAdapter->aePreferBand[NETWORK_TYPE_AIS_INDEX] = BAND_5G;
+			}
 #endif
 		}
 		break;
@@ -6783,6 +6761,7 @@ wlanoidSetDisassociate(IN P_ADAPTER_T prAdapter,
 
 	/* prepare message to AIS */
 	prAdapter->rWifiVar.rConnSettings.fgIsConnReqIssued = FALSE;
+	prAdapter->rWifiVar.rConnSettings.eReConnectLevel = RECONNECT_LEVEL_USER_SET;
 
 	/* Send AIS Abort Message */
 	prAisAbortMsg = (P_MSG_AIS_ABORT_T) cnmMemAlloc(prAdapter, RAM_TYPE_MSG, sizeof(MSG_AIS_ABORT_T));
@@ -9183,6 +9162,7 @@ wlanoidSetCountryCode(IN P_ADAPTER_T prAdapter,
 		      IN PVOID pvSetBuffer, IN UINT_32 u4SetBufferLen, OUT PUINT_32 pu4SetInfoLen)
 {
 	PUINT_8 pucCountry;
+	UINT_16 u2CountryCode;
 
 	ASSERT(prAdapter);
 	ASSERT(pvSetBuffer);
@@ -9191,10 +9171,27 @@ wlanoidSetCountryCode(IN P_ADAPTER_T prAdapter,
 	*pu4SetInfoLen = 2;
 
 	pucCountry = pvSetBuffer;
+	u2CountryCode = (((UINT_16) pucCountry[0]) << 8) | ((UINT_16) pucCountry[1]);
 
-	prAdapter->rWifiVar.rConnSettings.u2CountryCode = (((UINT_16) pucCountry[0]) << 8) | ((UINT_16) pucCountry[1]);
+	/* previous country code == FF : ignore country code, current country code == FE : resume */
+	if (prAdapter->rWifiVar.rConnSettings.u2CountryCodeBakup == COUNTRY_CODE_FF) {
+		if (u2CountryCode != COUNTRY_CODE_FE) {
+			DBGLOG(OID, INFO, "Skip country code cmd (0x%04x)\n", u2CountryCode);
+			return WLAN_STATUS_SUCCESS;
+		}
+		DBGLOG(OID, INFO, "Resume handle country code cmd (0x%04x)\n", u2CountryCode);
+	}
 
+	prAdapter->rWifiVar.rConnSettings.u2CountryCode = u2CountryCode;
+	prAdapter->rWifiVar.rConnSettings.u2CountryCodeBakup = prAdapter->rWifiVar.rConnSettings.u2CountryCode;
+	DBGLOG(OID, LOUD, "u2CountryCodeBakup=0x%04x\n", prAdapter->rWifiVar.rConnSettings.u2CountryCodeBakup);
+
+	/* Force to re-search country code in country domains */
+	prAdapter->prDomainInfo = NULL;
 	rlmDomainSendCmd(prAdapter, TRUE);
+
+	/* Update supported channel list in channel table based on current country domain */
+	wlanUpdateChannelTable(prAdapter->prGlueInfo);
 
 	return WLAN_STATUS_SUCCESS;
 }

@@ -257,8 +257,7 @@ typedef enum _ENUM_DBG_MODULE_T {
 
 #define LOG_FUNC                kalPrint
 
-/*lenovo-sw lumy1, wifi log enhance*/
-#if 1
+#if defined(LINUX)
 #define DBGLOG(_Module, _Class, _Fmt, ...) \
 	do { \
 		if ((aucDebugModule[DBG_##_Module##_IDX] & DBG_CLASS_##_Class) == 0) \
@@ -277,7 +276,7 @@ typedef enum _ENUM_DBG_MODULE_T {
 extern PINT_16 g_wbuf_p;
 extern PINT_8 g_buf_p;
 
-    /* If __func__ is already defined by compiler, we just use it. */
+    /* If __FUNCTION__ is already defined by compiler, we just use it. */
 #if defined(__func__)
 #define DEBUGFUNC(_Func)
 #else
@@ -425,8 +424,7 @@ extern PINT_8 g_buf_p;
 	}
 #endif /* BUILD_QA_DBG */
 
-/*lenovo-sw lumy1, wifi log enhance*/
-    #define DISP_STRING(_str)       _str
+#define DISP_STRING(_str)       ""
 
 #endif /* DBG */
 

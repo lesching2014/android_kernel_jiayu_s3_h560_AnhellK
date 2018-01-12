@@ -1,3 +1,7 @@
+#if CONFIG_HAS_WAKELOCK
+#include <linux/wakelock.h>
+#define CFG_GPS_WAKELOCK_SUPPORT 1
+#endif
 
 #include <linux/init.h>
 #include <linux/module.h>
@@ -59,6 +63,10 @@ static INT32 GPS_devs = 1;	/* device count */
 static INT32 GPS_major = GPS_DEV_MAJOR;	/* dynamic allocation */
 module_param(GPS_major, uint, 0);
 static struct cdev GPS_cdev;
+
+#ifdef CFG_GPS_WAKELOCK_SUPPORT
+static struct wakeup_source gps_wake_lock;
+#endif
 
 static UINT8 i_buf[MTKSTP_BUFFER_SIZE];	/* input buffer of read() */
 static UINT8 o_buf[MTKSTP_BUFFER_SIZE];	/* output buffer of write() */
@@ -347,6 +355,10 @@ static int GPS_open(struct inode *inode, struct file *file)
 		/*return error code */
 		return -ENODEV;
 	}
+#ifdef CFG_GPS_WAKELOCK_SUPPORT
+	wake_lock(&gps_wake_lock);
+	GPS_DBG_FUNC("GPS: wake_lock(%d)\n", wake_lock_active(&gps_wake_lock));
+#endif
 
 	/* init_MUTEX(&wr_mtx); */
 	sema_init(&wr_mtx, 1);
@@ -372,7 +384,10 @@ static int GPS_close(struct inode *inode, struct file *file)
 	} else {
 		GPS_DBG_FUNC("WMT turn off GPS OK!\n");
 	}
-
+#ifdef CFG_GPS_WAKELOCK_SUPPORT
+	wake_unlock(&gps_wake_lock);
+	GPS_DBG_FUNC("GPS: wake_unlock(%d)\n", wake_lock_active(&gps_wake_lock));
+#endif
 	return 0;
 }
 
@@ -432,6 +447,9 @@ static int GPS_init(void)
 		goto error;
 #endif
 	pr_warn(KERN_ALERT "%s driver(major %d) installed.\n", GPS_DRIVER_NAME, GPS_major);
+#ifdef CFG_GPS_WAKELOCK_SUPPORT
+	wake_lock_init(&gps_wake_lock, WAKE_LOCK_SUSPEND, "gpswakelock");
+#endif
 
 	return 0;
 
@@ -467,6 +485,9 @@ static void GPS_exit(void)
 	unregister_chrdev_region(dev, GPS_devs);
 
 	pr_warn(KERN_ALERT "%s driver removed.\n", GPS_DRIVER_NAME);
+#ifdef CFG_GPS_WAKELOCK_SUPPORT
+	wake_lock_destroy(&gps_wake_lock);
+#endif
 }
 
 #ifdef MTK_WCN_REMOVE_KERNEL_MODULE

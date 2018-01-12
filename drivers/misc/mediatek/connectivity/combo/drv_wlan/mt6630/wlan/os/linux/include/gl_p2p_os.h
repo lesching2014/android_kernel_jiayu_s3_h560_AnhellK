@@ -24,6 +24,12 @@
 *                    E X T E R N A L   R E F E R E N C E S
 ********************************************************************************
 */
+#include <linux/netdevice.h>
+#if CFG_ENABLE_WIFI_DIRECT_CFG_80211
+#include <net/cfg80211.h>
+#endif
+
+#include "wlan_oid.h"
 
 /*******************************************************************************
 *                    E X T E R N A L   V A R I A B L E
@@ -42,6 +48,7 @@ extern const struct net_device_ops p2p_netdev_ops;
 *                                 M A C R O S
 ********************************************************************************
 */
+#define OID_SET_GET_STRUCT_LENGTH		4096	/* For SET_STRUCT/GET_STRUCT */
 
 /*******************************************************************************
 *                             D A T A   T Y P E S
@@ -120,8 +127,8 @@ struct _GL_P2P_INFO_T {
 #if CFG_SUPPORT_WFD
 	UINT_8 aucWFDIE[400];	/* 0 for beacon, 1 for probe req, 2 for probe response */
 	UINT_16 u2WFDIELen;
-	/* UINT_8                      aucVenderIE[1024]; *//* Save the other IE for prove resp */
-/* UINT_16                     u2VenderIELen; */
+	/* UINT_8 aucVenderIE[1024]; *//* Save the other IE for prove resp */
+	/* UINT_16 u2VenderIELen; */
 #endif
 
 	UINT_8 ucOperatingChnl;
@@ -130,7 +137,7 @@ struct _GL_P2P_INFO_T {
 	UINT_32 u4InvStatus;
 
 	/* For SET_STRUCT/GET_STRUCT */
-	UINT_8 aucOidBuf[4096];
+	UINT_8 aucOidBuf[OID_SET_GET_STRUCT_LENGTH];
 
 #if 1				/* CFG_SUPPORT_ANTI_PIRACY */
 	UINT_8 aucSecCheck[256];
@@ -228,10 +235,6 @@ typedef struct _NL80211_DRIVER_WFD_PARAMS {
 ********************************************************************************
 */
 
-BOOLEAN p2pRegisterToWlan(P_GLUE_INFO_T prGlueInfo);
-
-BOOLEAN p2pUnregisterToWlan(P_GLUE_INFO_T prGlueInfo);
-
 BOOLEAN p2pLaunch(P_GLUE_INFO_T prGlueInfo);
 
 BOOLEAN p2pRemove(P_GLUE_INFO_T prGlueInfo);
@@ -249,7 +252,11 @@ BOOLEAN p2pNetUnregister(P_GLUE_INFO_T prGlueInfo, BOOLEAN fgIsRtnlLockAcquired)
 BOOLEAN p2PFreeInfo(P_GLUE_INFO_T prGlueInfo);
 
 VOID p2pSetSuspendMode(P_GLUE_INFO_T prGlueInfo, BOOLEAN fgEnable);
+
 BOOLEAN glP2pCreateWirelessDevice(P_GLUE_INFO_T prGlueInfo);
+
 VOID glP2pDestroyWirelessDevice(VOID);
-VOID p2pUpdateChannelTableByDomain(P_GLUE_INFO_T prGlueInfo);
+
+VOID p2pSetMulticastListWorkQueueWrapper(P_GLUE_INFO_T prGlueInfo);
+
 #endif

@@ -810,7 +810,8 @@ kalGetChnlList(IN P_GLUE_INFO_T prGlueInfo,
 	       IN ENUM_BAND_T eSpecificBand,
 	       IN UINT_8 ucMaxChannelNum, IN PUINT_8 pucNumOfChannel, IN P_RF_CHANNEL_INFO_T paucChannelList)
 {
-	rlmDomainGetChnlList(prGlueInfo->prAdapter, eSpecificBand, ucMaxChannelNum, pucNumOfChannel, paucChannelList);
+	rlmDomainGetChnlList(prGlueInfo->prAdapter, eSpecificBand, FALSE, ucMaxChannelNum,
+			     pucNumOfChannel, paucChannelList);
 }				/* kalGetChnlList */
 
 /* ////////////////////////////////////ICS SUPPORT////////////////////////////////////// */
@@ -988,6 +989,11 @@ VOID kalP2PIndicateMgmtTxStatus(IN P_GLUE_INFO_T prGlueInfo, IN P_MSDU_INFO_T pr
 		}
 
 		prGlueP2pInfo = prGlueInfo->prP2PInfo;
+
+		if (!prMsduInfo->prPacket) {
+			DBGLOG(P2P, INFO, "Buffer Cookie has been freed, do not access cookie\n");
+			break;
+		}
 
 		pu8GlCookie =
 		    (PUINT_64) ((ULONG) prMsduInfo->prPacket +

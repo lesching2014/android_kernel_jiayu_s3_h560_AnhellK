@@ -411,9 +411,6 @@ VOID scnFsmSteps(IN P_ADAPTER_T prAdapter, IN ENUM_SCAN_STATE_T eNextState)
 				scnSendScanReq(prAdapter);
 			else
 				scnSendScanReqV2(prAdapter);
-			cnmTimerStartTimer(prAdapter, &prScanInfo->rScanDoneTimer,
-					   SEC_TO_MSEC(AIS_SCN_DONE_TIMEOUT_SEC));
-			/* prScanInfo->ucScanDoneTimeoutCnt = 0; */
 			break;
 
 		default:
@@ -893,8 +890,7 @@ VOID scnEventScanDone(IN P_ADAPTER_T prAdapter, IN P_EVENT_SCAN_DONE prScanDone,
 
 	prScanInfo = &(prAdapter->rWifiVar.rScanInfo);
 	prScanParam = &prScanInfo->rScanParam;
-	cnmTimerStopTimer(prAdapter, &prScanInfo->rScanDoneTimer);
-	prScanInfo->ucScanDoneTimeoutCnt = 0;
+
 	if (fgIsNewVersion)
 		DBGLOG(SCN, INFO,
 		       "New scnEventScanDone Version%d! ChanCount=%d,CurState=%d, PNO=%d\n",
@@ -2251,7 +2247,7 @@ scnPSCNFsm(IN P_ADAPTER_T prAdapter,
 		prScanInfo->eCurrentPSCNState = eNextPSCNState;
 	} while (fgTransitionState);
 
-	return prScanInfo->eCurrentState;
+	return prScanInfo->eCurrentPSCNState;
 }
 
 VOID scnGscnGetResultReplyCheck(P_ADAPTER_T prAdapter)
@@ -2285,24 +2281,3 @@ VOID scnGscnGetResultReplyCheckTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParamPt
 }
 #endif
 
-VOID scnScanDoneTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParamPtr)
-{
-
-	P_SCAN_INFO_T prScanInfo;
-
-	prScanInfo = &(prAdapter->rWifiVar.rScanInfo);
-
-	DBGLOG(SCN, WARN, "scnScanDoneTimeout %d \r\n", prScanInfo->ucScanDoneTimeoutCnt);
-
-	prScanInfo->ucScanDoneTimeoutCnt++;
-	/* whole chip reset check */
-	if (prScanInfo->ucScanDoneTimeoutCnt > SCAN_DONE_TIMEOUT_THRESHOLD) {
-
-		DBGLOG(SCN, ERROR,
-		       " meet SCAN_DONE_TIMEOUT_THRESHOLD %d, trigger whole chip reset !! \r\n",
-		       SCAN_DONE_TIMEOUT_THRESHOLD);
-#if CFG_CHIP_RESET_SUPPORT
-		glResetTrigger(prAdapter);
-#endif
-	}
-}

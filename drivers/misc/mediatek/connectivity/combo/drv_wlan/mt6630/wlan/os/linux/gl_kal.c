@@ -1746,6 +1746,9 @@ kalIndicateStatusAndComplete(IN P_GLUE_INFO_T prGlueInfo, IN WLAN_STATUS eStatus
 		} while (0);
 
 		if (prGlueInfo->fgIsRegistered == TRUE) {
+			struct cfg80211_bss *bss_others = NULL;
+			UINT_8 ucLoopCnt = 15; /* only loop 15 times to avoid dead loop */
+
 			/* retrieve channel */
 			ucChannelNum =
 			    wlanGetChannelNumberByNetwork(prGlueInfo->prAdapter,
@@ -1784,33 +1787,27 @@ kalIndicateStatusAndComplete(IN P_GLUE_INFO_T prGlueInfo, IN WLAN_STATUS eStatus
 								GFP_KERNEL);
 				}
 			}
+			/* remove all bsses that before and only channel different with the current connected one
+				if without this patch, UI will show channel A is connected even if AP has change channel
+				from A to B */
+			while (ucLoopCnt--) {
+				bss_others = cfg80211_get_bss(priv_to_wiphy(prGlueInfo), NULL, arBssid,
+						ssid.aucSsid, ssid.u4SsidLen, WLAN_CAPABILITY_ESS, WLAN_CAPABILITY_ESS);
+				if (bss && bss_others && bss_others != bss) {
+					DBGLOG(SCN, INFO, "remove BSSes that only channel different\n");
+					cfg80211_unlink_bss(priv_to_wiphy(prGlueInfo), bss_others);
+				} else
+					break;
+			}
 
 			/* CFG80211 Indication */
 			if (eStatus == WLAN_STATUS_ROAM_OUT_FIND_BEST
 			    && prGlueInfo->prDevHandler->ieee80211_ptr->sme_state == CFG80211_SME_CONNECTED) {
-				struct ieee80211_channel *prChannel = NULL;
-				UINT_8 ucChannelNum = wlanGetChannelNumberByNetwork(prGlueInfo->prAdapter,
-										    prGlueInfo->prAdapter->
-										    prAisBssInfo->ucBssIndex);
-
-				if (ucChannelNum <= 14) {
-					prChannel =
-					    ieee80211_get_channel(priv_to_wiphy(prGlueInfo),
-								  ieee80211_channel_to_frequency
-								  (ucChannelNum, IEEE80211_BAND_2GHZ));
-				} else {
-					prChannel =
-					    ieee80211_get_channel(priv_to_wiphy(prGlueInfo),
-								  ieee80211_channel_to_frequency
-								  (ucChannelNum, IEEE80211_BAND_5GHZ));
-				}
-
-				cfg80211_roamed(prGlueInfo->prDevHandler,
-						prChannel,
-						arBssid,
-						prGlueInfo->aucReqIe,
-						prGlueInfo->u4ReqIeLength,
-						prGlueInfo->aucRspIe, prGlueInfo->u4RspIeLength, GFP_KERNEL);
+				cfg80211_roamed_bss(prGlueInfo->prDevHandler,
+						    bss,
+						    prGlueInfo->aucReqIe,
+						    prGlueInfo->u4ReqIeLength,
+						    prGlueInfo->aucRspIe, prGlueInfo->u4RspIeLength, GFP_KERNEL);
 			} else if (prGlueInfo->prDevHandler->ieee80211_ptr->sme_state == CFG80211_SME_CONNECTING) {
 				cfg80211_connect_result(prGlueInfo->prDevHandler, arBssid,
 							prGlueInfo->aucReqIe,
@@ -2356,9 +2353,17 @@ UINT_32 kalReadExtCfg(IN P_GLUE_INFO_T prGlueInfo)
 
 BOOLEAN
 kalIPv4FrameClassifier(IN P_GLUE_INFO_T prGlueInfo,
-		       IN P_NATIVE_PACKET prPacket, IN PUINT_8 pucIpHdr, OUT P_TX_PACKET_INFO prTxPktInfo)
+		       IN P_NATIVE_PACKET prPacket, IN PUINT_8 pucIpHdr,
+		       OUT P_TX_PACKET_INFO prTxPktInfo)
 {
-	UINT_8 ucIpVersion;
+	UINT_8 ucIpVersion, ucIcmpType;
+	UINT_8 ucIpProto;
+	UINT_8 ucSeqNo;
+	PUINT_8 pucUdpHdr, pucIcmp;
+	UINT_16 u2DstPort, u2IcmpId, u2IcmpSeq;
+	P_BOOTP_PROTOCOL_T prBootp;
+	UINT_32 u4DhcpMagicCode;
+
 	/* UINT_16 u2IpId; */
 
 	/* IPv4 version check */
@@ -2369,10 +2374,10 @@ kalIPv4FrameClassifier(IN P_GLUE_INFO_T prGlueInfo,
 	}
 	/* WLAN_GET_FIELD_16(&pucIpHdr[IPV4_HDR_IP_IDENTIFICATION_OFFSET], &u2IpId); */
 
-	if (pucIpHdr[IPV4_HDR_IP_PROTOCOL_OFFSET] == IP_PROTOCOL_UDP) {
-		PUINT_8 pucUdpHdr = &pucIpHdr[IPV4_HDR_LEN];
-		UINT_16 u2DstPort;
-		/* UINT_16 u2SrcPort; */
+	ucIpProto = pucIpHdr[IPV4_HDR_IP_PROTOCOL_OFFSET];
+
+	if (ucIpProto == IP_PRO_UDP) {
+		pucUdpHdr = &pucIpHdr[IPV4_HDR_LEN];
 
 		/* DBGLOG_MEM8(INIT, INFO, pucUdpHdr, 256); */
 
@@ -2385,31 +2390,126 @@ kalIPv4FrameClassifier(IN P_GLUE_INFO_T prGlueInfo,
 		/* WLAN_GET_FIELD_BE16(&pucUdpHdr[UDP_HDR_SRC_PORT_OFFSET], &u2SrcPort); */
 
 		/* BOOTP/DHCP protocol */
-		if ((u2DstPort == IP_PORT_BOOTP_SERVER) || (u2DstPort == IP_PORT_BOOTP_CLIENT)) {
+		if ((u2DstPort == IP_PORT_BOOTP_SERVER) ||
+			(u2DstPort == IP_PORT_BOOTP_CLIENT)) {
 
-			P_BOOTP_PROTOCOL_T prBootp = (P_BOOTP_PROTOCOL_T) &pucUdpHdr[UDP_HDR_LEN];
-
-			UINT_32 u4DhcpMagicCode;
+			prBootp = (P_BOOTP_PROTOCOL_T) &pucUdpHdr[UDP_HDR_LEN];
 
 			WLAN_GET_FIELD_BE32(&prBootp->aucOptions[0], &u4DhcpMagicCode);
-#if 0
-			DBGLOG(INIT, INFO, "DHCP MGC[0x%08x] XID[%u] OPT[%u] TYPE[%u]\n",
-					    u4DhcpMagicCode, prBootp->u4TransId, prBootp->aucOptions[4],
-					    prBootp->aucOptions[6]);
-#endif
+
 			if (u4DhcpMagicCode == DHCP_MAGIC_NUMBER) {
 				UINT_32 u4Xid;
 
 				WLAN_GET_FIELD_BE32(&prBootp->u4TransId, &u4Xid);
 
-				DBGLOG(TX, INFO, "DHCP PKT[0x%p] XID[0x%08x] OPT[%u] TYPE[%u]\n",
-						   prPacket, u4Xid, prBootp->aucOptions[4], prBootp->aucOptions[6]);
+				ucSeqNo = nicIncreaseTxSeqNum(prGlueInfo->prAdapter);
+				GLUE_SET_PKT_SEQ_NO(prPacket, ucSeqNo);
+
+				DBGLOG(TX, INFO, "DHCP PKT[0x%p] XID[0x%08x] OPT[%u] TYPE[%u], SeqNo: %d\n",
+						   prPacket, u4Xid, prBootp->aucOptions[4], prBootp->aucOptions[6],
+						   ucSeqNo);
 
 				prTxPktInfo->u2Flag |= BIT(ENUM_PKT_DHCP);
 			}
 		}
-	}
+	} else if (ucIpProto == IP_PRO_ICMP) {
+			/* the number of ICMP packets is seldom so we print log here */
+			pucIcmp = &pucIpHdr[20];
 
+			ucIcmpType = pucIcmp[0];
+			if (ucIcmpType == 3) /* don't log network unreachable packet */
+				return FALSE;
+			u2IcmpId = *(UINT_16 *) &pucIcmp[4];
+			u2IcmpSeq = *(UINT_16 *) &pucIcmp[6];
+
+			ucSeqNo = nicIncreaseTxSeqNum(prGlueInfo->prAdapter);
+			GLUE_SET_PKT_SEQ_NO(prPacket, ucSeqNo);
+			DBGLOG(SW4, INFO, "<TX> ICMP: Type %d, Id 0x04%x, Seq BE 0x%04x, SeqNo: %d\n",
+					ucIcmpType, u2IcmpId, u2IcmpSeq, ucSeqNo);
+			prTxPktInfo->u2Flag |= BIT(ENUM_PKT_ICMP);
+		}
+
+	return TRUE;
+}
+BOOLEAN
+kalArpFrameClassifier(IN P_GLUE_INFO_T prGlueInfo,
+		       IN P_NATIVE_PACKET prPacket, IN PUINT_8 pucIpHdr, OUT P_TX_PACKET_INFO prTxPktInfo)
+{
+	UINT_16 u2ArpOp;
+	UINT_8 ucSeqNo;
+
+	ucSeqNo = nicIncreaseTxSeqNum(prGlueInfo->prAdapter);
+	WLAN_GET_FIELD_BE16(&pucIpHdr[ARP_OPERATION_OFFSET], &u2ArpOp);
+
+	DBGLOG(TX, INFO, "ARP %s PKT[0x%p] TAR MAC/IP[" MACSTR "]/[" IPV4STR "], SeqNo: %d\n",
+			   u2ArpOp == ARP_OPERATION_REQUEST ? "REQ" : "RSP",
+			   prPacket, MAC2STR(&pucIpHdr[ARP_TARGET_MAC_OFFSET]),
+			   IPV4TOSTR(&pucIpHdr[ARP_TARGET_IP_OFFSET]), ucSeqNo);
+
+	GLUE_SET_PKT_SEQ_NO(prPacket, ucSeqNo);
+
+	prTxPktInfo->u2Flag |= BIT(ENUM_PKT_ARP);
+	return TRUE;
+}
+
+
+BOOLEAN
+kalSecurityFrameClassifier(IN P_GLUE_INFO_T prGlueInfo,
+		       IN P_NATIVE_PACKET prPacket, IN PUINT_8 pucIpHdr,
+		       IN UINT_16 u2EthType, OUT P_TX_PACKET_INFO prTxPktInfo)
+{
+	PUINT_8 pucEapol;
+	UINT_8 ucEapolType;
+	UINT_8 ucSeqNo;
+
+	UINT_8 ucSubType; /* sub type filed*/
+	UINT_16 u2Length;
+	UINT_16 u2Seq;
+
+	pucEapol = pucIpHdr;
+
+	if (u2EthType == ETH_P_1X) {
+
+		ucEapolType = pucEapol[1];
+
+		switch (ucEapolType) {
+		case 0: /* eap packet */
+
+			ucSeqNo = nicIncreaseTxSeqNum(prGlueInfo->prAdapter);
+			GLUE_SET_PKT_SEQ_NO(prPacket, ucSeqNo);
+
+			DBGLOG(SW4, INFO, "<TX> EAP Packet: code %d, id %d, type %d, SeqNo: %d\n",
+					pucEapol[4], pucEapol[5], pucEapol[7], ucSeqNo);
+			break;
+		case 1: /* eapol start */
+			ucSeqNo = nicIncreaseTxSeqNum(prGlueInfo->prAdapter);
+			GLUE_SET_PKT_SEQ_NO(prPacket, ucSeqNo);
+
+			DBGLOG(SW4, INFO, "<TX> EAPOL: start, SeqNo: %d\n", ucSeqNo);
+			break;
+		case 3: /* key */
+
+			ucSeqNo = nicIncreaseTxSeqNum(prGlueInfo->prAdapter);
+			GLUE_SET_PKT_SEQ_NO(prPacket, ucSeqNo);
+
+			DBGLOG(SW4, INFO, "<TX> EAPOL: key, KeyInfo 0x%04x, SeqNo: %d\n",
+					*((PUINT_16)(&pucEapol[5])), ucSeqNo);
+			break;
+		}
+
+	} else if (u2EthType == ETH_WPI_1X) {
+
+		ucSubType = pucEapol[3]; /* sub type filed*/
+		u2Length = *(PUINT_16)&pucEapol[6];
+		u2Seq = *(PUINT_16)&pucEapol[8];
+		ucSeqNo = nicIncreaseTxSeqNum(prGlueInfo->prAdapter);
+		GLUE_SET_PKT_SEQ_NO(prPacket, ucSeqNo);
+
+		DBGLOG(SW4, INFO, "<TX> WAPI: subType %d, Len %d, Seq %d, SeqNo: %d\n",
+				ucSubType, u2Length, u2Seq, ucSeqNo);
+
+	}
+	prTxPktInfo->u2Flag |= BIT(ENUM_PKT_1X);
 	return TRUE;
 }
 
@@ -2432,7 +2532,7 @@ kalQoSFrameClassifierAndPacketInfo(IN P_GLUE_INFO_T prGlueInfo,
 				   IN P_NATIVE_PACKET prPacket, OUT P_TX_PACKET_INFO prTxPktInfo)
 {
 	UINT_32 u4PacketLen;
-	UINT_16 u2EtherTypeLen;
+	UINT_16 u2EtherType;
 	struct sk_buff *prSkb = (struct sk_buff *)prPacket;
 	PUINT_8 aucLookAheadBuf = NULL;
 	UINT_8 ucEthTypeLenOffset = ETHER_HEADER_LEN - ETHER_TYPE_LEN;
@@ -2447,25 +2547,23 @@ kalQoSFrameClassifierAndPacketInfo(IN P_GLUE_INFO_T prGlueInfo,
 
 	aucLookAheadBuf = prSkb->data;
 
-	STATS_TX_PKT_INFO_DISPLAY(aucLookAheadBuf);
-
 	/* Reset Packet Info */
 	kalMemZero(prTxPktInfo, sizeof(TX_PACKET_INFO));
 
 	/* 4 <0> Obtain Ether Type/Len */
-	WLAN_GET_FIELD_BE16(&aucLookAheadBuf[ucEthTypeLenOffset], &u2EtherTypeLen);
+	WLAN_GET_FIELD_BE16(&aucLookAheadBuf[ucEthTypeLenOffset], &u2EtherType);
 
 	/* 4 <1> Skip 802.1Q header (VLAN Tagging) */
-	if (u2EtherTypeLen == ETH_P_VLAN) {
+	if (u2EtherType == ETH_P_VLAN) {
 		prTxPktInfo->u2Flag |= BIT(ENUM_PKT_VLAN_EXIST);
 		ucEthTypeLenOffset += ETH_802_1Q_HEADER_LEN;
-		WLAN_GET_FIELD_BE16(&aucLookAheadBuf[ucEthTypeLenOffset], &u2EtherTypeLen);
+		WLAN_GET_FIELD_BE16(&aucLookAheadBuf[ucEthTypeLenOffset], &u2EtherType);
 	}
 	/* 4 <2> Obtain next protocol pointer */
 	pucNextProtocol = &aucLookAheadBuf[ucEthTypeLenOffset + ETHER_TYPE_LEN];
 
 	/* 4 <3> Handle ethernet format */
-	switch (u2EtherTypeLen) {
+	switch (u2EtherType) {
 
 		/* IPv4 */
 	case ETH_P_IPV4:
@@ -2478,45 +2576,9 @@ kalQoSFrameClassifierAndPacketInfo(IN P_GLUE_INFO_T prGlueInfo,
 		kalIPv4FrameClassifier(prGlueInfo, prPacket, pucNextProtocol, prTxPktInfo);
 		break;
 
-#if 0
-		/* IPv6 */
-	case ETH_P_IPV6:
-		{
-			PUINT_8 pucIpHdr = pucNextProtocol;
-			UINT_8 ucIpVersion;
-
-			/* IPv6 header length check */
-			if (u4PacketLen < (ucEthTypeLenOffset + ETHER_TYPE_LEN + IPV6_HDR_LEN)) {
-				DBGLOG(INIT, WARN, "Invalid IPv6 packet length: %lu\n", u4PacketLen);
-				return FALSE;
-			}
-
-			/* IPv6 version check */
-			ucIpVersion = (pucIpHdr[0] & IP_VERSION_MASK) >> IP_VERSION_OFFSET;
-			if (ucIpVersion != IP_VERSION_6) {
-				DBGLOG(INIT, WARN, "Invalid IPv6 packet version: %u\n", ucIpVersion);
-				return FALSE;
-			}
-
-			/* Get the DSCP value from the header of IP packet. */
-			ucUserPriority = ((pucIpHdr[0] & IPV6_HDR_TC_PREC_MASK) >> IPV6_HDR_TC_PREC_OFFSET);
-		}
-		break;
-#endif
-
 	case ETH_P_ARP:
-		{
-			UINT_16 u2ArpOp;
 
-			WLAN_GET_FIELD_BE16(&pucNextProtocol[ARP_OPERATION_OFFSET], &u2ArpOp);
-
-			DBGLOG(TX, INFO, "ARP %s PKT[0x%p] TAR MAC/IP[" MACSTR "]/[" IPV4STR "]\n",
-					   u2ArpOp == ARP_OPERATION_REQUEST ? "REQ" : "RSP",
-					   prPacket, MAC2STR(&pucNextProtocol[ARP_TARGET_MAC_OFFSET]),
-					   IPV4TOSTR(&pucNextProtocol[ARP_TARGET_IP_OFFSET]));
-
-			prTxPktInfo->u2Flag |= BIT(ENUM_PKT_ARP);
-		}
+		kalArpFrameClassifier(prGlueInfo, prPacket, pucNextProtocol, prTxPktInfo);
 		break;
 
 	case ETH_P_1X:
@@ -2524,13 +2586,13 @@ kalQoSFrameClassifierAndPacketInfo(IN P_GLUE_INFO_T prGlueInfo,
 #if CFG_SUPPORT_WAPI
 	case ETH_WPI_1X:
 #endif
-		DBGLOG(TX, TRACE, "SECURITY PKT TX SEND, u2EtherTypeLen: 0x%x\n", u2EtherTypeLen);
-		prTxPktInfo->u2Flag |= BIT(ENUM_PKT_1X);
+		kalSecurityFrameClassifier(prGlueInfo, prPacket, pucNextProtocol,
+			u2EtherType, prTxPktInfo);
 		break;
 
 	default:
 		/* 4 <4> Handle 802.3 format if LEN <= 1500 */
-		if (u2EtherTypeLen <= ETH_802_3_MAX_LEN)
+		if (u2EtherType <= ETH_802_3_MAX_LEN)
 			prTxPktInfo->u2Flag |= BIT(ENUM_PKT_802_3);
 		break;
 	}
@@ -4331,7 +4393,8 @@ kalGetChannelList(IN P_GLUE_INFO_T prGlueInfo,
 		  IN ENUM_BAND_T eSpecificBand,
 		  IN UINT_8 ucMaxChannelNum, IN PUINT_8 pucNumOfChannel, IN P_RF_CHANNEL_INFO_T paucChannelList)
 {
-	rlmDomainGetChnlList(prGlueInfo->prAdapter, eSpecificBand, ucMaxChannelNum, pucNumOfChannel, paucChannelList);
+	rlmDomainGetChnlList(prGlueInfo->prAdapter, eSpecificBand, FALSE, ucMaxChannelNum,
+			     pucNumOfChannel, paucChannelList);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -4907,6 +4970,22 @@ kalGetIPv6Address(IN struct net_device *prDev,
 	return TRUE;
 }
 
+static void wlanNotifyFwSuspend(P_GLUE_INFO_T prGlueInfo, BOOLEAN fgSuspend)
+{
+	WLAN_STATUS rStatus;
+	UINT_32 u4SetInfoLen;
+	rStatus = kalIoctl(prGlueInfo,
+			wlanoidNotifyFwSuspend,
+			(PVOID)&fgSuspend,
+			sizeof(fgSuspend),
+			FALSE,
+			FALSE,
+			TRUE,
+			&u4SetInfoLen);
+	if (rStatus != WLAN_STATUS_SUCCESS)
+		DBGLOG(INIT, INFO, "wlanNotifyFwSuspend fail\n");
+}
+
 VOID
 kalSetNetAddress(IN P_GLUE_INFO_T prGlueInfo,
 		 IN UINT_8 ucBssIdx,
@@ -4993,6 +5072,9 @@ VOID kalSetNetAddressFromInterface(IN P_GLUE_INFO_T prGlueInfo, IN struct net_de
 	if (fgSet) {
 		kalGetIPv4Address(prDev, CFG_PF_ARP_NS_MAX_NUM, pucIPv4Addr, &u4NumIPv4);
 		kalGetIPv6Address(prDev, CFG_PF_ARP_NS_MAX_NUM, pucIPv6Addr, &u4NumIPv6);
+		wlanNotifyFwSuspend(prGlueInfo, TRUE);
+	} else {
+		wlanNotifyFwSuspend(prGlueInfo, FALSE);
 	}
 
 	if (u4NumIPv4 + u4NumIPv6 > CFG_PF_ARP_NS_MAX_NUM) {

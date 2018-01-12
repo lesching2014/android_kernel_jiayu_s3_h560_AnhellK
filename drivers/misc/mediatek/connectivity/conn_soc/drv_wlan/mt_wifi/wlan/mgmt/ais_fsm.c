@@ -1007,8 +1007,7 @@
 *                           P R I V A T E   D A T A
 ********************************************************************************
 */
-/*lenovo-sw lumy1, wifi log enhance*/
-#if 1
+#if DBG
 /*lint -save -e64 Type mismatch */
 static PUINT_8 apucDebugAisState[AIS_STATE_NUM] = {
 	(PUINT_8) DISP_STRING("AIS_STATE_IDLE"),
@@ -1076,6 +1075,7 @@ VOID aisInitializeConnectionSettings(IN P_ADAPTER_T prAdapter, IN P_REG_INFO_T p
 	COPY_MAC_ADDR(prConnSettings->aucBSSID, aucAnyBSSID);
 	prConnSettings->fgIsConnByBssidIssued = FALSE;
 
+	prConnSettings->eReConnectLevel = RECONNECT_LEVEL_MIN;
 	prConnSettings->fgIsConnReqIssued = FALSE;
 	prConnSettings->fgIsDisconnectedByNonRequest = FALSE;
 
@@ -1192,9 +1192,7 @@ VOID aisFsmInit(IN P_ADAPTER_T prAdapter)
 			  &prAisFsmInfo->rIbssAloneTimer,
 			  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventIbssAloneTimeOut, (ULONG) NULL);
 
-	cnmTimerInitTimer(prAdapter,
-			  &prAisFsmInfo->rIndicationOfDisconnectTimer,
-			  (PFN_MGMT_TIMEOUT_FUNC) aisPostponedEventOfDisconnTimeout, (ULONG) NULL);
+	prAisFsmInfo->u4PostponeIndStartTime = 0;
 
 	cnmTimerInitTimer(prAdapter,
 			  &prAisFsmInfo->rJoinTimeoutTimer,
@@ -1287,7 +1285,6 @@ VOID aisFsmUninit(IN P_ADAPTER_T prAdapter)
 	/* 4 <1> Stop all timers */
 	cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rBGScanTimer);
 	cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rIbssAloneTimer);
-	cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rIndicationOfDisconnectTimer);
 	cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rJoinTimeoutTimer);
 	cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rScanDoneTimer);	/* Add by Enlai */
 	cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rChannelTimeoutTimer);
@@ -1779,21 +1776,20 @@ VOID aisFsmSteps(IN P_ADAPTER_T prAdapter, ENUM_AIS_STATE_T eNextState)
 
 		/* Do entering Next State */
 		prAisFsmInfo->ePreviousState = prAisFsmInfo->eCurrentState;
-/*lenovo-sw lumy1, wifi log enhance*/
-#if 1
-        DBGLOG(AIS, STATE, "TRANSITION: [%s] -> [%s]\n",
-                            apucDebugAisState[prAisFsmInfo->eCurrentState],
-                            apucDebugAisState[eNextState]);
+
+#if DBG
+		DBGLOG(AIS, STATE, "TRANSITION: [%s] -> [%s]\n",
+				    apucDebugAisState[prAisFsmInfo->eCurrentState], apucDebugAisState[eNextState]);
 #else
-        DBGLOG(AIS, STATE, ("[%d] TRANSITION: [%d] -> [%d]\n",
-                            DBG_AIS_IDX,
-                            prAisFsmInfo->eCurrentState,
-                            eNextState));
+		DBGLOG(AIS, STATE, "[%d] TRANSITION: [%d] -> [%d]\n",
+				    DBG_AIS_IDX, prAisFsmInfo->eCurrentState, eNextState);
 #endif
 		/* NOTE(Kevin): This is the only place to change the eCurrentState(except initial) */
 		prAisFsmInfo->eCurrentState = eNextState;
 
 		fgIsTransition = (BOOLEAN) FALSE;
+
+		aisPostponedEventOfDisconnTimeout(prAdapter, prAisFsmInfo);
 
 		/* Do tasks of the State that we just entered */
 		switch (prAisFsmInfo->eCurrentState) {
@@ -1903,7 +1899,14 @@ VOID aisFsmSteps(IN P_ADAPTER_T prAdapter, ENUM_AIS_STATE_T eNextState)
 					prAisFsmInfo->ucConnTrialCount = 0;
 
 					/* abort connection trial */
-					prConnSettings->fgIsConnReqIssued = FALSE;
+					if (prConnSettings->eReConnectLevel < RECONNECT_LEVEL_BEACON_TIMEOUT) {
+						prConnSettings->eReConnectLevel = RECONNECT_LEVEL_ROAMING_FAIL;
+						prConnSettings->fgIsConnReqIssued = FALSE;
+					} else {
+						DBGLOG(AIS, INFO,
+						       "Do not set fgIsConnReqIssued, Level is %d\n",
+						       prConnSettings->eReConnectLevel);
+					}
 
 					eNextState = AIS_STATE_NORMAL_TR;
 					fgIsTransition = TRUE;
@@ -2221,7 +2224,7 @@ VOID aisFsmSteps(IN P_ADAPTER_T prAdapter, ENUM_AIS_STATE_T eNextState)
 			prScanReqMsg->u2IELen = u2ScanIELen;
 
 			mboxSendMsg(prAdapter, MBOX_ID_0, (P_MSG_HDR_T) prScanReqMsg, MSG_SEND_METHOD_BUF);
-			DBGLOG(AIS, INFO, "SendSR%d\n", prScanReqMsg->ucSeqNum);/*lenovo-sw lumy1, wifi log enhance*/
+			DBGLOG(AIS, TRACE, "SendSR%d\n", prScanReqMsg->ucSeqNum);
 			prAisFsmInfo->fgTryScan = FALSE;	/* Will enable background sleep for infrastructure */
 
 			prAdapter->ucScanTime++;
@@ -2366,8 +2369,8 @@ VOID aisFsmRunEventScanDone(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
 
 	ASSERT(prAdapter);
 	ASSERT(prMsgHdr);
-	/*lenovo-sw lumy1, wifi log enhance*/
-	DBGLOG(AIS, INFO, "ScanDone\n");
+
+	DBGLOG(AIS, WARN, "ScanDone\n");
 	DBGLOG(AIS, LOUD, "EVENT-SCAN DONE: Current Time = %u\n", kalGetTimeTick());
 
 	ucScanTimeoutTimes = 0;
@@ -2707,6 +2710,7 @@ VOID aisFsmRunEventJoinComplete(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHd
 
 				/* 1. Reset retry count */
 				prAisFsmInfo->ucConnTrialCount = 0;
+				prAdapter->rWifiVar.rConnSettings.eReConnectLevel = RECONNECT_LEVEL_MIN;
 
 				/* Completion of roaming */
 				if (prAisBssInfo->eConnectionState == PARAM_MEDIA_STATE_CONNECTED) {
@@ -2762,6 +2766,9 @@ VOID aisFsmRunEventJoinComplete(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHd
 					roamingFsmRunEventStart(prAdapter);
 #endif /* CFG_SUPPORT_ROAMING */
 
+				/* clear rJoinReqTime if there is no more framework roaming connect request */
+				if (aisFsmIsRequestPending(prAdapter, AIS_REQUEST_ROAMING_CONNECT, FALSE) == FALSE)
+					prAisFsmInfo->rJoinReqTime = 0;
 				/* 4 <1.7> Set the Next State of AIS FSM */
 				eNextState = AIS_STATE_NORMAL_TR;
 			}
@@ -2829,10 +2836,13 @@ VOID aisFsmRunEventJoinComplete(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHd
 #if CFG_SUPPORT_ROAMING
 						eNextState = AIS_STATE_WAIT_FOR_NEXT_SCAN;
 #endif /* CFG_SUPPORT_ROAMING */
-					} else if (CHECK_FOR_TIMEOUT(rCurrentTime, prAisFsmInfo->rJoinReqTime,
-						 SEC_TO_SYSTIME(AIS_JOIN_TIMEOUT))) {
+					} else if (prAisFsmInfo->rJoinReqTime != 0 &&
+						   CHECK_FOR_TIMEOUT(rCurrentTime,
+								     prAisFsmInfo->rJoinReqTime,
+								     SEC_TO_SYSTIME(AIS_JOIN_TIMEOUT))) {
 						/* abort connection trial */
 						prAdapter->rWifiVar.rConnSettings.fgIsConnReqIssued = FALSE;
+						prAdapter->rWifiVar.rConnSettings.eReConnectLevel = RECONNECT_LEVEL_MIN;
 
 						kalIndicateStatusAndComplete(prAdapter->prGlueInfo,
 								     WLAN_STATUS_CONNECT_INDICATION, NULL, 0);
@@ -3168,7 +3178,7 @@ aisIndicationOfMediaStateToHost(IN P_ADAPTER_T prAdapter,
 
 	if (!fgDelayIndication) {
 		/* 4 <0> Cancel Delay Timer */
-		cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rIndicationOfDisconnectTimer);
+		prAisFsmInfo->u4PostponeIndStartTime = 0;
 
 		/* 4 <1> Fill EVENT_CONNECTION_STATUS */
 		rEventConnStatus.ucMediaStatus = (UINT_8) eConnectionState;
@@ -3236,9 +3246,7 @@ aisIndicationOfMediaStateToHost(IN P_ADAPTER_T prAdapter,
 		DBGLOG(AIS, INFO, "Postpone the indication of Disconnect for %d seconds\n",
 				   prConnSettings->ucDelayTimeOfDisconnectEvent);
 
-		cnmTimerStartTimer(prAdapter,
-				   &prAisFsmInfo->rIndicationOfDisconnectTimer,
-				   SEC_TO_MSEC(prConnSettings->ucDelayTimeOfDisconnectEvent));
+		prAisFsmInfo->u4PostponeIndStartTime = kalGetTimeTick();
 	}
 
 	return;
@@ -3253,13 +3261,33 @@ aisIndicationOfMediaStateToHost(IN P_ADAPTER_T prAdapter,
 * @return (none)
 */
 /*----------------------------------------------------------------------------*/
-VOID aisPostponedEventOfDisconnTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParam)
+VOID aisPostponedEventOfDisconnTimeout(IN P_ADAPTER_T prAdapter, IN P_AIS_FSM_INFO_T prAisFsmInfo)
 {
 	P_BSS_INFO_T prAisBssInfo;
 	P_CONNECTION_SETTINGS_T prConnSettings;
+	BOOLEAN fgFound = TRUE;
+
+	/* firstly, check if we have started postpone indication.
+		otherwise, give a chance to do join before indicate to host */
+	if (prAisFsmInfo->u4PostponeIndStartTime == 0)
+		return;
+
+	/* if we're in	req channel/join/search state, don't report disconnect. */
+	if (prAisFsmInfo->eCurrentState == AIS_STATE_JOIN ||
+		prAisFsmInfo->eCurrentState == AIS_STATE_SEARCH ||
+		prAisFsmInfo->eCurrentState == AIS_STATE_REQ_CHANNEL_JOIN) {
+		DBGLOG(AIS, INFO, "CurrentState: %d, don't report disconnect\n",
+				   prAisFsmInfo->eCurrentState);
+		return;
+	}
 
 	prAisBssInfo = &(prAdapter->rWifiVar.arBssInfo[NETWORK_TYPE_AIS_INDEX]);
 	prConnSettings = &(prAdapter->rWifiVar.rConnSettings);
+
+	if (!CHECK_FOR_TIMEOUT(kalGetTimeTick(),
+				prAisFsmInfo->u4PostponeIndStartTime,
+				SEC_TO_MSEC(prConnSettings->ucDelayTimeOfDisconnectEvent)))
+		return;
 
 	/* 4 <1> Deactivate previous AP's STA_RECORD_T in Driver if have. */
 	if (prAisBssInfo->prStaRecOfAP) {
@@ -3267,8 +3295,12 @@ VOID aisPostponedEventOfDisconnTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParam)
 
 		prAisBssInfo->prStaRecOfAP = (P_STA_RECORD_T) NULL;
 	}
-	/* 4 <2> Remove pending connection request */
-	aisFsmIsRequestPending(prAdapter, AIS_REQUEST_RECONNECT, TRUE);
+	/* 4 <2> Remove all pending connection request */
+	while (fgFound)
+		fgFound = aisFsmIsRequestPending(prAdapter, AIS_REQUEST_RECONNECT, TRUE);
+
+	if (prAisFsmInfo->eCurrentState == AIS_STATE_LOOKING_FOR)
+		prAisFsmInfo->eCurrentState = AIS_STATE_IDLE;
 	prConnSettings->fgIsDisconnectedByNonRequest = TRUE;
 	prAisBssInfo->u2DeauthReason = REASON_CODE_BEACON_TIMEOUT;
 	/* 4 <3> Indicate Disconnected Event to Host immediately. */
@@ -4004,8 +4036,10 @@ VOID aisFsmRunEventJoinTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParam)
 		} else if (prAisBssInfo->eConnectionState == PARAM_MEDIA_STATE_CONNECTED) {
 			/* 3.2 Retreat to AIS_STATE_WAIT_FOR_NEXT_SCAN state for next try */
 			eNextState = AIS_STATE_WAIT_FOR_NEXT_SCAN;
-		} else if (!CHECK_FOR_TIMEOUT(rCurrentTime, prAisFsmInfo->rJoinReqTime,
-				SEC_TO_SYSTIME(AIS_JOIN_TIMEOUT))) {
+		} else if (prAisFsmInfo->rJoinReqTime != 0 &&
+			   !CHECK_FOR_TIMEOUT(rCurrentTime,
+					      prAisFsmInfo->rJoinReqTime,
+					      SEC_TO_SYSTIME(AIS_JOIN_TIMEOUT))) {
 			/* 3.3 Retreat to AIS_STATE_WAIT_FOR_NEXT_SCAN state for next try */
 			eNextState = AIS_STATE_WAIT_FOR_NEXT_SCAN;
 		} else {
@@ -4289,10 +4323,12 @@ VOID aisBssBeaconTimeout(IN P_ADAPTER_T prAdapter)
 {
 	P_BSS_INFO_T prAisBssInfo;
 	BOOLEAN fgDoAbortIndication = FALSE;
+	P_CONNECTION_SETTINGS_T prConnSettings;
 
 	ASSERT(prAdapter);
 
 	prAisBssInfo = &(prAdapter->rWifiVar.arBssInfo[NETWORK_TYPE_AIS_INDEX]);
+	prConnSettings = &(prAdapter->rWifiVar.rConnSettings);
 
 	/* 4 <1> Diagnose Connection for Beacon Timeout Event */
 	if (PARAM_MEDIA_STATE_CONNECTED == prAisBssInfo->eConnectionState) {
@@ -4320,6 +4356,10 @@ VOID aisBssBeaconTimeout(IN P_ADAPTER_T prAdapter)
 		   Note: Cannot change TRUE to FALSE; or you will suffer the problem in
 		   ALPS01270257/ ALPS01804173
 		 */
+		if (prConnSettings->eReConnectLevel < RECONNECT_LEVEL_USER_SET) {
+			prConnSettings->eReConnectLevel = RECONNECT_LEVEL_BEACON_TIMEOUT;
+			prConnSettings->fgIsConnReqIssued = TRUE;
+		}
 		aisFsmStateAbort(prAdapter, DISCONNECT_REASON_CODE_RADIO_LOST, TRUE);
 	}
 

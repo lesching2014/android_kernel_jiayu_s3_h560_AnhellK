@@ -93,12 +93,11 @@
 #define TX_ASSOCIATION_RETRY_TIMEOUT_TU             100	/* TU. */
 
 /* Wait for a response to a transmitted authentication-request MMPDU. */
-/* Lenovo-sw SW_SysApp_Settings_WLAN chencheng6 add 2015-07-08 begin CAP-1236 */
-#define DOT11_AUTHENTICATION_RESPONSE_TIMEOUT_TU    100	/* TU. */
+#define DOT11_AUTHENTICATION_RESPONSE_TIMEOUT_TU    512	/* TU. */
 
 /* Wait for a response to a transmitted association-request MMPDU. */
-#define DOT11_ASSOCIATION_RESPONSE_TIMEOUT_TU       100	/* TU. */
-/* Lenovo-sw SW_SysApp_Settings_WLAN chencheng6 add 2015-07-08 end CAP-1236 */
+#define DOT11_ASSOCIATION_RESPONSE_TIMEOUT_TU       512	/* TU. */
+
 /* The maximum time to wait for JOIN process complete. */
 #define JOIN_FAILURE_TIMEOUT_BEACON_INTERVAL        20	/* Beacon Interval, 20 * 100TU = 2 sec. */
 

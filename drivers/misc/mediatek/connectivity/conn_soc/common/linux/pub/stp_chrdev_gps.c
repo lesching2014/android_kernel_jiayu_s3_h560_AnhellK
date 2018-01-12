@@ -11,6 +11,10 @@
 * You should have received a copy of the GNU General Public License along with this program.
 * If not, see <http://www.gnu.org/licenses/>.
 */
+#if CONFIG_HAS_WAKELOCK
+#include <linux/wakelock.h>
+#define CFG_GPS_WAKELOCK_SUPPORT 1
+#endif
 
 #include <linux/init.h>
 #include <linux/module.h>
@@ -85,6 +89,9 @@ static struct cdev GPS_cdev;
 #define STP_GPS_BUFFER_SIZE 2048
 #else
 #define STP_GPS_BUFFER_SIZE MTKSTP_BUFFER_SIZE
+#endif
+#ifdef CFG_GPS_WAKELOCK_SUPPORT
+static struct wakeup_source gps_wake_lock;
 #endif
 
 static unsigned char i_buf[STP_GPS_BUFFER_SIZE];	/* input buffer of read() */
@@ -395,6 +402,10 @@ static int GPS_open(struct inode *inode, struct file *file)
     // hack for gps
     clk_buf_ctrl(CLK_BUF_AUDIO, 1);
 #endif
+#ifdef CFG_GPS_WAKELOCK_SUPPORT
+	wake_lock(&gps_wake_lock);
+	GPS_DBG_FUNC("GPS: wake_lock(%d)\n", wake_lock_active(&gps_wake_lock));
+#endif
 	/* init_MUTEX(&wr_mtx); */
 	sema_init(&wr_mtx, 1);
 	/* init_MUTEX(&rd_mtx); */
@@ -423,6 +434,10 @@ static int GPS_close(struct inode *inode, struct file *file)
 #if defined(CONFIG_ARCH_MT6580)
         // hack for gps
     clk_buf_ctrl(CLK_BUF_AUDIO, 0);
+#endif
+#ifdef CFG_GPS_WAKELOCK_SUPPORT
+	wake_unlock(&gps_wake_lock);
+	GPS_DBG_FUNC("GPS: wake_unlock(%d)\n", wake_lock_active(&gps_wake_lock));
 #endif
 
 	return 0;
@@ -478,6 +493,9 @@ static int GPS_init(void)
 #endif
 
 	pr_alert(KERN_ALERT "%s driver(major %d) installed.\n", GPS_DRIVER_NAME, GPS_major);
+#ifdef CFG_GPS_WAKELOCK_SUPPORT
+	wake_lock_init(&gps_wake_lock, WAKE_LOCK_SUSPEND, "gpswakelock");
+#endif
 
 	return 0;
 
@@ -516,6 +534,9 @@ static void GPS_exit(void)
 	unregister_chrdev_region(dev, GPS_devs);
 
 	pr_alert(KERN_ALERT "%s driver removed.\n", GPS_DRIVER_NAME);
+#ifdef CFG_GPS_WAKELOCK_SUPPORT
+	wake_lock_destroy(&gps_wake_lock);
+#endif
 }
 
 #ifdef MTK_WCN_REMOVE_KERNEL_MODULE

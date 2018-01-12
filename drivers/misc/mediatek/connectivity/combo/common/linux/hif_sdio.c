@@ -784,9 +784,11 @@ INT32 mtk_wcn_hif_sdio_readb(MTK_WCN_HIF_SDIO_CLTCTX ctx, UINT32 offset, PUINT8 
 #endif
 
 	/* 4 <2> */
+	osal_ftrace_print("%s|S\n", __func__);
 	sdio_claim_host(func);
 	*pvb = sdio_readb(func, offset, &ret);
 	sdio_release_host(func);
+	osal_ftrace_print("%s|E\n", __func__);
 
 	/* 4 <3> check result code and return proper error code */
 
@@ -846,9 +848,11 @@ INT32 mtk_wcn_hif_sdio_writeb(MTK_WCN_HIF_SDIO_CLTCTX ctx, UINT32 offset, UINT8 
 
 	/* 4 <2> */
 	wmt_tra_sdio_update();
+	osal_ftrace_print("%s|S\n", __func__);
 	sdio_claim_host(func);
 	sdio_writeb(func, vb, offset, &ret);
 	sdio_release_host(func);
+	osal_ftrace_print("%s|E\n", __func__);
 
 	/* 4 <3> check result code and return proper error code */
 
@@ -907,9 +911,11 @@ INT32 mtk_wcn_hif_sdio_readl(MTK_WCN_HIF_SDIO_CLTCTX ctx, UINT32 offset, PUINT32
 	/* 4 <1.1> check if input parameters are valid */
 
 	/* 4 <2> */
+	osal_ftrace_print("%s|S\n", __func__);
 	sdio_claim_host(func);
 	*pvl = sdio_readl(func, offset, &ret);
 	sdio_release_host(func);
+	osal_ftrace_print("%s|E\n", __func__);
 
 	/* 4 <3> check result code and return proper error code */
 
@@ -968,9 +974,11 @@ INT32 mtk_wcn_hif_sdio_writel(MTK_WCN_HIF_SDIO_CLTCTX ctx, UINT32 offset, UINT32
 
 	/* 4 <2> */
 	wmt_tra_sdio_update();
+	osal_ftrace_print("%s|S\n", __func__);
 	sdio_claim_host(func);
 	sdio_writel(func, vl, offset, &ret);
 	sdio_release_host(func);
+	osal_ftrace_print("%s|E\n", __func__);
 
 	/* 4 <3> check result code and return proper error code */
 
@@ -1030,9 +1038,11 @@ INT32 mtk_wcn_hif_sdio_read_buf(MTK_WCN_HIF_SDIO_CLTCTX ctx,
 	/* 4 <1.1> check if input parameters are valid */
 
 	/* 4 <2> */
+	osal_ftrace_print("%s|S|L|%d\n", __func__, len);
 	sdio_claim_host(func);
 	ret = sdio_readsb(func, pbuf, offset, len);
 	sdio_release_host(func);
+	osal_ftrace_print("%s|E|L|%d\n", __func__, len);
 
 	/* 4 <3> check result code and return proper error code */
 
@@ -1094,9 +1104,11 @@ INT32 mtk_wcn_hif_sdio_write_buf(MTK_WCN_HIF_SDIO_CLTCTX ctx,
 
 	/* 4 <2> */
 	wmt_tra_sdio_update();
+	osal_ftrace_print("%s|S|L|%d\n", __func__, len);
 	sdio_claim_host(func);
 	ret = sdio_writesb(func, offset, pbuf, len);
 	sdio_release_host(func);
+	osal_ftrace_print("%s|E|L|%d\n", __func__, len);
 
 	/* 4 <3> check result code and return proper error code */
 
@@ -1846,6 +1858,7 @@ static VOID hif_sdio_irq(struct sdio_func *func)
 
 	HIF_SDIO_DBG_FUNC("start!\n");
 
+	osal_ftrace_print("%s|S\n", __func__);
 	/* 4 <1> check if func is valid */
 	HIF_SDIO_ASSERT(func);
 
@@ -1890,6 +1903,7 @@ static VOID hif_sdio_irq(struct sdio_func *func)
 		sdio_release_irq(func);
 	}
 
+	osal_ftrace_print("%s|E\n", __func__);
 	return;
 }
 
@@ -2018,6 +2032,10 @@ INT32 hif_sdio_stp_on(VOID)
 		chip_id = 0x6630;
 		func_num = 2;
 		sdio_autok_flag = 1;
+		if (NULL == g_hif_sdio_probed_func_list[probe_index].func->card->host) {
+			HIF_SDIO_INFO_FUNC("no supported func probed, func->card->host is NULL\n");
+			return HIF_SDIO_ERR_NOT_PROBED;
+		}
 		goto stp_on_exist;
 	}
 

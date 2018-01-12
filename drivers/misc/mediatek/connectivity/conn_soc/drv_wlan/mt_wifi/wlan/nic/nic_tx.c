@@ -538,10 +538,7 @@ VOID nicTxInitialize(IN P_ADAPTER_T prAdapter)
 * \retval WLAN_STATUS_RESOURCES Resource is not available.
 */
 /*----------------------------------------------------------------------------*/
-
-extern int is_in_off;
 UINT_32 u4CurrTick = 0;
-
 WLAN_STATUS nicTxAcquireResource(IN P_ADAPTER_T prAdapter, IN UINT_8 ucTC, IN BOOLEAN pfgIsSecOrMgmt)
 {
 #define TC4_NO_RESOURCE_DELAY_MS      5    /* exponential of 5s */
@@ -558,9 +555,6 @@ WLAN_STATUS nicTxAcquireResource(IN P_ADAPTER_T prAdapter, IN UINT_8 ucTC, IN BO
 
 /*	DbgPrint("nicTxAcquireResource prTxCtrl->rTc.aucFreeBufferCount[%d]=%d\n",
 	ucTC, prTxCtrl->rTc.aucFreeBufferCount[ucTC]); */
-	if (is_in_off)
-		printk("%s %d prTxCtrl->rTc.aucFreeBufferCount[%d]=%d\n", __func__, __LINE__,
-				ucTC, prTxCtrl->rTc.aucFreeBufferCount[ucTC]);
 	do {
 		if (pfgIsSecOrMgmt && (ucTC == TC4_INDEX)) {
 			if (prTxCtrl->rTc.aucFreeBufferCount[ucTC] < 2) {
@@ -569,6 +563,7 @@ WLAN_STATUS nicTxAcquireResource(IN P_ADAPTER_T prAdapter, IN UINT_8 ucTC, IN BO
 
 				if (prTxCtrl->rTc.aucFreeBufferCount[ucTC])
 					u4CurrTick = 0;
+
 				break;
 			}
 		}
@@ -630,46 +625,24 @@ WLAN_STATUS nicTxPollingResource(IN P_ADAPTER_T prAdapter, IN UINT_8 ucTC)
 
 	if (ucTC >= TC_NUM)
 		return WLAN_STATUS_FAILURE;
-	if (is_in_off)
-		printk("%s %d\n", __func__, __LINE__);
-	if (prTxCtrl->rTc.aucFreeBufferCount[ucTC] > 0) {
-		if (is_in_off)
-			printk("%s %d\n", __func__, __LINE__);
+
+	if (prTxCtrl->rTc.aucFreeBufferCount[ucTC] > 0)
 		return WLAN_STATUS_SUCCESS;
-	}
 
 	while (i-- > 0) {
 		HAL_READ_TX_RELEASED_COUNT(prAdapter, au4WTSR);
 
-		if (is_in_off)
-			printk("%s %d\n", __func__, __LINE__);
 		if (kalIsCardRemoved(prAdapter->prGlueInfo) == TRUE || fgIsBusAccessFailed == TRUE) {
-			if (is_in_off)
-				printk("%s %d\n", __func__, __LINE__);
 			u4Status = WLAN_STATUS_FAILURE;
 			break;
 		} else if (nicTxReleaseResource(prAdapter, (PUINT_8) au4WTSR)) {
-			if (is_in_off)
-				printk("%s %d\n", __func__, __LINE__);
 			if (prTxCtrl->rTc.aucFreeBufferCount[ucTC] > 0) {
 				u4Status = WLAN_STATUS_SUCCESS;
-				if (is_in_off)
-					printk("%s %d\n", __func__, __LINE__);
 				break;
 			} else {
-				if (is_in_off) {
-					printk("%s %d\n", __func__, __LINE__);
-					if (i <= NIC_TX_RESOURCE_POLLING_TIMEOUT - 50)
-						glDumpConnSysCpuInfo(prAdapter->prGlueInfo);
-				}
 				kalMsleep(NIC_TX_RESOURCE_POLLING_DELAY_MSEC);
 			}
 		} else {
-			if (is_in_off) {
-				printk("%s %d\n", __func__, __LINE__);
-				if (i <= NIC_TX_RESOURCE_POLLING_TIMEOUT - 50)
-					glDumpConnSysCpuInfo(prAdapter->prGlueInfo);
-			}
 			kalMsleep(NIC_TX_RESOURCE_POLLING_DELAY_MSEC);
 		}
 	}

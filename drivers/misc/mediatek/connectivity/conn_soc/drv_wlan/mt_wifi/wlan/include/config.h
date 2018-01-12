@@ -955,7 +955,7 @@
 
 #define CFG_SUPPORT_ROAMING_ENC		0	/* enahnced roaming */
 
-#define CFG_SUPPORT_BEACON_TUNING	0	/* customize beacon timeout detection parameter */
+#define CFG_SUPPORT_BEACON_TUNING	1	/* customize beacon timeout detection parameter */
 
 #define CFG_SUPPORT_TDLS			1	/* IEEE802.11z TDLS */
 #define CFG_SUPPORT_TDLS_DBG		0	/* TDLS debug */
@@ -968,8 +968,10 @@
 
 #define CFG_SUPPORT_PERSIST_NETDEV		0	/* create NETDEV when system bootup */
 
-/*lenovo-sw lumy1, 2.4GHZ force to 20M*/
-#define CFG_FORCE_USE_20BW			1
+//<2016/05/27-louisliu, WIFI. Enalbe 2.4G HT40.
+//#define CFG_FORCE_USE_20BW			1
+#define CFG_FORCE_USE_20BW			0
+//>2016/05/27-louisliu
 /*------------------------------------------------------------------------------
  * SLT Option
  *------------------------------------------------------------------------------
@@ -1211,7 +1213,7 @@
  *------------------------------------------------------------------------------
  */
 /*! Maximum number of BSS in the SCAN list */
-#define CFG_MAX_NUM_BSS_LIST                    64
+#define CFG_MAX_NUM_BSS_LIST                    128
 
 #define CFG_MAX_COMMON_IE_BUF_LEN         ((1500 * CFG_MAX_NUM_BSS_LIST) / 3)
 
@@ -1594,8 +1596,7 @@
 #define CFG_SUPPORT_CFG_PROC			1
 #define CFG_SUPPORT_SUSPEND_SLEEP			0
 
-/*lenovo-sw lumy1,Disable DETECT_SECURITY_MODE_CHANGE*/
-#define CFG_SUPPORT_DETECT_SECURITY_MODE_CHANGE 0
+#define CFG_SUPPORT_DETECT_SECURITY_MODE_CHANGE 1
 /*******************************************************************************
 *                             D A T A   T Y P E S
 ********************************************************************************

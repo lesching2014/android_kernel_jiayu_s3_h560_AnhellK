@@ -1201,7 +1201,14 @@ INT32 stp_notify_btm_poll_cpupcr_ctrl(UINT32 en)
 
 INT32 stp_notify_btm_do_fw_assert_via_emi(MTKSTP_BTM_T *stp_btm)
 {
-	return _stp_btm_do_fw_assert_via_emi(stp_btm);
+	INT32 ret = -1;
+#if BTIF_RXD_BE_BLOCKED_DETECT
+	if (is_btif_rxd_be_blocked())
+		ret = wcn_btif_rxd_blocked_collect_ftrace();	/* trigger collect SYS_FTRACE */
+	else
+#endif
+		ret = _stp_btm_do_fw_assert_via_emi(stp_btm);
+	return ret;
 }
 
 #if CFG_WMT_LTE_COEX_HANDLING

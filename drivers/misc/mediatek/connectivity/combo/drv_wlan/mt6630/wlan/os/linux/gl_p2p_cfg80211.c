@@ -211,7 +211,7 @@
 
 #include "precomp.h"
 #include "gl_cfg80211.h"
-#include "gl_p2p_os.h"
+#include "gl_p2p_ioctl.h"
 
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wformat"
@@ -586,6 +586,7 @@ int mtk_p2p_cfg80211_scan(struct wiphy *wiphy,
 	struct ieee80211_channel *prChannel = NULL;
 	struct cfg80211_ssid *prSsid = NULL;
 	UINT_8 ucBssIdx = 0;
+	BOOLEAN fgIsFullChanScan = FALSE;
 
 	/* [---------Channel---------] [---------SSID---------][---------IE---------] */
 
@@ -615,7 +616,8 @@ int mtk_p2p_cfg80211_scan(struct wiphy *wiphy,
 		/* Should find out why the n_channels so many? */
 		if (request->n_channels > MAXIMUM_OPERATION_CHANNEL_LIST) {
 			request->n_channels = MAXIMUM_OPERATION_CHANNEL_LIST;
-			DBGLOG(P2P, TRACE, "Channel list exceed the maximun support.\n");
+			fgIsFullChanScan = TRUE;
+			DBGLOG(P2P, INFO, "Channel list exceed the maximun support.\n");
 		}
 		/* TODO: */
 		/* Find a way to distinct DEV port scan & ROLE port scan.
@@ -660,7 +662,7 @@ int mtk_p2p_cfg80211_scan(struct wiphy *wiphy,
 				prRfChannelInfo->eBand = BAND_5G;
 				break;
 			default:
-				DBGLOG(P2P, TRACE, "UNKNOWN Band info from supplicant\n");
+				DBGLOG(P2P, INFO, "UNKNOWN Band info from supplicant\n");
 				prRfChannelInfo->eBand = BAND_NULL;
 				break;
 			}
@@ -670,7 +672,11 @@ int mtk_p2p_cfg80211_scan(struct wiphy *wiphy,
 		}
 		prMsgScanRequest->u4NumChannel = request->n_channels;
 
-		DBGLOG(P2P, TRACE, "Finish channel list.\n");
+		if (fgIsFullChanScan) {
+			prMsgScanRequest->u4NumChannel = SCN_P2P_FULL_SCAN_PARAM;
+			DBGLOG(P2P, INFO, "request->n_channels = SCN_P2P_FULL_SCAN_PARAM;\n");
+		}
+		DBGLOG(P2P, INFO, "Finish channel list u4NumChannel[%d].\n", prMsgScanRequest->u4NumChannel);
 
 		/* SSID */
 		prSsid = request->ssids;
@@ -1221,7 +1227,7 @@ int mtk_p2p_cfg80211_remain_on_channel(struct wiphy *wiphy,
 	P_GL_P2P_INFO_T prGlueP2pInfo = (P_GL_P2P_INFO_T) NULL;
 	P_MSG_P2P_CHNL_REQUEST_T prMsgChnlReq = (P_MSG_P2P_CHNL_REQUEST_T) NULL;
 
-	DBGLOG(P2P, STATE, "mtk_p2p_cfg80211_remain_on_channel\n");
+	DBGLOG(P2P, TRACE, "mtk_p2p_cfg80211_remain_on_channel\n");
 
 	do {
 		if ((wiphy == NULL) ||
@@ -1243,7 +1249,7 @@ int mtk_p2p_cfg80211_remain_on_channel(struct wiphy *wiphy,
 			break;
 		}
 
-		DBGLOG(P2P, TRACE, "mtk_p2p_cfg80211_remain_on_channel:%d\n", (INT_32) *cookie);
+		DBGLOG(P2P, INFO, "Cookie: 0x%llx, duration: %d\n", *cookie, duration);
 
 		prMsgChnlReq->rMsgHdr.eMsgId = MID_MNY_P2P_CHNL_REQ;
 		prMsgChnlReq->u8Cookie = *cookie;
@@ -1289,7 +1295,7 @@ int mtk_p2p_cfg80211_cancel_remain_on_channel(struct wiphy *wiphy,
 			break;
 		}
 
-		DBGLOG(P2P, TRACE, "mtk_p2p_cfg80211_cancel_remain_on_channel%d\n", (INT_32) cookie);
+		DBGLOG(P2P, INFO, "P2P: cancel remain on channel 0x%llx\n", cookie);
 
 		prMsgChnlAbort->rMsgHdr.eMsgId = MID_MNY_P2P_CHNL_ABORT;
 		prMsgChnlAbort->u8Cookie = cookie;

@@ -96,22 +96,22 @@ static wait_queue_head_t gWmtInitWq;
 P_WMT_PATCH_INFO pPatchInfo = NULL;
 UINT32 pAtchNum = 0;
 
-#ifdef MTK_COMBO_COMM_APO
+#ifdef CONFIG_MTK_COMBO_COMM_APO
 static int combo_comm_apo_flag = 1;
 #else
 static int combo_comm_apo_flag;
 #endif
 
 #if CONSYS_WMT_REG_SUSPEND_CB_ENABLE || CONSYS_EARLYSUSPEND_ENABLE
-#ifdef MTK_COMBO_COMM_APO
+#ifdef CONFIG_MTK_COMBO_COMM_APO
 static int mtk_wmt_func_off_background(void);
 static int mtk_wmt_func_on_background(void);
-#endif /*MTK_COMBO_COMM_APO end*/
+#endif /*CONFIG_MTK_COMBO_COMM_APO end*/
 #endif
 
 
 #if CONSYS_EARLYSUSPEND_ENABLE
-#ifdef MTK_COMBO_COMM_APO
+#ifdef CONFIG_MTK_COMBO_COMM_APO
 UINT32 g_early_suspend_flag = 0;
 OSAL_SLEEPABLE_LOCK g_es_lr_lock;
 static void wmt_dev_early_suspend(struct early_suspend *h)
@@ -141,7 +141,7 @@ struct early_suspend wmt_early_suspend_handler = {
     .suspend = wmt_dev_early_suspend,
     .resume = wmt_dev_late_resume,
 };
-#endif /*MTK_COMBO_COMM_APO end*/
+#endif /*CONFIG_MTK_COMBO_COMM_APO end*/
 #else
 UINT32 g_early_suspend_flag = 0;
 #endif
@@ -152,7 +152,7 @@ UINT32 g_early_suspend_flag = 0;
 
 
 #if CONSYS_WMT_REG_SUSPEND_CB_ENABLE || CONSYS_EARLYSUSPEND_ENABLE
-#ifdef MTK_COMBO_COMM_APO
+#ifdef CONFIG_MTK_COMBO_COMM_APO
 static INT32 wmt_pwr_on_thread (void *pvData)
 {
 	INT32 retryCounter = 1;
@@ -228,7 +228,7 @@ static INT32 mtk_wmt_func_off_background(void)
 	}
 	return 0;
 }
-#endif /*MTK_COMBO_COMM_APO end*/
+#endif /*CONFIG_MTK_COMBO_COMM_APO end*/
 #endif
 
 #if CFG_WMT_PROC_FOR_AEE
@@ -1126,7 +1126,6 @@ long WMT_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case 10:
 		{
 			wmt_lib_host_awake_get();
-			mtk_wcn_stp_coredump_start_ctrl(1);
 			osal_strcpy(pBuffer, "MT662x f/w coredump start-");
 			if (copy_from_user
 			    (pBuffer + osal_strlen(pBuffer), (void *)arg,
@@ -1345,7 +1344,7 @@ struct class *wmt_class = NULL;
 #endif
 
 #if CONSYS_WMT_REG_SUSPEND_CB_ENABLE
-#ifdef MTK_COMBO_COMM_APO
+#ifdef CONFIG_MTK_COMBO_COMM_APO
 static int wmt_pm_event(struct notifier_block *notifier, unsigned long pm_event, void *unused)
 {
 	switch(pm_event) {
@@ -1365,7 +1364,7 @@ static struct notifier_block wmt_pm_notifier_block = {
     .notifier_call = wmt_pm_event,
     .priority = 0,
 };
-#endif /*MTK_COMBO_COMM_APO end*/
+#endif /*CONFIG_MTK_COMBO_COMM_APO end*/
 #endif /* CONSYS_WMT_REG_SUSPEND_CB_ENABLE */
 
 static int WMT_init(void)
@@ -1447,20 +1446,20 @@ static int WMT_init(void)
 
     mtk_wcn_hif_sdio_update_cb_reg(wmt_dev_tra_sdio_update);
 #if CONSYS_WMT_REG_SUSPEND_CB_ENABLE
-#ifdef MTK_COMBO_COMM_APO
+#ifdef CONFIG_MTK_COMBO_COMM_APO
 	ret = register_pm_notifier(&wmt_pm_notifier_block);
 	if (ret)
 		WMT_ERR_FUNC("WMT failed to register PM notifier failed(%d)\n", ret);
-#endif /*MTK_COMBO_COMM_APO end*/
+#endif /*CONFIG_MTK_COMBO_COMM_APO end*/
 #endif
 	gWmtInitDone = 1;
 	wake_up(&gWmtInitWq);
 #if CONSYS_EARLYSUSPEND_ENABLE
-#ifdef MTK_COMBO_COMM_APO
+#ifdef CONFIG_MTK_COMBO_COMM_APO
     osal_sleepable_lock_init(&g_es_lr_lock);
     register_early_suspend(&wmt_early_suspend_handler);
     WMT_INFO_FUNC("register_early_suspend finished\n");
-#endif /*MTK_COMBO_COMM_APO end*/
+#endif /*CONFIG_MTK_COMBO_COMM_APO end*/
 #endif
 	WMT_INFO_FUNC("success\n");
     return 0;
@@ -1498,17 +1497,17 @@ static void WMT_exit(void)
 	dev_t dev = MKDEV(gWmtMajor, 0);
 
 #if CONSYS_EARLYSUSPEND_ENABLE
-#ifdef MTK_COMBO_COMM_APO
+#ifdef CONFIG_MTK_COMBO_COMM_APO
     unregister_early_suspend(&wmt_early_suspend_handler);
     osal_sleepable_lock_deinit(&g_es_lr_lock);
     WMT_INFO_FUNC("unregister_early_suspend finished\n");
-#endif /*MTK_COMBO_COMM_APO end*/
+#endif /*CONFIG_MTK_COMBO_COMM_APO*/
 #endif
 
 #if CONSYS_WMT_REG_SUSPEND_CB_ENABLE
-#ifdef MTK_COMBO_COMM_APO
+#ifdef CONFIG_MTK_COMBO_COMM_APO
 	unregister_pm_notifier(&wmt_pm_notifier_block);
-#endif /*MTK_COMBO_COMM_APO end*/
+#endif /*CONFIG_MTK_COMBO_COMM_APO end*/
 #endif
     wmt_lib_deinit();
     

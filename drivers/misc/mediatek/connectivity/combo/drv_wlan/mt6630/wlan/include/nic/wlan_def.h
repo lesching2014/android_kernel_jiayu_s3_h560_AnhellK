@@ -281,6 +281,7 @@
 #define DISCONNECT_REASON_CODE_DISASSOCIATED    3
 #define DISCONNECT_REASON_CODE_NEW_CONNECTION   4
 #define DISCONNECT_REASON_CODE_REASSOCIATION    5
+#define DISCONNECT_REASON_CODE_ROAMING          6
 
 /* The rate definitions */
 #define TX_MODE_CCK             0x00
@@ -553,9 +554,7 @@
 #define AUTH_TYPE_FAST_BSS_TRANSITION               BIT(AUTH_ALGORITHM_NUM_FAST_BSS_TRANSITION)
 
 /* Authentication Retry Limit */
-/* Lenovo-sw SW_SysApp_Settings_WLAN chencheng6 add 2015-07-08 begin CAP-1236 */
-#define TX_AUTH_ASSOCI_RETRY_LIMIT                  10
-/* Lenovo-sw SW_SysApp_Settings_WLAN chencheng6 add 2015-07-08 end CAP-1236 */
+#define TX_AUTH_ASSOCI_RETRY_LIMIT                  2
 #define TX_AUTH_ASSOCI_RETRY_LIMIT_FOR_ROAMING      1
 
 /* WMM-2.2.1 WMM Information Element */
