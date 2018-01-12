@@ -26,9 +26,6 @@
 #include <linux/zsmalloc.h>
 #endif
 
-#ifdef CONFIG_ZRAM
-#include <linux/zram_drv.h>
-#endif
 
 /* for collecting ion total memory usage*/
 #ifdef CONFIG_ION_MTK
@@ -363,12 +360,9 @@ static void mlog_meminfo(void)
 #endif
 
 	mlock = P2K(global_page_state(NR_MLOCK));
-#if defined(CONFIG_ZRAM) & defined(CONFIG_ZSMALLOC)
-	zram = (zram_devices && zram_devices->meta) ?
-	    B2K(zs_get_total_size_bytes(zram_devices->meta->mem_pool)) : 0;
-#else
+
 	zram = 0;
-#endif
+
 
 	active = P2K(global_page_state(NR_ACTIVE_ANON) + global_page_state(NR_ACTIVE_FILE));
 	inactive = P2K(global_page_state(NR_INACTIVE_ANON) + global_page_state(NR_INACTIVE_FILE));
@@ -589,11 +583,7 @@ collect_proc_mem_info:
 		do {
 			/* min_flt += t->min_flt; */
 			/* maj_flt += t->maj_flt; */
-#ifdef CONFIG_ZRAM
-			fm_flt += t->fm_flt;
-			swap_in += t->swap_in;
-			swap_out += t->swap_out;
-#endif
+
 			t = next_thread(t);
 #ifdef MLOG_DEBUG
 #if defined(__LP64__) || defined(_LP64)
