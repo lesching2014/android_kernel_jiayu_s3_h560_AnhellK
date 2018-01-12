@@ -143,6 +143,7 @@ obj-$(CONFIG_MTK_ECCCI_DRIVER) +=  eccci/
 obj-$(CONFIG_MTK_EEMCS_DRIVER) +=  eemcs/
 obj-$(CONFIG_MTK_IRTX_SUPPORT) += irtx/
 obj-$(CONFIG_MTK_NFC) += nfc/
+obj-$(CONFIG_ZRAM)	+= mlog/
 
 
 #lenovo-sw zhangjiano add for sisley2 camera otp begin
