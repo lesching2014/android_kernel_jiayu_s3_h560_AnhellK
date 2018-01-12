@@ -60,7 +60,6 @@ enum {
 };
 static INT32 wlan_mode = WLAN_MODE_HALT;
 static INT32 powered;
-static INT8 *ifname = WLAN_IFACE_NAME;
 
 #if defined(CONFIG_MTK_COMBO_AOSP_TETHERING_SUPPORT)
 volatile INT32 wlan_if_changed = 0;
@@ -177,7 +176,7 @@ INT32 wifi_reset_start(VOID)
 	down(&wr_mtx);
 
 	if (powered == 1) {
-		netdev = dev_get_by_name(&init_net, ifname);
+		netdev = dev_get_by_name(&init_net, WLAN_IFACE_NAME);
 		if (netdev == NULL) {
 			WIFI_ERR_FUNC("Fail to get wlan0 net device\n");
 		} else {
@@ -235,12 +234,12 @@ INT32 wifi_reset_end(ENUM_RESET_STATUS_T status)
 				goto done;
 			}
 
-			netdev = dev_get_by_name(&init_net, ifname);
+			netdev = dev_get_by_name(&init_net, WLAN_IFACE_NAME);
 			while (netdev == NULL && wait_cnt < 10) {
 				WIFI_ERR_FUNC("Fail to get wlan0 net device, sleep 300ms\n");
 				msleep(300);
 				wait_cnt++;
-				netdev = dev_get_by_name(&init_net, ifname);
+				netdev = dev_get_by_name(&init_net, WLAN_IFACE_NAME);
 			}
 			if (wait_cnt >= 10) {
 				WIFI_ERR_FUNC("Get wlan0 net device timeout\n");
@@ -326,7 +325,7 @@ ssize_t WIFI_write(struct file *filp, const char __user *buf, size_t count, loff
 				goto done;
 			}
 
-			netdev = dev_get_by_name(&init_net, ifname);
+			netdev = dev_get_by_name(&init_net, WLAN_IFACE_NAME);
 			if (netdev == NULL) {
 				WIFI_ERR_FUNC("Fail to get wlan0 net device\n");
 			} else {
@@ -454,12 +453,12 @@ ssize_t WIFI_write(struct file *filp, const char __user *buf, size_t count, loff
 				goto done;
 			}
 
-			netdev = dev_get_by_name(&init_net, ifname);
+			netdev = dev_get_by_name(&init_net, WLAN_IFACE_NAME);
 			while (netdev == NULL && wait_cnt < 10) {
 				WIFI_ERR_FUNC("Fail to get wlan0 net device, sleep 300ms\n");
 				msleep(300);
 				wait_cnt++;
-				netdev = dev_get_by_name(&init_net, ifname);
+				netdev = dev_get_by_name(&init_net, WLAN_IFACE_NAME);
 			}
 			if (wait_cnt >= 10) {
 				WIFI_ERR_FUNC("Get wlan0 net device timeout\n");
