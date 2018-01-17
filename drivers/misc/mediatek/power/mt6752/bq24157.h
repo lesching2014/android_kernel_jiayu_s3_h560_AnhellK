@@ -20,7 +20,7 @@
 #ifndef _bq24157_SW_H_
 #define _bq24157_SW_H_
 
-//#define HIGH_BATTERY_VOLTAGE_SUPPORT
+//#define CONFIG_HIGH_BATTERY_VOLTAGE_SUPPORT
 
 #define bq24157_CON0      0x00
 #define bq24157_CON1      0x01

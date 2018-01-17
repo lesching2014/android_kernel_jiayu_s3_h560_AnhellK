@@ -592,7 +592,7 @@ void lenovo_charging_term_set_iterm(void)
 	upmu_set_rg_usbdl_set(0);       //force leave USBDL mode
 	upmu_set_rg_usbdl_rst(1);		//force leave USBDL mode
 */   
-	#if defined(HIGH_BATTERY_VOLTAGE_SUPPORT)
+	#if defined(CONFIG_HIGH_BATTERY_VOLTAGE_SUPPORT)
 	//bq24157_reg_config_interface(0x06,0x77); // ISAFE = 1250mA, VSAFE = 4.34V
 	bq24157_set_oreg(0x2A);
 	battery_xlog_printk(BAT_LOG_CRTI,"change update 00\n"); 

@@ -328,7 +328,7 @@ static BATTERY_VOLTAGE_ENUM select_jeita_cv(void)
 	} else if (g_temp_status == TEMP_POS_45_TO_POS_60) {
 		cv_voltage = JEITA_TEMP_POS_45_TO_POS_60_CV_VOLTAGE;
 	} else if (g_temp_status == TEMP_POS_10_TO_POS_45) {
-#ifdef HIGH_BATTERY_VOLTAGE_SUPPORT
+#ifdef CONFIG_HIGH_BATTERY_VOLTAGE_SUPPORT
 		cv_voltage = BATTERY_VOLT_04_340000_V;
 #else
 		cv_voltage = JEITA_TEMP_POS_10_TO_POS_45_CV_VOLTAGE;
@@ -783,7 +783,7 @@ static void pchr_turn_on_charging(void)
 
 			/*Set CV Voltage */
 #if !defined(CONFIG_MTK_JEITA_STANDARD_SUPPORT)
-#ifdef HIGH_BATTERY_VOLTAGE_SUPPORT
+#ifdef CONFIG_HIGH_BATTERY_VOLTAGE_SUPPORT
 			//<2014/08/14-tedwu, Set CV.
 			//<2015/01/20-tedwu, Add workaround for OVP_vbat of OVP chip due to layout.
 			#if defined(PMIC_LOW_VOLTAGE_WORKAROUND)

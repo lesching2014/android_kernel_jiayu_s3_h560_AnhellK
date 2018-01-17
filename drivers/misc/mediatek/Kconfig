@@ -62,6 +62,12 @@ config MTK_SHARED_SDCARD
 	help
 	  sdcard will be a folder of /data
 
+config HIGH_BATTERY_VOLTAGE_SUPPORT
+	bool "HIGH_BATTERY_VOLTAGE_SUPPORT"
+	default n
+	help
+	  This option is used to enable HIGH_BATTERY_VOLTAGE_SUPPORT support
+
 config MTK_MULTI_STORAGE_SUPPORT
 	bool "MTK_MULTI_STORAGE_SUPPORT"
 	help
