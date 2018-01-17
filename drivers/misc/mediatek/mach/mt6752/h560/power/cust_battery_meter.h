@@ -75,19 +75,19 @@
 //<2015/03/19-stevenchen, Fix kernel build error for open source kernel package.
 #else
 /* Qmax for battery  */
-#define Q_MAX_POS_50	2336
-#define Q_MAX_POS_25	2335
-#define Q_MAX_POS_0		942
-#define Q_MAX_NEG_10	50
+#define Q_MAX_POS_50	3060
+#define Q_MAX_POS_25	3040
+#define Q_MAX_POS_0	2837
+#define Q_MAX_NEG_10	2702
 
-#define Q_MAX_POS_50_H_CURRENT	2289
-#define Q_MAX_POS_25_H_CURRENT	2288
-#define Q_MAX_POS_0_H_CURRENT	  923
-#define Q_MAX_NEG_10_H_CURRENT	49
+#define Q_MAX_POS_50_H_CURRENT	3012
+#define Q_MAX_POS_25_H_CURRENT	2953
+#define Q_MAX_POS_0_H_CURRENT		2563
+#define Q_MAX_NEG_10_H_CURRENT	1393
 
 
 /* Discharge Percentage */
-#define OAM_D5		 1		//  1 : D5,   0: D2
+#define OAM_D5		 0		//  1 : D5,   0: D2
 //>2015/03/19-stevenchen
 #endif
 /*[Lavender][bozhi_lin] 20150211 end*/
@@ -111,7 +111,7 @@
 #elif defined(LAVENDER)
 #define CAR_TUNE_VALUE		97 //1.00
 #else
-#define CAR_TUNE_VALUE		97 //1.00
+#define CAR_TUNE_VALUE		102 //1.00
 #endif
 //>2015/03/17-tedwu
 
