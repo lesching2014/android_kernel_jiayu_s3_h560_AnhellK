@@ -87,7 +87,7 @@
 
 
 /* Discharge Percentage */
-#define OAM_D5		 0		//  1 : D5,   0: D2
+#define OAM_D5		 1		//  1 : D5,   0: D2
 //>2015/03/19-stevenchen
 #endif
 /*[Lavender][bozhi_lin] 20150211 end*/
