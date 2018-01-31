@@ -28,7 +28,7 @@
 #include <linux/time.h>
 #include <linux/delay.h>
 #include <linux/wakelock.h>
-#if WMT_CREATE_NODE_DYNAMIC
+#if REMOVE_MK_NODE
 #include <linux/device.h>
 #endif
 #include <linux/printk.h>
@@ -73,7 +73,7 @@ do { if (gDbgLevel >= BT_LOG_INFO)	\
 
 #define VERSION "2.0"
 
-#if WMT_CREATE_NODE_DYNAMIC
+#if REMOVE_MK_NODE
 struct class *stpbt_class = NULL;
 struct device *stpbt_dev = NULL;
 #endif
@@ -550,7 +550,7 @@ static int BT_init(void)
 	if (cdev_err)
 		goto error;
 
-#if WMT_CREATE_NODE_DYNAMIC
+#if REMOVE_MK_NODE
 	stpbt_class = class_create(THIS_MODULE, "stpbt");
 	if (IS_ERR(stpbt_class))
 		goto error;
@@ -569,7 +569,7 @@ static int BT_init(void)
 	return 0;
 
 error:
-#if WMT_CREATE_NODE_DYNAMIC
+#if REMOVE_MK_NODE
 	if (stpbt_dev && !IS_ERR(stpbt_dev)) {
 		device_destroy(stpbt_class, dev);
 		stpbt_dev = NULL;
@@ -594,7 +594,7 @@ static void BT_exit(void)
 	/* Destroy wake lock*/
 	wake_lock_destroy(&bt_wakelock);
 
-#if WMT_CREATE_NODE_DYNAMIC
+#if REMOVE_MK_NODE
 	if (stpbt_dev && !IS_ERR(stpbt_dev)) {
 		device_destroy(stpbt_class, dev);
 		stpbt_dev = NULL;
