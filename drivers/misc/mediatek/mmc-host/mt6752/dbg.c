@@ -2606,6 +2606,7 @@ static const struct file_operations msdc_voltage_flag_fops = {
 #endif
 int msdc_debug_proc_init(void)
 {
+#if 0
     struct proc_dir_entry *prEntry;
     struct proc_dir_entry *tune;
     struct proc_dir_entry *tune_flag;
@@ -2699,6 +2700,7 @@ int msdc_debug_proc_init(void)
     }else{
 		pr_err("[%s]: failed to create /proc/msdc_voltage_flag\n", __func__);
     }
+#endif
 #endif
     return 0 ;
 }
