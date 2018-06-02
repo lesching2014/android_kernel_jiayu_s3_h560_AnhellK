@@ -209,6 +209,19 @@ s32 nls_uni16s_to_sfn(struct super_block *sb, UNI_NAME_T *p_uniname, DOS_NAME_T 
 	return i;
 }
 
+/*======================================================================*/
+/*  Global Function Definitions                                         */
+/*======================================================================*/
+u16 *nls_wstrchr(u16 *str, u16 wchar)
+{
+	while (*str) {
+		if (*(str++) == wchar)
+			return str;
+	}
+
+	return 0;
+}
+
 s32 nls_sfn_to_uni16s(struct super_block *sb, DOS_NAME_T *p_dosname, UNI_NAME_T *p_uniname)
 {
 	s32 i = 0, j, n = 0;
