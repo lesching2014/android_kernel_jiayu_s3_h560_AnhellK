@@ -85,6 +85,19 @@ static u16 nls_upper(struct super_block *sb, u16 a)
 		return a;
 }
 
+/*======================================================================*/
+/*  Global Function Definitions                                         */
+/*======================================================================*/
+u16 *nls_wstrchr(u16 *str, u16 wchar)
+{
+	while (*str) {
+		if (*(str++) == wchar)
+			return str;
+	}
+
+	return 0;
+}
+
 s32 nls_cmp_sfn(struct super_block *sb, u8 *a, u8 *b)
 {
 	return strncmp((void *)a, (void *)b, DOS_NAME_LENGTH);
