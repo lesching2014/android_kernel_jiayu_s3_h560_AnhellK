@@ -6,7 +6,7 @@
 include $(srctree)/drivers/misc/mediatek/Makefile.custom
 
 ifeq ($(MTK_TABLET_HARDWARE), mt8752)
-#ccflags-y += -DMTK_TABLET_TURBO
+ccflags-y += -DMTK_TABLET_TURBO
 endif
 
 ifeq ($(CONFIG_MTK_TC1_FM_AT_SUSPEND),y)

@@ -1,5 +1,5 @@
 ifeq ($(MTK_TABLET_HARDWARE),mt8752)
-#ccflags-y += -DMTK_TABLET_TURBO
+ccflags-y += -DMTK_TABLET_TURBO
 endif
 
 include $(srctree)/drivers/misc/mediatek/Makefile.custom
