@@ -116,8 +116,8 @@
   #define MTK_TABLET_TURBO
 #else
   #ifdef MTK_TABLET_TURBO
-    #define GPU_DVFS_FREQT (728000)
-    #define GPU_DVFS_FREQT0 (650000)   // KHz
+    #define GPU_DVFS_FREQT (819000)
+    #define GPU_DVFS_FREQT0 (698750)   // KHz
   #endif
 #endif
 
