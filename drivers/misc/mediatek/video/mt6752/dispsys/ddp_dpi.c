@@ -79,10 +79,10 @@ static int dpi_reg_op_debug = 0;
 		if (cmdq) { \
 			*(unsigned int *)(&r) = ((unsigned int)0x00000000); r.bit = ~(r.bit);\
 			*(unsigned int *)(&v) = ((unsigned int)0x00000000); v.bit = value; \
-			DISP_REG_MASK(cmdq, &REG, AS_UINT32(&v), AS_UINT32(&r)); \
+			DISP_REG_MASK(cmdq, (unsigned long)&REG, AS_UINT32(&v), AS_UINT32(&r)); \
 		} else {\
 			mt_reg_sync_writel(INREG32(&REG), &r); r.bit = (value); \
-			DISP_REG_SET(cmdq, &REG, INREG32(&r));\
+			DISP_REG_SET(cmdq, (unsigned long)&REG, INREG32(&r));\
 		}				\
 	} while (0)
 #define DPI_MASKREG32(cmdq, REG, MASK, VALUE)	DISP_REG_MASK((cmdq), (REG), (VALUE), (MASK));
