@@ -73,7 +73,7 @@
 #include "dtc.h"
 #include "srcpos.h"
 
-YYLTYPE yylloc;
+extern YYLTYPE yylloc;
 
 extern int yylex(void);
 extern void print_error(char const *fmt, ...);
@@ -754,7 +754,7 @@ while (YYID (0))
 
 #define YYRHSLOC(Rhs, K) ((Rhs)[K])
 #ifndef YYLLOC_DEFAULT
-# define YYLLOC_DEFAULT(Current, Rhs, N)				\
+#define YYLLOC_DEFAULT(Current, Rhs, N)				\
     do									\
       if (YYID (N))                                                    \
 	{								\
